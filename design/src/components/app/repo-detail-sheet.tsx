@@ -1,12 +1,12 @@
 import { Archive, Check, ExternalLink, GitFork, Plus, Star, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { type Repo } from '@/data/mock';
-import { useStore } from '@/data/store';
-import { useI18n } from '@/i18n';
-import { cn, formatNumber, timeAgo } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Sheet } from '@/components/ui/overlays';
 import { Separator, Textarea } from '@/components/ui/primitives';
+import type { Repo } from '@/data/mock';
+import { useStore } from '@/data/store';
+import { useI18n } from '@/i18n';
+import { cn, formatNumber, timeAgo } from '@/lib/utils';
 import { LanguageDot } from './repo-item';
 import { TagDot } from './tag-pill';
 
@@ -20,8 +20,16 @@ export function RepoDetailSheet({
   onClose: () => void;
 }) {
   const { t, locale } = useI18n();
-  const { tags, collections, repoTags, notes, toggleRepoTag, toggleRepoInCollection, saveNote, deleteNote } =
-    useStore();
+  const {
+    tags,
+    collections,
+    repoTags,
+    notes,
+    toggleRepoTag,
+    toggleRepoInCollection,
+    saveNote,
+    deleteNote,
+  } = useStore();
 
   const [noteDraft, setNoteDraft] = useState('');
   const [editingNote, setEditingNote] = useState(false);
@@ -79,11 +87,9 @@ export function RepoDetailSheet({
                 <span>{t('repo.updated', { time: timeAgo(repo.pushedAt, locale) })}</span>
                 <span>{t('repo.starred', { time: timeAgo(repo.starredAt, locale) })}</span>
               </div>
-              <Button asChild={false} variant="outline" size="sm" className="w-full" onClick={() => undefined}>
-                <span className="flex items-center gap-2">
-                  <ExternalLink className="size-3.5" />
-                  {t('repo.openGithub')}
-                </span>
+              <Button variant="outline" size="sm" className="w-full" onClick={() => undefined}>
+                <ExternalLink className="size-3.5" />
+                {t('repo.openGithub')}
               </Button>
             </div>
 
@@ -96,7 +102,10 @@ export function RepoDetailSheet({
               </h4>
               <div className="flex flex-wrap gap-1.5">
                 {repo.topics.map((topic) => (
-                  <span key={topic} className="rounded bg-muted px-2 py-0.5 text-muted-foreground text-xs">
+                  <span
+                    key={topic}
+                    className="rounded bg-muted px-2 py-0.5 text-muted-foreground text-xs"
+                  >
                     {topic}
                   </span>
                 ))}
@@ -152,7 +161,9 @@ export function RepoDetailSheet({
                       <span
                         className={cn(
                           'flex size-4 items-center justify-center rounded border',
-                          active ? 'border-primary bg-primary text-primary-foreground' : 'border-input',
+                          active
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-input',
                         )}
                       >
                         {active ? <Check className="size-3" /> : null}
@@ -205,7 +216,9 @@ export function RepoDetailSheet({
                 </div>
               ) : note ? (
                 <div className="space-y-2 rounded-md border bg-muted/40 p-3">
-                  <p className="whitespace-pre-wrap text-pretty text-sm leading-relaxed">{note.body}</p>
+                  <p className="whitespace-pre-wrap text-pretty text-sm leading-relaxed">
+                    {note.body}
+                  </p>
                   <div className="flex items-center justify-between text-muted-foreground text-xs">
                     <span>{timeAgo(note.updatedAt, locale)}</span>
                     <div className="flex gap-1">

@@ -2,8 +2,7 @@ import { AlertCircle, Check, RefreshCw } from 'lucide-react';
 import { useAppState } from '@/app/app-state';
 import { Button } from '@/components/ui/button';
 import { useI18n } from '@/i18n';
-import { cn } from '@/lib/utils';
-import { timeAgo } from '@/lib/utils';
+import { cn, timeAgo } from '@/lib/utils';
 
 export function SyncButton() {
   const { syncStatus, startSync } = useAppState();

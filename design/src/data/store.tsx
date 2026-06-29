@@ -1,20 +1,13 @@
-import {
-  createContext,
-  type ReactNode,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from 'react';
+import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import {
   type Collection,
-  collections as seedCollections,
   type Note,
+  repos,
+  collections as seedCollections,
   notes as seedNotes,
   repoTagMap as seedRepoTagMap,
-  repos,
-  type Tag,
   tags as seedTags,
+  type Tag,
 } from './mock';
 
 const TAG_COLORS = ['chart-1', 'chart-2', 'chart-3', 'chart-4', 'chart-5'];
@@ -90,9 +83,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const renameCollection = useCallback((id: string, name: string, description?: string) => {
-    setCollections((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, name, description } : c)),
-    );
+    setCollections((prev) => prev.map((c) => (c.id === id ? { ...c, name, description } : c)));
   }, []);
 
   const deleteCollection = useCallback((id: string) => {

@@ -288,7 +288,8 @@ const en: Dict = {
   'settings.account': 'Account',
   'settings.connectedAs': 'Connected as',
   'settings.ai': 'AI (BYOK · Phase 3)',
-  'settings.aiDesc': 'Bring your own OpenAI/compatible key (encrypted) for semantic search & auto-tagging',
+  'settings.aiDesc':
+    'Bring your own OpenAI/compatible key (encrypted) for semantic search & auto-tagging',
   'settings.aiProvider': 'Provider',
   'settings.aiKey': 'API Key',
   'settings.aiKeyPlaceholder': 'sk-… (prototype only, never stored)',

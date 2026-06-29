@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
 import { formatStars, LANGUAGE_COLORS, type Repo, relativeTime } from '@/lib/mock-data';
-import { type Tag, TAG_COLOR_CLASSES } from '@/lib/store';
+import { TAG_COLOR_CLASSES, type Tag } from '@/lib/store';
 import { cn } from '@/lib/utils';
 
 export function LanguageDot({ language }: { language: string }) {

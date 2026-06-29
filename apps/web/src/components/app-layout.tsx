@@ -78,7 +78,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
                   const count = REPOS.filter((r) => r.collectionIds.includes(c.id)).length;
                   return (
                     <SidebarMenuItem key={c.id}>
-                      <SidebarMenuButton asChild isActive={location.pathname === `/app/collections/${c.id}`}>
+                      <SidebarMenuButton
+                        asChild
+                        isActive={location.pathname === `/app/collections/${c.id}`}
+                      >
                         <Link to={`/app/collections/${c.id}`}>
                           <Star />
                           <span className="truncate">{c.name}</span>

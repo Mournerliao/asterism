@@ -1,12 +1,5 @@
 import { createContext, type ReactNode, useContext, useMemo, useState } from 'react';
-import {
-  type Collection,
-  COLLECTIONS,
-  type Repo,
-  REPOS,
-  type Tag,
-  TAGS,
-} from './mock-data';
+import { COLLECTIONS, type Collection, REPOS, type Repo, TAGS, type Tag } from './mock-data';
 
 interface StoreValue {
   repos: Repo[];

@@ -81,7 +81,8 @@ export const REPOS: Repo[] = [
     fullName: 'vercel/next.js',
     name: 'next.js',
     owner: 'vercel',
-    description: 'The React Framework for the Web — used by some of the world\u2019s largest companies.',
+    description:
+      'The React Framework for the Web — used by some of the world\u2019s largest companies.',
     language: 'JavaScript',
     topics: ['react', 'framework', 'ssr', 'web'],
     stargazers: 128400,
@@ -364,7 +365,8 @@ export const REPOS: Repo[] = [
     fullName: 'ziglang/zig',
     name: 'zig',
     owner: 'ziglang',
-    description: 'General-purpose programming language and toolchain for maintaining robust, optimal software.',
+    description:
+      'General-purpose programming language and toolchain for maintaining robust, optimal software.',
     language: 'Zig',
     topics: ['language', 'systems', 'compiler'],
     stargazers: 38200,
@@ -384,7 +386,8 @@ export const REPOS: Repo[] = [
     fullName: 'rails/rails',
     name: 'rails',
     owner: 'rails',
-    description: 'Ruby on Rails — a web-application framework that includes everything needed to create database-backed web apps.',
+    description:
+      'Ruby on Rails — a web-application framework that includes everything needed to create database-backed web apps.',
     language: 'Ruby',
     topics: ['framework', 'web', 'mvc', 'backend'],
     stargazers: 56700,

@@ -2,27 +2,102 @@
 
 > 本文件定义 Asterism 的设计 tokens、组件使用规范、明暗模式、可访问性目标与品牌语气。它是设计层 verification 的依据。
 >
-> **重要**：本契约的设计 tokens 部分目前为 **TBD（待填）**。配色 / 字体 / 间距 / 圆角 / 明暗等具体取值，由用户用外部设计工具（如 [tweakcn](https://tweakcn.com)）产出后填入下方占位表格。在 tokens 填妥前，UI 实现不得自行臆造一套视觉风格。
+> **重要**：配色与圆角 tokens 已**暂定**为 shadcn 默认 *neutral* 主题（Tailwind v4 / oklch，见下表与完整 CSS），作为占位以便先推进开发；**最终品牌配色仍待定**。字体 / 间距等其余 tokens 暂为 **TBD（待填）**，由用户用外部设计工具（如 [tweakcn](https://tweakcn.com)）产出后填入。在对应 tokens 落定前，UI 实现一律采用本契约给出的值，不得自行臆造视觉风格。
 
-## Design Tokens · 设计 tokens（TBD）
+## Design Tokens · 设计 tokens（部分暂定）
 
-> 占位区。请用外部设计工具生成主题变量后，把取值填入下表。建议以 CSS 变量 / shadcn theme 形式落到 `packages/ui`，并保持 light / dark 两套。
+> 配色与圆角已暂用 shadcn 默认主题占位（见下）；字体 / 间距仍为占位区，待用外部设计工具产出后填入。所有 tokens 以 CSS 变量 / shadcn theme 形式落到 `packages/ui` 的 `globals.css`，保持 light / dark 两套。
 
-### Color Palette · 配色（TBD）
+### Color Palette · 配色（暂定 · shadcn 默认 neutral）
+
+> 已**暂定**采用 shadcn 默认 *neutral* 主题作为占位，先推进开发；**最终品牌配色待定**，确定后整体替换本节。值以 Tailwind v4 / oklch 为准（括号内为近似 hex，仅供肉眼参考）。
 
 | Token | 用途 | Light 值 | Dark 值 |
 | --- | --- | --- | --- |
-| `--background` | 页面背景 | _TBD_ | _TBD_ |
-| `--foreground` | 主文字 | _TBD_ | _TBD_ |
-| `--primary` | 主色 / 主按钮 | _TBD_ | _TBD_ |
-| `--primary-foreground` | 主色上的文字 | _TBD_ | _TBD_ |
-| `--secondary` | 次要色 | _TBD_ | _TBD_ |
-| `--muted` | 弱化背景 | _TBD_ | _TBD_ |
-| `--muted-foreground` | 弱化文字 | _TBD_ | _TBD_ |
-| `--accent` | 强调 / 高亮 | _TBD_ | _TBD_ |
-| `--destructive` | 危险 / 删除 | _TBD_ | _TBD_ |
-| `--border` | 边框 | _TBD_ | _TBD_ |
-| `--ring` | 焦点环 | _TBD_ | _TBD_ |
+| `--background` | 页面背景 | `oklch(1 0 0)` ≈ #FFFFFF | `oklch(0.145 0 0)` ≈ #242424 |
+| `--foreground` | 主文字 | `oklch(0.145 0 0)` ≈ #242424 | `oklch(0.985 0 0)` ≈ #FAFAFA |
+| `--primary` | 主色 / 主按钮 | `oklch(0.205 0 0)` ≈ #343434 | `oklch(0.922 0 0)` ≈ #EBEBEB |
+| `--primary-foreground` | 主色上的文字 | `oklch(0.985 0 0)` ≈ #FAFAFA | `oklch(0.205 0 0)` ≈ #343434 |
+| `--secondary` | 次要色 | `oklch(0.97 0 0)` ≈ #F5F5F5 | `oklch(0.269 0 0)` ≈ #434343 |
+| `--muted` | 弱化背景 | `oklch(0.97 0 0)` ≈ #F5F5F5 | `oklch(0.269 0 0)` ≈ #434343 |
+| `--muted-foreground` | 弱化文字 | `oklch(0.556 0 0)` ≈ #8E8E8E | `oklch(0.708 0 0)` ≈ #B5B5B5 |
+| `--accent` | 强调 / 高亮（悬停 / 选中底） | `oklch(0.97 0 0)` ≈ #F5F5F5 | `oklch(0.269 0 0)` ≈ #434343 |
+| `--destructive` | 危险 / 删除 | `oklch(0.577 0.245 27.325)` ≈ #DC2B2B | `oklch(0.704 0.191 22.216)` ≈ #E5564B |
+| `--border` | 边框 | `oklch(0.922 0 0)` ≈ #EBEBEB | `oklch(1 0 0 / 10%)`（白 10%） |
+| `--ring` | 焦点环 | `oklch(0.708 0 0)` ≈ #B5B5B5 | `oklch(0.556 0 0)` ≈ #8E8E8E |
+
+> 完整 token（含 `card` / `popover` / `input` / `*-foreground` / `chart-*` / `sidebar-*` / `--radius`）以下方 CSS 为准；脚手架阶段经 `shadcn init` 注入 `packages/ui` 的 `globals.css`，其中 `@theme inline` 映射与 base layer 用 shadcn 标准脚手架。
+
+```css
+:root {
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.145 0 0);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.97 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.97 0 0);
+  --muted-foreground: oklch(0.556 0 0);
+  --accent: oklch(0.97 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.922 0 0);
+  --input: oklch(0.922 0 0);
+  --ring: oklch(0.708 0 0);
+  --chart-1: oklch(0.646 0.222 41.116);
+  --chart-2: oklch(0.6 0.118 184.704);
+  --chart-3: oklch(0.398 0.07 227.392);
+  --chart-4: oklch(0.828 0.189 84.429);
+  --chart-5: oklch(0.769 0.188 70.08);
+  --sidebar: oklch(0.985 0 0);
+  --sidebar-foreground: oklch(0.145 0 0);
+  --sidebar-primary: oklch(0.205 0 0);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.97 0 0);
+  --sidebar-accent-foreground: oklch(0.205 0 0);
+  --sidebar-border: oklch(0.922 0 0);
+  --sidebar-ring: oklch(0.708 0 0);
+}
+
+.dark {
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.205 0 0);
+  --card-foreground: oklch(0.985 0 0);
+  --popover: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.985 0 0);
+  --primary: oklch(0.922 0 0);
+  --primary-foreground: oklch(0.205 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.708 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --destructive: oklch(0.704 0.191 22.216);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: oklch(0.556 0 0);
+  --chart-1: oklch(0.488 0.243 264.376);
+  --chart-2: oklch(0.696 0.17 162.48);
+  --chart-3: oklch(0.769 0.188 70.08);
+  --chart-4: oklch(0.627 0.265 303.9);
+  --chart-5: oklch(0.645 0.246 16.439);
+  --sidebar: oklch(0.205 0 0);
+  --sidebar-foreground: oklch(0.985 0 0);
+  --sidebar-primary: oklch(0.488 0.243 264.376);
+  --sidebar-primary-foreground: oklch(0.985 0 0);
+  --sidebar-accent: oklch(0.269 0 0);
+  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.556 0 0);
+}
+```
 
 ### Typography · 字体（TBD）
 
@@ -41,13 +116,15 @@
 | 间距基准单位（如 4px / 8px 栅格） | _TBD_ |
 | 间距阶梯（xs / sm / md / lg / xl） | _TBD_ |
 
-### Radius · 圆角（TBD）
+### Radius · 圆角（暂定 · shadcn 默认）
+
+> 基准 `--radius: 0.625rem`（shadcn 默认）；下列为派生档位，最终可随品牌定稿调整。
 
 | Token | 用途 | 值 |
 | --- | --- | --- |
-| `--radius-sm` | 小元素（标签 / 输入） | _TBD_ |
-| `--radius-md` | 卡片 / 按钮 | _TBD_ |
-| `--radius-lg` | 弹层 / 大容器 | _TBD_ |
+| `--radius-sm` | 小元素（标签 / 输入） | `calc(var(--radius) * 0.6)` ≈ 0.375rem |
+| `--radius-md` | 卡片 / 按钮 | `calc(var(--radius) * 0.8)` ≈ 0.5rem |
+| `--radius-lg` | 弹层 / 大容器 | `var(--radius)` = 0.625rem |
 
 ### Dark Mode Tokens · 暗色（TBD）
 

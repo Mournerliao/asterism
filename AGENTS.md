@@ -1,0 +1,89 @@
+# AGENTS.md
+
+Asterism is an open-source, self-hostable GitHub Star manager (responsive web
+first; browser extension and desktop later). This file is the entry contract for
+any AI agent working in this repository.
+
+## Single source of truth
+
+**`knowledge/` is the single source of truth.** It is plain, tool-agnostic
+markdown organized for Loop Engineering (contracts, decisions, roadmap, loops,
+durable state, logs).
+
+Before doing any task, **read first**:
+
+1. `knowledge/contracts/` — what "correct" and "done" mean (product,
+   architecture, data-model, conventions, ui-ux).
+2. `knowledge/state/PROGRESS.md` — current progress and where to resume.
+
+If the request conflicts with the contracts, surface the conflict instead of
+silently diverging.
+
+## Loop discipline
+
+- **Execute** per the loop definitions in `knowledge/loops/`.
+- **Completion is judged by acceptance criteria in `knowledge/contracts/`** —
+  not by "it looks done." Verify against the relevant contract before stopping.
+- **On finishing**, update `knowledge/state/` (PROGRESS / NOTES / BACKLOG) and
+  append a record to `knowledge/logs/`.
+- **Record important decisions** as ADRs in `knowledge/decisions/` (one decision
+  per file: context, trade-offs, conclusion).
+
+## Runtime baseline
+
+Node 22 · pnpm · Turborepo · Biome · Vitest. Do not introduce alternative
+runtimes, package managers, or test/lint tools without an ADR.
+
+## Directory boundaries
+
+- **Business logic** → `packages/core`.
+- **UI** → `packages/ui`.
+- **Data access** → only via `packages/db` (Supabase client, queries, local
+  cache). No direct data access scattered across apps.
+- **Shared packages** (`core`, `ui`, `db`, `config`) must **not** contain
+  platform-specific APIs (no `chrome.*`, no Tauri, no DOM-only assumptions where
+  shared). Platform code belongs in `apps/*`.
+
+## Conventions
+
+- **TypeScript strict** everywhere.
+- **Biome** for lint and format (`pnpm lint` / `pnpm format`); do not add other
+  linters/formatters.
+- **Avoid narrating comments.** Comments explain non-obvious intent or
+  trade-offs, never restate the code.
+
+## UI rules
+
+- Follow the design tokens and rules in `knowledge/contracts/ui-ux.md`.
+- **Never invent new styles** or ad-hoc colors/spacing/typography — use the
+  defined tokens and components.
+- **Generate UI via `knowledge/loops/ui-generation.loop.md`**: produce with the
+  approved workflow, align to the ui-ux contract, review, then land in
+  `packages/ui` and pass accessibility checks.
+
+## Internationalization (i18n)
+
+- **Externalize all user-facing strings.** No hardcoded UI text.
+- Locales: **English (`en`, default) + Simplified Chinese (`zh-CN`)** from the
+  start. Add keys for both.
+
+## Releases
+
+- Versioning and changelogs via **Changesets**.
+- Packages use the **`@asterism/*`** scope. Shared packages are currently private
+  workspace packages (not published to npm).
+
+## Commit rules
+
+- **Conventional Commits**, auto-checked by **commitlint + lefthook**.
+- **Subject in English**: `type(scope): short summary`.
+- **Body in Chinese (中文)**: explain the *why*.
+- **Never bypass hooks** (no `--no-verify` / skipping commit-msg or pre-commit).
+
+## Security guardrails
+
+- **Never commit secrets.** No API keys, tokens, or credentials in the repo.
+- **`.env` is never committed** (only `.env.example` is tracked).
+- **BYOK keys are encrypted at rest** — never store user API keys in plaintext.
+- **Keep `knowledge/` in sync** with every behavior/scope/decision change; a
+  change that does not update the knowledge base is incomplete.

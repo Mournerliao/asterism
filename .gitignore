@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+.output/
+.wxt/
+.vite/
+
+# Tauri (desktop, later)
+src-tauri/target/
+
+# Test / coverage
+coverage/
+
+# Turborepo
+.turbo/
+
+# Caches
+.cache/
+
+# Logs
+*.log
+
+# Environment (never commit secrets)
+.env
+.env.*
+!.env.example
+
+# Local overrides
+*.local
+
+# OS
+.DS_Store

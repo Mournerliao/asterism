@@ -2,12 +2,16 @@
   "app": {
     "name": "Asterism",
     "tagline": "Organize your GitHub stars into a meaningful constellation.",
-    "coreVersion": "Core version: {{version}}",
-    "supabaseConfigured": "Supabase: configured",
-    "supabaseNotConfigured": "Supabase: not configured yet"
+    "coreVersion": "Core version: {{version}}"
+  },
+  "auth": {
+    "loading": "Checking session…",
+    "signInWithGitHub": "Sign in with GitHub",
+    "signOut": "Sign out",
+    "signedInAs": "Signed in as {{name}}",
+    "signedOut": "You are not signed in."
   },
   "actions": {
-    "toggleLanguage": "Switch language",
-    "probeSupabase": "Check Supabase"
+    "toggleLanguage": "Switch language"
   }
 }

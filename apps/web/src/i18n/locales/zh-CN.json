@@ -1,0 +1,13 @@
+{
+  "app": {
+    "name": "Asterism",
+    "tagline": "把杂乱的 GitHub Star 连成有意义的星座。",
+    "coreVersion": "Core 版本：{{version}}",
+    "supabaseConfigured": "Supabase：已配置",
+    "supabaseNotConfigured": "Supabase：尚未配置"
+  },
+  "actions": {
+    "toggleLanguage": "切换语言",
+    "probeSupabase": "检测 Supabase"
+  }
+}

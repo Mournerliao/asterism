@@ -15,14 +15,16 @@
 
 ## 未落地的工作项（基础设施）
 
-- [ ] **CI（GitHub Actions）未建**：尚未配置流水线（lint / typecheck / test / build）。属 Phase 0 范畴。
+- [x] **CI（GitHub Actions）已建**：`.github/workflows/ci.yml` 跑 lint / typecheck / test / build（pnpm + Node 22，纯 Node）。2026-06-29 落地。
 - [ ] **发布工程细化**：Changesets 已配根，但发布流程（版本、changelog、tag）待 Phase 0+ 跑通。
+- [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化按计划留到 **Phase 2**（见 `decisions/0004`）。
+- [ ] **Biome 不约束 CSS**：因 Tailwind v4 语法，`*.css` 已排除出 Biome；如需 CSS 规范后续再决策（见 `decisions/0004`）。
 
 ## 未来任务（按阶段）
 
 详见 `knowledge/roadmap.md` 的阶段拆分：
 
-- [ ] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、Supabase 项目 + schema + RLS、GitHub OAuth 打通
+- [ ] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI 已完成；**剩余** Supabase 项目 + schema + RLS、GitHub OAuth 打通（待凭据）
 - [ ] **Phase 1 · Web MVP**：同步 stars、卡片/列表 + 虚拟滚动、多维筛选与搜索、标签、集合、笔记、统计仪表盘、导入导出
 - [ ] **Phase 2 · 扩展**：WXT popup 快搜 + content-script 页内操作、共享会话
 - [ ] **Phase 3 · AI（BYOK）**：pgvector 向量化、语义搜索、AI 自动分类、Edge Functions

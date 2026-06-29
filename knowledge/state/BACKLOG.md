@@ -26,7 +26,7 @@
 
 详见 `knowledge/roadmap.md` 的阶段拆分：
 
-- [ ] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录代码均已就位；**剩余**为用户后台动作——应用迁移 + 配置 GitHub provider 后端到端验证登录（见 `supabase/README.md`）
+- [x] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均已完成；2026-06-29 迁移已应用 + 登录端到端验证通过，验收达成
 - [ ] **Phase 1 · Web MVP**：同步 stars、卡片/列表 + 虚拟滚动、多维筛选与搜索、标签、集合、笔记、统计仪表盘、导入导出
 - [ ] **Phase 2 · 扩展**：WXT popup 快搜 + content-script 页内操作、共享会话
 - [ ] **Phase 3 · AI（BYOK）**：pgvector 向量化、语义搜索、AI 自动分类、Edge Functions

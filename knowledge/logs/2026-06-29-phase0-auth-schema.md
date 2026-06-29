@@ -38,7 +38,8 @@
 ## Outcome（结果）
 
 Phase 0 代码侧完成：登录链路（`db` 辅助 + `web` UI）与初始 schema/RLS 迁移就位，工程门全绿。
-端到端登录尚待用户在 Supabase 后台应用迁移并配置 GitHub provider。
+
+**2026-06-29 验证更新**：用户注册 GitHub **OAuth App**（callback 指向 Supabase）、在 Supabase 配置 GitHub provider 与 Redirect URLs 后，本地 `apps/web` 点击「使用 GitHub 登录」**端到端跑通**——成功回流并显示当前用户邮箱。用户确认数据库迁移（schema + RLS）也已在 Supabase 应用。**Phase 0 验收达成**（本地启动 Web + GitHub 登录 + 读到当前用户基础信息）。
 
 ## Follow-ups（后续，需用户后台动作）
 

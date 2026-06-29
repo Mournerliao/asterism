@@ -1,0 +1,9 @@
+{
+  "name": "@asterism/desktop",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo '@asterism/desktop placeholder — the Tauri 2 desktop shell lands in Phase 4 (see README).'"
+  }
+}

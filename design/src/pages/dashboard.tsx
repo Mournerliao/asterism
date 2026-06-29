@@ -153,10 +153,7 @@ export function DashboardPage() {
                 />
                 <Bar dataKey="value" radius={[0, 4, 4, 0]}>
                   {stats.languageData.map((entry) => (
-                    <Cell
-                      key={entry.name}
-                      fill={LANGUAGE_COLORS[entry.name] ?? 'var(--chart-1)'}
-                    />
+                    <Cell key={entry.name} fill={LANGUAGE_COLORS[entry.name] ?? 'var(--chart-1)'} />
                   ))}
                 </Bar>
               </BarChart>

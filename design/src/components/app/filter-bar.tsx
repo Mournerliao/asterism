@@ -1,18 +1,18 @@
 import { Check, ChevronDown, ListFilter, X } from 'lucide-react';
 import { useRef, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Popover } from '@/components/ui/overlays';
+import { Badge } from '@/components/ui/primitives';
 import { allLanguages, allTopics, LANGUAGE_COLORS } from '@/data/mock';
 import { useStore } from '@/data/store';
 import { useI18n } from '@/i18n';
 import {
   type ArchivedFilter,
-  type FilterState,
   activeFilterCount,
+  type FilterState,
   type UpdatedFilter,
 } from '@/lib/filters';
 import { cn } from '@/lib/utils';
-import { Badge } from '@/components/ui/primitives';
-import { Button } from '@/components/ui/button';
-import { Popover } from '@/components/ui/overlays';
 import { TagDot } from './tag-pill';
 
 const STAR_OPTIONS = [0, 100, 1000, 10000, 50000];

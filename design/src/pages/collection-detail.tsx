@@ -22,7 +22,9 @@ export function CollectionDetailPage() {
   );
 
   const tagsFor = (repoId: string) =>
-    (repoTags[repoId] ?? []).map((tid) => tags.find((tg) => tg.id === tid)).filter(Boolean) as never[];
+    (repoTags[repoId] ?? [])
+      .map((tid) => tags.find((tg) => tg.id === tid))
+      .filter(Boolean) as never[];
 
   if (!collection) {
     return (

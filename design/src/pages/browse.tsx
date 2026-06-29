@@ -1,13 +1,13 @@
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArrowUpDown, LayoutGrid, List, Search } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
-import { RepoDetailSheet } from '@/components/app/repo-detail-sheet';
+import { useSearch } from '@/App';
 import { FilterBar } from '@/components/app/filter-bar';
+import { RepoDetailSheet } from '@/components/app/repo-detail-sheet';
 import { RepoCard, RepoRow } from '@/components/app/repo-item';
 import { Button } from '@/components/ui/button';
 import { Popover } from '@/components/ui/overlays';
 import { repos, useStore } from '@/data/store';
-import { useSearch } from '@/App';
 import { useI18n } from '@/i18n';
 import {
   applyFilters,
@@ -40,7 +40,9 @@ export function BrowsePage() {
   }, [filters, search, repoTags, sort]);
 
   const tagsFor = (repoId: string) =>
-    (repoTags[repoId] ?? []).map((id) => tags.find((tg) => tg.id === id)).filter(Boolean) as never[];
+    (repoTags[repoId] ?? [])
+      .map((id) => tags.find((tg) => tg.id === id))
+      .filter(Boolean) as never[];
 
   // Grid: chunk into rows for the virtualizer.
   const COLS = 3;
@@ -140,9 +142,7 @@ export function BrowsePage() {
         </div>
       ) : (
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-6 py-4">
-          <div
-            style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}
-          >
+          <div style={{ height: virtualizer.getTotalSize(), position: 'relative', width: '100%' }}>
             {virtualizer.getVirtualItems().map((vItem) => {
               if (view === 'list') {
                 const repo = filtered[vItem.index];

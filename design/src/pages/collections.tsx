@@ -112,12 +112,7 @@ export function CollectionsPage() {
         <div className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="col-name">{t('collections.name')}</Label>
-            <Input
-              id="col-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              autoFocus
-            />
+            <Input id="col-name" value={name} onChange={(e) => setName(e.target.value)} autoFocus />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="col-desc">{t('collections.description')}</Label>

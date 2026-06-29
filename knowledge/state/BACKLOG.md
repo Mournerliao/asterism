@@ -19,12 +19,14 @@
 - [ ] **发布工程细化**：Changesets 已配根，但发布流程（版本、changelog、tag）待 Phase 0+ 跑通。
 - [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化按计划留到 **Phase 2**（见 `decisions/0004`）。
 - [ ] **Biome 不约束 CSS**：因 Tailwind v4 语法，`*.css` 已排除出 Biome；如需 CSS 规范后续再决策（见 `decisions/0004`）。
+- [ ] **DB 强类型查询**：`packages/db` 当前用未带 `Database` 泛型的 `SupabaseClient`；进入 Phase 1 接入查询时用 `supabase gen types typescript` 生成类型并收紧客户端泛型。
+- [ ] **迁移版本管理**：迁移文件用时间戳前缀（兼容 `supabase db push`）。若团队统一改用 Supabase CLI 流程，需在 ADR 固化「迁移即源、禁止手改线上」纪律。
 
 ## 未来任务（按阶段）
 
 详见 `knowledge/roadmap.md` 的阶段拆分：
 
-- [ ] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI 已完成；**剩余** Supabase 项目 + schema + RLS、GitHub OAuth 打通（待凭据）
+- [ ] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录代码均已就位；**剩余**为用户后台动作——应用迁移 + 配置 GitHub provider 后端到端验证登录（见 `supabase/README.md`）
 - [ ] **Phase 1 · Web MVP**：同步 stars、卡片/列表 + 虚拟滚动、多维筛选与搜索、标签、集合、笔记、统计仪表盘、导入导出
 - [ ] **Phase 2 · 扩展**：WXT popup 快搜 + content-script 页内操作、共享会话
 - [ ] **Phase 3 · AI（BYOK）**：pgvector 向量化、语义搜索、AI 自动分类、Edge Functions

@@ -18,9 +18,9 @@
 `TODO（Phase 0）`：
 
 - [ ] 确认公共实例域名（替换占位 `asterism.dev`）
-- [ ] 记录 Supabase 项目创建与 schema/RLS 初始化步骤（对齐 `contracts/data-model.md`）
+- [x] 记录 Supabase schema/RLS 初始化步骤 —— 见 `supabase/README.md`（迁移文件对齐 `contracts/data-model.md`）
 - [ ] 记录静态托管的构建命令与产物目录
-- [ ] 记录公共 GitHub OAuth App 的回调 URL 配置
+- [x] 记录 GitHub OAuth App 的回调 URL 配置 —— 见 `supabase/README.md`
 
 ### 路径 B：自部署者（自有实例）
 
@@ -33,8 +33,8 @@
 `TODO（Phase 0）`：
 
 - [ ] 提供 `docker-compose.yml`（或引用官方 Supabase self-host compose）与最小配置说明
-- [ ] 提供数据库迁移/初始化命令（schema + RLS + pgvector 扩展）
-- [ ] 写明 GitHub OAuth App 注册步骤与回调 URL 格式
+- [x] 提供数据库迁移/初始化命令（schema + RLS + pgvector 扩展）—— 见 `supabase/README.md` 与 `supabase/migrations/`
+- [x] 写明 GitHub OAuth App 注册步骤与回调 URL 格式 —— 见 `supabase/README.md`
 - [ ] 写明前端如何指向自有后端（构建期/运行期环境变量注入）
 - [ ] 说明 BYOK 密钥加密存储所需配置（Phase 3）
 
@@ -43,16 +43,14 @@
 > 以下为骨架占位，变量名以最终代码实现为准；**切勿把真实密钥提交进仓库**，使用 `.env`（已被 `.gitignore` 忽略）。
 
 ```bash
-# Supabase —— 前端与服务端访问后端所需
-SUPABASE_URL=            # 自有/公共 Supabase 实例 URL，例如 https://xxxx.supabase.co 或自托管地址
-SUPABASE_ANON_KEY=       # Supabase anon public key（前端使用）
-# SUPABASE_SERVICE_ROLE_KEY=   # 仅服务端/Edge Functions，切勿暴露给前端  TODO 确认是否需要
+# Supabase —— 前端访问后端所需（Vite 客户端变量，见仓库根 .env.example）
+VITE_SUPABASE_URL=               # Supabase 实例 URL，例如 https://xxxx.supabase.co 或自托管地址
+VITE_SUPABASE_PUBLISHABLE_KEY=   # Publishable key（sb_publishable_...，取代旧 anon key，前端使用）
+# Secret key（sb_secret_...，取代 service_role）仅服务端/Edge Functions 使用，切勿暴露给前端
 
-# GitHub OAuth App —— 用于 GitHub 登录
-GITHUB_OAUTH_CLIENT_ID=      # GitHub OAuth App 的 Client ID
-GITHUB_OAUTH_CLIENT_SECRET=  # GitHub OAuth App 的 Client Secret（服务端保密）
-# 回调 URL（在 GitHub OAuth App 中配置，非环境变量）：
-#   指向 Supabase Auth 的 callback，例如 {SUPABASE_URL}/auth/v1/callback   TODO 确认实际路径
+# GitHub OAuth App —— 在 Supabase 后台 Authentication → Providers → GitHub 配置（非前端 .env）
+#   GitHub OAuth App 的 Client ID / Secret 填入 Supabase 后台
+#   回调 URL：{SUPABASE_URL}/auth/v1/callback（在 GitHub OAuth App 中配置）
 ```
 
 `TODO（Phase 0）`：
@@ -63,6 +61,7 @@ GITHUB_OAUTH_CLIENT_SECRET=  # GitHub OAuth App 的 Client Secret（服务端保
 
 ## 相关参考
 
+- Supabase 迁移应用 + GitHub OAuth 配置步骤：`supabase/README.md`
 - 架构与 OAuth/权限：`knowledge/contracts/architecture.md`
 - 数据模型与 RLS：`knowledge/contracts/data-model.md`
 - 决策（为何选 Supabase）：`knowledge/decisions/0001-supabase-baas.md`

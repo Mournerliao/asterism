@@ -1,0 +1,5 @@
+/* Inherits the full neutral theme (light + dark) and tokens from the UI package. */
+@import '@asterism/ui/globals.css';
+
+/* Scan the web app's own source for Tailwind utility classes. */
+@source './';

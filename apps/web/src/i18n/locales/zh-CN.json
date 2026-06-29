@@ -11,7 +11,30 @@
     "signedInAs": "已登录：{{name}}",
     "signedOut": "尚未登录。"
   },
+  "nav": {
+    "browse": "浏览",
+    "collections": "标签与集合",
+    "dashboard": "统计",
+    "settings": "设置",
+    "library": "我的星图"
+  },
+  "common": {
+    "search": "搜索仓库…",
+    "repos": "仓库",
+    "tags": "标签",
+    "collections": "集合",
+    "notes": "笔记",
+    "all": "全部",
+    "clear": "清除",
+    "cancel": "取消",
+    "save": "保存",
+    "create": "新建",
+    "rename": "重命名",
+    "delete": "删除",
+    "sync": "同步 Star"
+  },
   "actions": {
-    "toggleLanguage": "切换语言"
+    "toggleLanguage": "切换语言",
+    "toggleTheme": "切换主题"
   }
 }

@@ -1,7 +1,7 @@
 {
   "app": {
     "name": "Asterism",
-    "tagline": "Organize your GitHub stars into a meaningful constellation.",
+    "tagline": "Turn your scattered GitHub stars into a meaningful constellation.",
     "coreVersion": "Core version: {{version}}"
   },
   "auth": {
@@ -11,7 +11,30 @@
     "signedInAs": "Signed in as {{name}}",
     "signedOut": "You are not signed in."
   },
+  "nav": {
+    "browse": "Browse",
+    "collections": "Tags & Collections",
+    "dashboard": "Insights",
+    "settings": "Settings",
+    "library": "My Star Map"
+  },
+  "common": {
+    "search": "Search repositories…",
+    "repos": "Repositories",
+    "tags": "Tags",
+    "collections": "Collections",
+    "notes": "Notes",
+    "all": "All",
+    "clear": "Clear",
+    "cancel": "Cancel",
+    "save": "Save",
+    "create": "New",
+    "rename": "Rename",
+    "delete": "Delete",
+    "sync": "Sync stars"
+  },
   "actions": {
-    "toggleLanguage": "Switch language"
+    "toggleLanguage": "Switch language",
+    "toggleTheme": "Toggle theme"
   }
 }

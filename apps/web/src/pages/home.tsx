@@ -1,26 +1,29 @@
 import { CORE_VERSION } from '@asterism/core';
-import { createSupabaseClient } from '@asterism/db';
+import { signInWithGitHub, signOut } from '@asterism/db';
 import { Button } from '@asterism/ui';
 import { useTranslation } from 'react-i18next';
+import { useSession } from '../auth/use-session';
+import { supabase } from '../lib/supabase';
 
 export function HomePage() {
   const { t, i18n } = useTranslation();
-
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-  const supabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+  const { session, loading } = useSession();
 
   function toggleLanguage() {
     void i18n.changeLanguage(i18n.resolvedLanguage === 'zh-CN' ? 'en' : 'zh-CN');
   }
 
-  function probeSupabase() {
-    if (!supabaseUrl || !supabaseAnonKey) {
-      return;
-    }
-    // 仅用于验证依赖图打通：构造客户端本身不会发起网络请求。
-    createSupabaseClient(supabaseUrl, supabaseAnonKey);
+  function handleSignIn() {
+    void signInWithGitHub(supabase, window.location.origin);
   }
+
+  function handleSignOut() {
+    void signOut(supabase);
+  }
+
+  const user = session?.user;
+  const displayName =
+    user?.email ?? (user?.user_metadata.user_name as string | undefined) ?? user?.id ?? '';
 
   return (
     <main className="mx-auto flex min-h-svh max-w-2xl flex-col justify-center gap-6 px-6 py-16">
@@ -29,17 +32,36 @@ export function HomePage() {
         <p className="text-muted-foreground text-lg">{t('app.tagline')}</p>
       </header>
 
-      <dl className="flex flex-col gap-1 text-muted-foreground text-sm">
-        <dd>{t('app.coreVersion', { version: CORE_VERSION })}</dd>
-        <dd>{supabaseConfigured ? t('app.supabaseConfigured') : t('app.supabaseNotConfigured')}</dd>
-      </dl>
+      <section className="flex flex-col gap-3">
+        {loading ? (
+          <p className="text-muted-foreground text-sm">{t('auth.loading')}</p>
+        ) : session ? (
+          <>
+            <p className="text-sm">{t('auth.signedInAs', { name: displayName })}</p>
+            <div>
+              <Button variant="outline" onClick={handleSignOut}>
+                {t('auth.signOut')}
+              </Button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-muted-foreground text-sm">{t('auth.signedOut')}</p>
+            <div>
+              <Button onClick={handleSignIn}>{t('auth.signInWithGitHub')}</Button>
+            </div>
+          </>
+        )}
+      </section>
 
-      <div className="flex flex-wrap gap-3">
-        <Button onClick={toggleLanguage}>{t('actions.toggleLanguage')}</Button>
-        <Button variant="outline" disabled={!supabaseConfigured} onClick={probeSupabase}>
-          {t('actions.probeSupabase')}
+      <footer className="flex flex-wrap items-center justify-between gap-3 border-border border-t pt-4">
+        <p className="text-muted-foreground text-sm">
+          {t('app.coreVersion', { version: CORE_VERSION })}
+        </p>
+        <Button variant="ghost" size="sm" onClick={toggleLanguage}>
+          {t('actions.toggleLanguage')}
         </Button>
-      </div>
+      </footer>
     </main>
   );
 }

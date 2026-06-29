@@ -2,12 +2,16 @@
   "app": {
     "name": "Asterism",
     "tagline": "把杂乱的 GitHub Star 连成有意义的星座。",
-    "coreVersion": "Core 版本：{{version}}",
-    "supabaseConfigured": "Supabase：已配置",
-    "supabaseNotConfigured": "Supabase：尚未配置"
+    "coreVersion": "Core 版本：{{version}}"
+  },
+  "auth": {
+    "loading": "正在检查登录态…",
+    "signInWithGitHub": "使用 GitHub 登录",
+    "signOut": "退出登录",
+    "signedInAs": "已登录：{{name}}",
+    "signedOut": "尚未登录。"
   },
   "actions": {
-    "toggleLanguage": "切换语言",
-    "probeSupabase": "检测 Supabase"
+    "toggleLanguage": "切换语言"
   }
 }

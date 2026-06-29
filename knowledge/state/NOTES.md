@@ -23,6 +23,12 @@
 
 开源、可自部署的多端 GitHub Star 管理器：**TypeScript + React + Tailwind/shadcn-ui** 前端，**Supabase**（Auth/Postgres/pgvector/Edge Functions/Realtime）后端，**pnpm + Turborepo + Vite + Vitest + Biome** 工具链，端顺序 Web → 扩展 → 桌面（共享 `core`/`ui`/`db`）。
 
+## Phase 0 脚手架便签
+
+- **本地骨架已就位**：`pnpm install` 后，`pnpm dev`（turbo）可起各端；`apps/web` 用 `pnpm --filter @asterism/web dev`。四道门：`pnpm lint` / `typecheck` / `test` / `build`。
+- **依赖版本**：由 `pnpm add` 在 2026-06 解析（如 TS 6、Vite 8、Vitest 4、React 19、WXT 0.20.x），以 `pnpm-lock.yaml` 为准，未手写臆造版本。
+- **恢复点**：下一步是凭据 handoff（Supabase + GitHub OAuth），见 `PROGRESS.md` 与 `logs/2026-06-29-phase0-scaffold.md`。
+
 ## 待办提醒（便签级）
 
 - **配色 / 设计 tokens 待定**：色板/字体/间距/圆角/明暗等设计 tokens 由用户用**外部设计工具**产出后，填入 `knowledge/contracts/ui-ux.md`（当前为占位）。在 tokens 落定前，UI 生成（`loops/ui-generation.loop.md`）不要凭空造配色。

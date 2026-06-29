@@ -6,30 +6,33 @@
 
 ## 当前状态
 
-**阶段：初始化（Initialization）— 已完成。**
+**阶段：Phase 0 脚手架（Scaffold）— 本地骨架已完成，等待 Supabase / GitHub OAuth 凭据。**
 
-已完成事项：
+初始化（Initialization）已于 2026-06-29 完成（知识库 + 开源基础 + Monorepo 根配置 + 提交钩子 + 首次提交）。
 
-- 已建立面向 Loop Engineering 的 `knowledge/` 知识库（contracts / decisions / loops / state / runbooks / logs，纯 markdown、工具无关）
-- 已搭好开源基础：`README.md`、`LICENSE`（MIT）、`CONTRIBUTING.md`
-- 已写 `AGENTS.md`（声明 `knowledge/` 为单一事实源，含 loop 工作纪律与边界）
-- 已写仓库与 Monorepo 根配置（`.gitignore`、`.editorconfig`、`.nvmrc`、`package.json`、`pnpm-workspace.yaml`、`turbo.json`、`biome.json`、`tsconfig.base.json`、`.changeset/config.json`）
-- 已接入提交规范与 git 钩子：commitlint（`@commitlint/config-conventional`）+ lefthook（`commit-msg` 跑 commitlint、`pre-commit` 跑 Biome），首次提交即生效
-- 已完成首次 git 提交（Conventional Commits：英文 subject + 中文 body，经钩子校验通过）
+Phase 0 本地骨架已完成事项（见 `logs/2026-06-29-phase0-scaffold.md`、`decisions/0004-phase0-scaffold-choices.md`）：
 
-**下一步：Phase 0 脚手架**（见 `knowledge/roadmap.md`）——Monorepo 实包、共享包骨架、Supabase 项目 + schema + RLS、GitHub OAuth 打通。
+- Monorepo 实包就位：`packages/{config,core,ui,db}` 与 `apps/{web,extension,desktop}` 均为最小可构建骨架。
+- 共享包骨架：`core`（领域类型占位 + 用例）、`db`（`createSupabaseClient` + Dexie 缓存占位，唯一数据访问入口）、`ui`（Tailwind v4 + shadcn neutral 主题 + `Button`）、`config`（tsconfig 预设）。
+- `apps/web`：Vite + React Router + 最小 react-i18next（en/zh-CN），已 `import @asterism/{ui,core,db}` 打通依赖图。
+- `apps/extension`：WXT（MV3）最小 popup；`apps/desktop`：占位包（Tauri 2 推迟 Phase 4）。
+- 工程门全绿：`pnpm lint`（Biome）/ `pnpm typecheck` / `pnpm test`（Vitest）/ `pnpm build`（Turborepo）均通过。
+- CI：`.github/workflows/ci.yml`（pnpm + Node 22，lint/typecheck/test/build）。
+- `.env.example` 就位（`VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` 占位，无真实值）。
 
-> 说明：当前仅完成初始化与知识沉淀，**未编写任何业务代码**；进入各阶段开发需另行批准。
+**下一步（需凭据）**：拿到 Supabase `Project URL` / `anon key` 与 GitHub OAuth 后，完成 Phase 0 剩余里程碑——`supabase/migrations` 初始 schema + RLS（对齐 `contracts/data-model.md`）、启用 pgvector、打通 GitHub OAuth 登录回流。
+
+> 说明：本地骨架为**占位实现**，尚未接入真实数据/同步逻辑；进入 Phase 1 开发需另行批准。
 
 ## 里程碑清单
 
 ### Phase 0 · 脚手架（Scaffolding）
 
-- [ ] 在 `apps/{web,extension,desktop}`、`packages/{core,ui,db,config}` 建实包骨架
-- [ ] `packages/core`/`ui`/`db` 共享包最小可构建（含 TS 配置、入口、占位导出）
-- [ ] 创建 Supabase 项目，落地初始 schema 与 RLS（对齐 `contracts/data-model.md`）
-- [ ] 打通 GitHub OAuth（Supabase Auth GitHub provider），本地可登录
-- [ ] CI（GitHub Actions）跑通 lint / typecheck / test 基线
+- [x] 在 `apps/{web,extension,desktop}`、`packages/{core,ui,db,config}` 建实包骨架
+- [x] `packages/core`/`ui`/`db` 共享包最小可构建（含 TS 配置、入口、占位导出）
+- [x] CI（GitHub Actions）跑通 lint / typecheck / test / build 基线
+- [ ] 创建 Supabase 项目，落地初始 schema 与 RLS（对齐 `contracts/data-model.md`）— **待凭据**
+- [ ] 打通 GitHub OAuth（Supabase Auth GitHub provider），本地可登录 — **待凭据**
 
 ### Phase 1 · Web MVP
 

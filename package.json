@@ -1,0 +1,27 @@
+{
+  "name": "asterism",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Open-source, self-hostable multi-platform GitHub Star manager",
+  "license": "MIT",
+  "packageManager": "pnpm@8.15.9",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "biome check .",
+    "format": "biome format --write .",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.1",
+    "@commitlint/cli": "^21.1.0",
+    "@commitlint/config-conventional": "^21.1.0",
+    "lefthook": "^2.1.9"
+  }
+}

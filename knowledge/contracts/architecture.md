@@ -97,25 +97,28 @@ asterism/
 sequenceDiagram
   participant U as 用户
   participant C as 客户端 (core/db)
-  participant SB as Supabase
+  participant Fn as Edge Function sync-stars
   participant GH as GitHub GraphQL
+  participant SB as Supabase Postgres
 
   U->>SB: 1. GitHub OAuth 登录
-  SB-->>C: 返回会话 / token
-  C->>GH: 2. GraphQL 拉取 starred（全量 / 增量）
-  GH-->>C: 仓库数据
-  C->>SB: 3. 写入 Postgres（source-of-truth）
-  SB-->>C: 4. Realtime 推送变更到所有在线端
-  C->>C: 5. 落本地 Dexie 缓存（离线 / 快速读取）
+  SB-->>C: 返回会话 / provider_token
+  C->>Fn: 2. 触发同步（用户 JWT + provider_token）
+  Fn->>GH: 3. GraphQL 拉取 starred（全量 / 增量）
+  GH-->>Fn: 仓库数据
+  Fn->>SB: 4. service role 幂等写入 repos + user_stars（source-of-truth）
+  SB-->>C: 5. 客户端读取（RLS：repos 全局读 / user_stars 按 user）+ Realtime 推送
+  C->>C: 6. 落本地 Dexie 缓存（离线 / 快速读取）
 ```
 
-1. **OAuth 登录**：经 Supabase GitHub provider 获取会话。
-2. **GraphQL pull stars**：`core` 调 GitHub GraphQL API 拉取 starred（支持增量）。
-3. **Postgres source-of-truth**：同步结果写入 Supabase Postgres，作为权威数据源。
-4. **Realtime 多端同步**：Postgres 变更经 Realtime 推送到该用户的所有在线客户端。
-5. **Dexie 缓存**：客户端本地用 Dexie 缓存，支撑离线浏览与即时读取。
+1. **OAuth 登录**：经 Supabase GitHub provider 获取会话与 `provider_token`（GitHub 访问令牌）。
+2. **触发同步**：客户端调用 Edge Function `sync-stars`，带上用户 JWT 与 `provider_token`。
+3. **GraphQL pull stars**：函数调 GitHub GraphQL API 拉取 starred（支持增量）；纯查询/映射逻辑在 `core`。
+4. **Postgres source-of-truth**：函数用 **service role** 幂等写入 `repos`（全局）与该用户 `user_stars`。`repos` RLS 仅允许受信路径写（见 `data-model.md`），故写入集中在函数，客户端不直写。
+5. **读取 / Realtime 多端同步**：客户端按 RLS 读取结果（`repos` 全局可读、`user_stars` 按 `user_id`）；Postgres 变更经 Realtime 推送到该用户的所有在线客户端。
+6. **Dexie 缓存**：客户端本地用 Dexie 缓存，支撑离线浏览与即时读取。
 
-> 服务端密集型同步（大批量拉取、AI 嵌入）可由 Edge Functions（`sync-stars` / `ai-embed`）承担，避免客户端长时占用与速率限制问题。
+> 把服务端密集型同步（大批量拉取、AI 嵌入）放到 Edge Functions（`sync-stars` / `ai-embed`）：既规避客户端长时占用与速率限制，也满足「全局 `repos` 仅受信路径写」的 RLS 约束。决策与 `provider_token` 局限见 `../decisions/0006-stars-sync-edge-function.md`。
 
 ## OAuth & Permissions · 鉴权与权限边界
 

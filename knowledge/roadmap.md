@@ -4,13 +4,13 @@
 
 ## 当前状态（Current Status）
 
-- **Phase 0 尚未开始**：当前仅完成项目初始化（knowledge/ 知识库 + 开源基础文件 + 仓库基础配置 + Monorepo 根配置 + 首次提交）。
-- 业务代码（`apps/*`、`packages/*` 内实现、`supabase/` 迁移与函数）均未开始。
+- **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
+- **Phase 1 进行中**：Web MVP，按切片 UI + 功能同步推进（设计系统地基 → 登录页改稿 → stars 同步 → Browse → 筛选搜索 → 标签/集合/笔记 → 仪表盘 → 导入导出）。
 
 | 阶段 | 名称 | 状态 |
 | --- | --- | --- |
-| Phase 0 | 脚手架 Scaffold | 未开始（Not started） |
-| Phase 1 | Web MVP | 未开始 |
+| Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
+| Phase 1 | Web MVP | 进行中（In progress） |
 | Phase 2 | 浏览器扩展 Extension | 未开始 |
 | Phase 3 | AI（BYOK） | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |

@@ -4,5 +4,11 @@
   "files": { "includes": ["**", "!**/*.css"] },
   "formatter": { "enabled": true, "indentStyle": "space", "indentWidth": 2, "lineWidth": 100 },
   "linter": { "enabled": true, "rules": { "preset": "recommended" } },
-  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } }
+  "javascript": { "formatter": { "quoteStyle": "single", "semicolons": "always" } },
+  "overrides": [
+    {
+      "includes": ["supabase/functions/**"],
+      "linter": { "rules": { "suspicious": { "noUndeclaredEnvVars": "off" } } }
+    }
+  ]
 }

@@ -61,3 +61,14 @@ select tablename, rowsecurity from pg_tables where schemaname = 'public' order b
 
 完成后，在本地 `pnpm --filter @asterism/web dev` 启动，点击「使用 GitHub 登录」即可走通
 OAuth 回流并显示当前用户。
+
+## Edge Functions
+
+| 函数 | 作用 |
+| --- | --- |
+| `sync-stars` | 受信路径（service role）同步用户 GitHub starred 仓库到 `repos` / `user_stars`，支持增量。详见 `functions/sync-stars/README.md` 与 `knowledge/decisions/0006` |
+
+```bash
+# 部署（需 Supabase CLI 且已 link 项目）
+supabase functions deploy sync-stars
+```

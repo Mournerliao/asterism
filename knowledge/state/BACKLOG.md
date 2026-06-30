@@ -20,7 +20,7 @@
 - [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化按计划留到 **Phase 2**（见 `decisions/0004`）。
 - [ ] **Biome 不约束 CSS**：因 Tailwind v4 语法，`*.css` 已排除出 Biome；如需 CSS 规范后续再决策（见 `decisions/0004`）。
 - [x] **`globals.css` 同步新 token**（2026-06-30）：`packages/ui` 的 `globals.css` 已从 neutral oklch 占位同步为 `contracts/ui-ux.md` 定稿的 GitHub Primer 配色 / 圆角（hex，含 `--link` / `--brand-*` 扩展 + `@theme inline` 映射，`--radius: 0.5rem`），light/dark 两套完整；文字/交互对比度经计算达 WCAG 2.1 AA，lint/typecheck/build 全绿。见 `logs/2026-06-30-globals-css-primer-sync.md` 与 `decisions/0005`。
-- [ ] **DB 强类型查询**：`packages/db` 当前用未带 `Database` 泛型的 `SupabaseClient`；进入 Phase 1 接入查询时用 `supabase gen types typescript` 生成类型并收紧客户端泛型。
+- [x] **DB 强类型查询**（2026-06-30，Slice 3）：`packages/db` 已收紧为 `SupabaseClient<Database>`，新增 `listStarredRepos`/`getLatestStarredAt` 强类型读查询。当前 `database.types.ts` 为**手写**（7 表 Row/Insert/Update + 关系）作为过渡；待 Supabase CLI 流程统一后用 `supabase gen types typescript` 生成版替换（保留此指针）。见 `logs/2026-06-30-phase1-slice3-stars-sync.md`。
 - [ ] **迁移版本管理**：迁移文件用时间戳前缀（兼容 `supabase db push`）。若团队统一改用 Supabase CLI 流程，需在 ADR 固化「迁移即源、禁止手改线上」纪律。
 
 ## 未来任务（按阶段）

@@ -61,8 +61,20 @@
   },
   "browse": {
     "title": "All Repositories",
-    "emptyTitle": "No repositories yet",
-    "emptyDescription": "Sync your GitHub stars to start organizing them here."
+    "count": "{{total}} starred repositories",
+    "viewGrid": "Grid view",
+    "viewList": "List view",
+    "archived": "Archived",
+    "stars": "Stars",
+    "forks": "Forks",
+    "updated": "Updated {{time}}",
+    "starred": "Starred {{time}}",
+    "emptyTitle": "No starred repositories yet",
+    "emptyDescription": "Sync your GitHub stars to get started. We'll fetch all your starred repos and organize them here.",
+    "syncAction": "Sync GitHub Stars",
+    "errorTitle": "Couldn't load repositories",
+    "errorDescription": "Something went wrong while loading your repositories.",
+    "retry": "Retry"
   },
   "collections": {
     "title": "Collections",

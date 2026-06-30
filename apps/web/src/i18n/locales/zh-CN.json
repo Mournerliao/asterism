@@ -61,8 +61,20 @@
   },
   "browse": {
     "title": "全部仓库",
-    "emptyTitle": "还没有仓库",
-    "emptyDescription": "同步你的 GitHub star，开始在这里整理它们。"
+    "count": "{{total}} 个 star 仓库",
+    "viewGrid": "卡片视图",
+    "viewList": "列表视图",
+    "archived": "已归档",
+    "stars": "Star 数",
+    "forks": "Fork 数",
+    "updated": "更新于 {{time}}",
+    "starred": "{{time}}收藏",
+    "emptyTitle": "还没有 star 仓库",
+    "emptyDescription": "同步你的 GitHub star 即可开始。我们会拉取你所有的 star 仓库并在此整理。",
+    "syncAction": "同步 GitHub Stars",
+    "errorTitle": "无法加载仓库",
+    "errorDescription": "加载你的仓库时出现问题。",
+    "retry": "重试"
   },
   "collections": {
     "title": "集合",

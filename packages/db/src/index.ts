@@ -1,5 +1,11 @@
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
+export type { CachedRepo } from './cache';
 export { AsterismCache } from './cache';
 export type { SupabaseClient, SupabaseClientOptions } from './client';
 export { createSupabaseClient } from './client';
+export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
+export type { StarredRepoRecord } from './queries/repos';
+export { getLatestStarredAt, listStarredRepos, mapRepoRow } from './queries/repos';
+export type { SyncStarsResult } from './sync';
+export { invokeSyncStars, SyncStarsError } from './sync';

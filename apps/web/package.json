@@ -13,11 +13,14 @@
     "@asterism/core": "workspace:*",
     "@asterism/db": "workspace:*",
     "@asterism/ui": "workspace:*",
+    "@tanstack/react-query": "^5.101.2",
+    "@tanstack/react-virtual": "^3.14.4",
     "i18next": "^26.3.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-i18next": "^17.0.8",
-    "react-router-dom": "^7.18.0"
+    "react-router-dom": "^7.18.0",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@asterism/config": "workspace:*",

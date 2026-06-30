@@ -1,12 +1,13 @@
 import '@asterism/ui/globals.css';
 import './i18n';
 
+import { ThemeProvider, Toaster, TooltipProvider } from '@asterism/ui';
+import { QueryClientProvider } from '@tanstack/react-query';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
-import { HomePage } from './pages/home';
-
-const router = createBrowserRouter([{ path: '/', element: <HomePage /> }]);
+import { RouterProvider } from 'react-router-dom';
+import { queryClient } from './lib/query-client';
+import { router } from './router';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -15,6 +16,13 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <RouterProvider router={router} />
+    <ThemeProvider defaultTheme="system">
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <RouterProvider router={router} />
+          <Toaster />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </ThemeProvider>
   </StrictMode>,
 );

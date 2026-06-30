@@ -13,5 +13,11 @@
   },
   "actions": {
     "toggleLanguage": "Switch language"
+  },
+  "theme": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "toggle": "Toggle theme"
   }
 }

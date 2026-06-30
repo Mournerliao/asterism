@@ -3,6 +3,7 @@ import { signInWithGitHub, signOut } from '@asterism/db';
 import { Button } from '@asterism/ui';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
+import { ThemeToggle } from '../components/theme-toggle';
 import { supabase } from '../lib/supabase';
 
 export function HomePage() {
@@ -58,9 +59,12 @@ export function HomePage() {
         <p className="text-muted-foreground text-sm">
           {t('app.coreVersion', { version: CORE_VERSION })}
         </p>
-        <Button variant="ghost" size="sm" onClick={toggleLanguage}>
-          {t('actions.toggleLanguage')}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="sm" onClick={toggleLanguage}>
+            {t('actions.toggleLanguage')}
+          </Button>
+          <ThemeToggle />
+        </div>
       </footer>
     </main>
   );

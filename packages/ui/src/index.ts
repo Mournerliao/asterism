@@ -1,3 +1,4 @@
+export { toast } from 'sonner';
 export type { ModeToggleLabels } from './components/mode-toggle';
 export { ModeToggle } from './components/mode-toggle';
 export type { ResolvedTheme, Theme } from './components/theme-provider';

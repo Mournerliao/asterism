@@ -53,6 +53,12 @@
     "openMenu": "Open menu",
     "account": "Account"
   },
+  "sync": {
+    "syncing": "Syncing…",
+    "success": "Synced {{count}} starred repositories",
+    "error": "Sync failed. Please try again.",
+    "noToken": "Your GitHub session expired. Please sign in again to sync."
+  },
   "browse": {
     "title": "All Repositories",
     "emptyTitle": "No repositories yet",

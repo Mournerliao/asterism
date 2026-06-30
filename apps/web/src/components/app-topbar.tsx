@@ -1,7 +1,8 @@
-import { Button, Input, Sheet, SheetContent, SheetTitle, SheetTrigger } from '@asterism/ui';
+import { Button, cn, Input, Sheet, SheetContent, SheetTitle, SheetTrigger } from '@asterism/ui';
 import { MenuIcon, RefreshCwIcon, SearchIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSyncStars } from '../data/use-sync-stars';
 import { LanguageToggle } from './language-toggle';
 import { SidebarNav } from './sidebar-nav';
 import { ThemeToggle } from './theme-toggle';
@@ -10,6 +11,7 @@ import { UserMenu } from './user-menu';
 export function AppTopbar() {
   const { t } = useTranslation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const sync = useSyncStars();
 
   return (
     <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
@@ -36,9 +38,17 @@ export function AppTopbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-1">
-        <Button variant="outline" size="sm" className="gap-2">
-          <RefreshCwIcon className="size-4" />
-          <span className="hidden sm:inline">{t('topbar.sync')}</span>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          disabled={sync.isPending}
+          onClick={() => sync.mutate()}
+        >
+          <RefreshCwIcon className={cn('size-4', sync.isPending && 'animate-spin')} />
+          <span className="hidden sm:inline">
+            {sync.isPending ? t('sync.syncing') : t('topbar.sync')}
+          </span>
         </Button>
         <LanguageToggle />
         <ThemeToggle />

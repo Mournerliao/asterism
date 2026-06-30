@@ -16,3 +16,16 @@ export {
 } from './github/stars';
 export type { Repo, RepoId } from './models/repo';
 export { repoFullName } from './models/repo';
+export type {
+  RepoFacets,
+  RepoFilter,
+  RepoSort,
+  RepoStatus,
+  StarredRepoLike,
+} from './repos/filter';
+export {
+  deriveRepoFacets,
+  filterStarredRepos,
+  hasActiveFilter,
+  sortStarredRepos,
+} from './repos/filter';

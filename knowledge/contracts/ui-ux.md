@@ -2,100 +2,159 @@
 
 > 本文件定义 Asterism 的设计 tokens、组件使用规范、明暗模式、可访问性目标与品牌语气。它是设计层 verification 的依据。
 >
-> **重要**：配色与圆角 tokens 已**暂定**为 shadcn 默认 *neutral* 主题（Tailwind v4 / oklch，见下表与完整 CSS），作为占位以便先推进开发；**最终品牌配色仍待定**。字体 / 间距等其余 tokens 暂为 **TBD（待填）**，由用户用外部设计工具（如 [tweakcn](https://tweakcn.com)）产出后填入。在对应 tokens 落定前，UI 实现一律采用本契约给出的值，不得自行臆造视觉风格。
+> **重要**：配色与圆角 tokens 已**定稿**为 **GitHub Primer 体系**（dark 取自 Ardot 设计稿实测、light 为 Primer 官方配对，见 [ADR 0005](../decisions/0005-design-tokens-github-primer.md) 与下方「设计源」小节）。值以 **hex（sRGB）** 为权威，取自设计稿 / Primer 官方色板。字体 / 间距等其余 tokens 仍为 **TBD（待填）**，由用户用外部设计工具产出后填入。在对应 tokens 落定前，UI 实现一律采用本契约给出的值，不得自行臆造视觉风格。
 
-## Design Tokens · 设计 tokens（部分暂定）
+## Design Source · 设计源（Ardot）
 
-> 配色与圆角已暂用 shadcn 默认主题占位（见下）；字体 / 间距仍为占位区，待用外部设计工具产出后填入。所有 tokens 以 CSS 变量 / shadcn theme 形式落到 `packages/ui` 的 `globals.css`，保持 light / dark 两套。
+> 视觉与 token 的**单一设计源**。下次需要查看 / 复刻 / 校对界面时，直接读取下方 Ardot 文件，不要凭空臆造。本节配色 / 圆角 tokens 即从此文件实测回填。
 
-### Color Palette · 配色（暂定 · shadcn 默认 neutral）
+- **工具**：Ardot（腾讯）设计文件，通过 `user-ardot` MCP server 读取。
+- **链接**：<https://ardot.tencent.com/file/698428420561751>
+- **fileId**：`698428420561751` · **page**：`0:1`（Page 1）
 
-> 已**暂定**采用 shadcn 默认 *neutral* 主题作为占位，先推进开发；**最终品牌配色待定**，确定后整体替换本节。值以 Tailwind v4 / oklch 为准（括号内为近似 hex，仅供肉眼参考）。
+**画面（top-level frame）与 nodeId**：
+
+| 画面 | nodeId | 备注 |
+| --- | --- | --- |
+| Login Page | `8:2` | 登录页（左 brand / 右 GitHub OAuth） |
+| Browse · 列表/表格 | `8:59` | ⚠️ frame 名为 "Browse - Card View"，**实为表格/列表视图** |
+| Browse · 卡片 | `8:227` | ⚠️ frame 名为 "Dashboard"，**实为卡片视图** |
+| Settings | `8:299` | 外观 / 账号 / AI（BYOK，Coming Soon） |
+| Repo Detail Drawer | `8:364` | 仓库详情抽屉（tags / collections / notes） |
+| Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计仪表盘** |
+| Tags Management | `12:2` | 标签管理 |
+| Collections | `12:126` | 集合 |
+| Import / Export | `12:182` | 导入导出（JSON / CSV / Markdown） |
+| Browse · Empty State | `12:240` | 空状态 |
+| Browse · Loading State | `12:267` | 同步加载 / 骨架屏 |
+
+> ⚠️ 三个 frame 的**名字与内容不符**（`8:59` / `8:227` / `8:413`），以「备注」列描述的实际内容为准。
+
+**读取方式（`user-ardot` MCP）**：
+
+- `fetch_file_info` / `fetch_editor_state`：确认当前文件与 top-level 节点。
+- `batch_read`（`properties: ["fills","strokes","cornerRadius","characters"]`）：取节点的精确色值 / 圆角 / 文案——本契约 tokens 即由此抽出。
+- `capture_screenshot`（必填 `screenShotDir`，建议工作区下 cache 目录）：导出为 **webp**，本机用 `sips -s format png in.webp --out out.png` 转 png 再查看。
+- 注意：`fetch_variables` 对本文件返回**空**（设计未定义变量），token 全部挂在节点 fill / cornerRadius 上，需用 `batch_read` 抽取。
+
+## Design Tokens · 设计 tokens（配色 / 圆角已定稿）
+
+> 配色与圆角已定稿为 **GitHub Primer 体系**；字体 / 间距仍为占位区，待用外部设计工具产出后填入。所有 tokens 以 CSS 变量 / shadcn theme 形式落到 `packages/ui` 的 `globals.css`，保持 light / dark 两套。值以 **hex（sRGB）** 为权威。
+
+### Color Palette · 配色（定稿 · GitHub Primer）
+
+> **dark** 取自 Ardot 设计稿实测，**light** 为 GitHub Primer 官方配对。在 shadcn 单 `--primary` 模型下：**主色用 Primer 绿**（对齐设计稿 Create / New / Sync / Import 等主操作按钮），**品牌蓝**作为 `--link` 与焦点环 `--ring`、**蓝→紫渐变**作为 brand 装饰（见下方 Brand & Category 小节）。
 
 | Token | 用途 | Light 值 | Dark 值 |
 | --- | --- | --- | --- |
-| `--background` | 页面背景 | `oklch(1 0 0)` ≈ #FFFFFF | `oklch(0.145 0 0)` ≈ #242424 |
-| `--foreground` | 主文字 | `oklch(0.145 0 0)` ≈ #242424 | `oklch(0.985 0 0)` ≈ #FAFAFA |
-| `--primary` | 主色 / 主按钮 | `oklch(0.205 0 0)` ≈ #343434 | `oklch(0.922 0 0)` ≈ #EBEBEB |
-| `--primary-foreground` | 主色上的文字 | `oklch(0.985 0 0)` ≈ #FAFAFA | `oklch(0.205 0 0)` ≈ #343434 |
-| `--secondary` | 次要色 | `oklch(0.97 0 0)` ≈ #F5F5F5 | `oklch(0.269 0 0)` ≈ #434343 |
-| `--muted` | 弱化背景 | `oklch(0.97 0 0)` ≈ #F5F5F5 | `oklch(0.269 0 0)` ≈ #434343 |
-| `--muted-foreground` | 弱化文字 | `oklch(0.556 0 0)` ≈ #8E8E8E | `oklch(0.708 0 0)` ≈ #B5B5B5 |
-| `--accent` | 强调 / 高亮（悬停 / 选中底） | `oklch(0.97 0 0)` ≈ #F5F5F5 | `oklch(0.269 0 0)` ≈ #434343 |
-| `--destructive` | 危险 / 删除 | `oklch(0.577 0.245 27.325)` ≈ #DC2B2B | `oklch(0.704 0.191 22.216)` ≈ #E5564B |
-| `--border` | 边框 | `oklch(0.922 0 0)` ≈ #EBEBEB | `oklch(1 0 0 / 10%)`（白 10%） |
-| `--ring` | 焦点环 | `oklch(0.708 0 0)` ≈ #B5B5B5 | `oklch(0.556 0 0)` ≈ #8E8E8E |
+| `--background` | 页面背景（画布） | `#FFFFFF` | `#0D1117` |
+| `--foreground` | 主文字 | `#1F2328` | `#E6EDF3` |
+| `--card` / `--popover` | 卡片 / 弹层底 | `#FFFFFF` | `#161B22` |
+| `--card-foreground` / `--popover-foreground` | 卡片 / 弹层文字 | `#1F2328` | `#E6EDF3` |
+| `--primary` | 主色 / 主按钮（Primer 绿） | `#1F883D` | `#238636` |
+| `--primary-foreground` | 主色上的文字 | `#FFFFFF` | `#FFFFFF` |
+| `--secondary` | 次要按钮底 | `#F6F8FA` | `#21262D` |
+| `--secondary-foreground` | 次要按钮文字 | `#1F2328` | `#E6EDF3` |
+| `--muted` | 弱化背景 | `#F6F8FA` | `#161B22` |
+| `--muted-foreground` | 弱化文字 | `#59636E` | `#8B949E` |
+| `--accent` | 悬停 / 选中底 | `#EFF2F5` | `#21262D` |
+| `--accent-foreground` | 悬停 / 选中文字 | `#1F2328` | `#E6EDF3` |
+| `--destructive` | 危险 / 删除（实心按钮底） | `#CF222E` | `#DA3633` |
+| `--destructive-foreground` | 危险按钮文字 | `#FFFFFF` | `#FFFFFF` |
+| `--border` / `--input` | 边框 / 输入边框 | `#D0D7DE` | `#30363D` |
+| `--ring` | 焦点环（品牌蓝） | `#0969DA` | `#58A6FF` |
+| `--link` | 链接 / 可点蓝（自定义扩展） | `#0969DA` | `#58A6FF` |
 
-> 完整 token（含 `card` / `popover` / `input` / `*-foreground` / `chart-*` / `sidebar-*` / `--radius`）以下方 CSS 为准；脚手架阶段经 `shadcn init` 注入 `packages/ui` 的 `globals.css`，其中 `@theme inline` 映射与 base layer 用 shadcn 标准脚手架。
+> 完整 token（含 `card` / `popover` / `input` / `*-foreground` / `chart-*` / `sidebar-*` / `--brand-*` / `--link` / `--radius`）以下方 CSS 为准。`--link` / `--brand-from` / `--brand-to` 为本契约在 shadcn 标准 token 之外的扩展；`@theme inline` 映射与 base layer 沿用 shadcn 标准脚手架。
 
 ```css
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0.5rem;
+  /* Surfaces · Primer light */
+  --background: #ffffff;
+  --foreground: #1f2328;
+  --card: #ffffff;
+  --card-foreground: #1f2328;
+  --popover: #ffffff;
+  --popover-foreground: #1f2328;
+  /* Actions */
+  --primary: #1f883d;
+  --primary-foreground: #ffffff;
+  --secondary: #f6f8fa;
+  --secondary-foreground: #1f2328;
+  --muted: #f6f8fa;
+  --muted-foreground: #59636e;
+  --accent: #eff2f5;
+  --accent-foreground: #1f2328;
+  --destructive: #cf222e;
+  --destructive-foreground: #ffffff;
+  /* Lines */
+  --border: #d0d7de;
+  --input: #d0d7de;
+  --ring: #0969da;
+  /* Extensions · brand + link */
+  --link: #0969da;
+  --brand-from: #0969da;
+  --brand-to: #8250df;
+  /* Charts / category (Primer light data colors) */
+  --chart-1: #0969da;
+  --chart-2: #1a7f37;
+  --chart-3: #8250df;
+  --chart-4: #bc4c00;
+  --chart-5: #bf3989;
+  /* Sidebar */
+  --sidebar: #f6f8fa;
+  --sidebar-foreground: #1f2328;
+  --sidebar-primary: #1f883d;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #eff2f5;
+  --sidebar-accent-foreground: #1f2328;
+  --sidebar-border: #d0d7de;
+  --sidebar-ring: #0969da;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Surfaces · Primer dark (Ardot 设计稿实测) */
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
+  /* Actions */
+  --primary: #238636;
+  --primary-foreground: #ffffff;
+  --secondary: #21262d;
+  --secondary-foreground: #e6edf3;
+  --muted: #161b22;
+  --muted-foreground: #8b949e;
+  --accent: #21262d;
+  --accent-foreground: #e6edf3;
+  --destructive: #da3633;
+  --destructive-foreground: #ffffff;
+  /* Lines */
+  --border: #30363d;
+  --input: #30363d;
+  --ring: #58a6ff;
+  /* Extensions · brand + link */
+  --link: #58a6ff;
+  --brand-from: #58a6ff;
+  --brand-to: #8c5cff;
+  /* Charts / category (标签调色板取色) */
+  --chart-1: #58a6ff;
+  --chart-2: #3fb950;
+  --chart-3: #d2a8ff;
+  --chart-4: #f0883e;
+  --chart-5: #f778ba;
+  /* Sidebar */
+  --sidebar: #010409;
+  --sidebar-foreground: #e6edf3;
+  --sidebar-primary: #238636;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #161b22;
+  --sidebar-accent-foreground: #e6edf3;
+  --sidebar-border: #21262d;
+  --sidebar-ring: #58a6ff;
 }
 ```
 
@@ -116,19 +175,39 @@
 | 间距基准单位（如 4px / 8px 栅格） | _TBD_ |
 | 间距阶梯（xs / sm / md / lg / xl） | _TBD_ |
 
-### Radius · 圆角（暂定 · shadcn 默认）
+### Radius · 圆角（定稿 · 取自设计稿）
 
-> 基准 `--radius: 0.625rem`（shadcn 默认）；下列为派生档位，最终可随品牌定稿调整。
+> 基准 `--radius: 0.5rem`（8px），派生采用 **shadcn 标准** 档位（非比例缩放）。设计稿实测：badge 4px / 按钮 · 输入 · 导航项 6px / 卡片 · 抽屉 8px，恰好对应下表。
 
 | Token | 用途 | 值 |
 | --- | --- | --- |
-| `--radius-sm` | 小元素（标签 / 输入） | `calc(var(--radius) * 0.6)` ≈ 0.375rem |
-| `--radius-md` | 卡片 / 按钮 | `calc(var(--radius) * 0.8)` ≈ 0.5rem |
-| `--radius-lg` | 弹层 / 大容器 | `var(--radius)` = 0.625rem |
+| `--radius-sm` | 小元素（badge / 标签） | `calc(var(--radius) - 4px)` = 4px |
+| `--radius-md` | 按钮 / 输入 / 导航项 | `calc(var(--radius) - 2px)` = 6px |
+| `--radius-lg` | 卡片 / 抽屉 / 大容器 | `var(--radius)` = 8px |
+| `--radius-xl` | 更大容器 | `calc(var(--radius) + 4px)` = 12px |
 
-### Dark Mode Tokens · 暗色（TBD）
+### Brand & Category · 品牌渐变与分类色
 
-> 暗色取值已并入上方各表的 "Dark 值" 列。需保证 light / dark 两套完整且对比度达标（见 a11y）。
+> 这些是 shadcn 标准 token 之外的扩展，用于 logo 与「标签 / 分类」的多色编码。分类色取自设计稿标签点（dark），light 用 Primer 官方对应色。
+
+**品牌渐变（logo）**：`--brand-from` → `--brand-to`，linear-gradient。light `#0969DA → #8250DF`；dark `#58A6FF → #8C5CFF`。
+
+**标签 / 分类调色板**（8 色，用于标签圆点、分类高亮；`--chart-*` 取其前 5 色用于仪表盘）：
+
+| 名称 | Light（Primer） | Dark（设计稿） |
+| --- | --- | --- |
+| blue | `#0969DA` | `#58A6FF` |
+| green | `#1A7F37` | `#3FB950` |
+| purple | `#8250DF` | `#D2A8FF` |
+| orange | `#BC4C00` | `#F0883E` |
+| sky | `#218BFF` | `#79C0FF` |
+| amber | `#9A6700` | `#DB6D28` |
+| pink | `#BF3989` | `#F778BA` |
+| lime | `#2DA44E` | `#7EE787` |
+
+### Dark Mode Tokens · 暗色（定稿）
+
+> 暗色取值（取自 Ardot 设计稿实测）已并入上方各表的 "Dark 值" 列。需保证 light / dark 两套完整且对比度达标（见 a11y）。
 
 ## Component Usage Rules · 组件使用规范
 

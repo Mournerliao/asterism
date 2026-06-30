@@ -14,7 +14,9 @@
   - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + pgvector + Edge Functions + Realtime）
   - `0002-pnpm-over-bun.md`：工具链选 pnpm（而非 Bun）的取舍
   - `0003-commitlint-lefthook.md`：提交规范 + git 钩子方案
+  - `0005-design-tokens-github-primer.md`：设计 token 定稿为 GitHub Primer 体系（配色 / 圆角）
 - **契约（什么是"对/完成"）**：`knowledge/contracts/*` —— `product` / `architecture` / `data-model` / `conventions` / `ui-ux`。
+- **设计源（Design Source）**：`contracts/ui-ux.md` 的「设计源」小节 —— Ardot 文件 `698428420561751`（`user-ardot` MCP 读取），是界面视觉与 token 的单一来源。
 - **路线图**：`knowledge/roadmap.md`（Phase 0–4）。
 - **进度**：`knowledge/state/PROGRESS.md`；**待办**：`knowledge/state/BACKLOG.md`。
 - **入口约定**：根 `AGENTS.md`（声明 `knowledge/` 为单一事实源）。
@@ -31,5 +33,5 @@
 
 ## 待办提醒（便签级）
 
-- **配色 / 设计 tokens 待定**：色板/字体/间距/圆角/明暗等设计 tokens 由用户用**外部设计工具**产出后，填入 `knowledge/contracts/ui-ux.md`（当前为占位）。在 tokens 落定前，UI 生成（`loops/ui-generation.loop.md`）不要凭空造配色。
+- **配色 / 圆角 tokens 已定稿**（2026-06-30）：取自 Ardot 设计稿（GitHub Primer 体系），已回填 `contracts/ui-ux.md`，见 `decisions/0005`。**字体 / 间距仍为 TBD**，待外部设计工具产出。注意：`packages/ui` 的 `globals.css` 仍是 neutral 占位，**待按新 token 同步**（见 `BACKLOG.md`）。
 - **工作区根目录未迁移**：本次初始化**未执行 `move_agent_to_root`**，当前会话仍以原工作区根为准，仓库位于 `/Users/asherliao/Projects/asterism`。后续若需以该仓库为工作区根，再单独切换。

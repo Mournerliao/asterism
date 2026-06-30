@@ -1,3 +1,4 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import type { SupabaseClient } from './client';
 
 export interface SyncStarsResult {
@@ -12,10 +13,49 @@ export interface SyncStarsResult {
 }
 
 export class SyncStarsError extends Error {
-  constructor(message: string) {
+  /** Edge Function 返回的 HTTP 状态码（若可得），便于区分「未部署/鉴权失败/上游报错」。 */
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
     super(message);
     this.name = 'SyncStarsError';
+    this.status = status;
   }
+}
+
+/**
+ * supabase-js 对非 2xx 的 `functions.invoke` 只给出通用 message，真实原因在 `error.context`
+ * （Response 体）里。这里把它读出来，避免上层只能看到「Edge Function returned a non-2xx」。
+ */
+async function describeInvokeError(error: unknown): Promise<{ message: string; status?: number }> {
+  if (error instanceof FunctionsHttpError) {
+    const status = error.context?.status;
+    let detail = '';
+    try {
+      const body: unknown = await error.context.clone().json();
+      if (body && typeof body === 'object') {
+        const record = body as Record<string, unknown>;
+        if (typeof record.error === 'string') {
+          detail = record.error;
+        } else if (typeof record.message === 'string') {
+          detail = record.message;
+        }
+      }
+    } catch {
+      // 响应体不是 JSON（如网关 404 文本），退回到状态码描述。
+    }
+    if (!detail) {
+      detail =
+        status === 404
+          ? 'sync-stars Edge Function is not deployed (404)'
+          : `sync-stars failed with HTTP ${status ?? 'unknown'}`;
+    }
+    return { message: detail, status };
+  }
+  if (error instanceof Error) {
+    return { message: error.message };
+  }
+  return { message: String(error) };
 }
 
 /**
@@ -35,7 +75,8 @@ export async function invokeSyncStars(
   });
 
   if (error) {
-    throw new SyncStarsError(error.message);
+    const { message, status } = await describeInvokeError(error);
+    throw new SyncStarsError(message, status);
   }
   if (!data) {
     throw new SyncStarsError('sync-stars returned no data');

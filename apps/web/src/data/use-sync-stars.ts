@@ -30,11 +30,12 @@ export function useSyncStars() {
       }
     },
     onError: (error) => {
-      const message =
-        error instanceof Error && error.message === NO_PROVIDER_TOKEN
-          ? t('sync.noToken')
-          : t('sync.error');
-      toast.error(message);
+      if (error instanceof Error && error.message === NO_PROVIDER_TOKEN) {
+        toast.error(t('sync.noToken'));
+        return;
+      }
+      const detail = error instanceof Error ? error.message : undefined;
+      toast.error(t('sync.error'), detail ? { description: detail } : undefined);
     },
   });
 }

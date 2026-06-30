@@ -17,6 +17,10 @@ coverage/
 # Turborepo
 .turbo/
 
+# Supabase CLI local artifacts
+supabase/.branches/
+supabase/.temp/
+
 # Caches
 .cache/
 

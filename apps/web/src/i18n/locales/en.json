@@ -19,5 +19,24 @@
     "dark": "Dark",
     "system": "System",
     "toggle": "Toggle theme"
+  },
+  "login": {
+    "brandTagline": "Your starred repos,\nfinally organized.",
+    "brandSubtitle": "Turn hundreds of scattered GitHub stars into a searchable, tagged, and categorized personal knowledge base.",
+    "features": {
+      "tagging": "Smart tagging & collections",
+      "search": "Full-text search across repos",
+      "insights": "Insights & analytics dashboard",
+      "privacy": "Self-hosted, open source, privacy-first"
+    },
+    "getStarted": "Get started",
+    "connectPrompt": "Connect your GitHub account to sync your starred repositories.",
+    "continueWithGitHub": "Continue with GitHub",
+    "minimalPermissions": "Minimal permissions required",
+    "scopesTitle": "We only request read access to:",
+    "scopeStars": "Your starred repositories list",
+    "scopeMetadata": "Public repository metadata",
+    "scopeProfile": "Your public profile information",
+    "privacyNote": "No write access. No private repos. Your data stays on your server."
   }
 }

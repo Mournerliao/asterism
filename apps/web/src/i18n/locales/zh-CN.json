@@ -19,5 +19,24 @@
     "dark": "深色",
     "system": "跟随系统",
     "toggle": "切换主题"
+  },
+  "login": {
+    "brandTagline": "你的 Star 仓库，\n终于井然有序。",
+    "brandSubtitle": "把数百个杂乱的 GitHub star 整理成可搜索、可打标签、可分类的个人知识库。",
+    "features": {
+      "tagging": "智能标签与集合",
+      "search": "跨仓库全文搜索",
+      "insights": "洞察与统计仪表盘",
+      "privacy": "自托管、开源、隐私优先"
+    },
+    "getStarted": "开始使用",
+    "connectPrompt": "连接你的 GitHub 账号以同步 star 仓库。",
+    "continueWithGitHub": "使用 GitHub 继续",
+    "minimalPermissions": "仅需最小权限",
+    "scopesTitle": "我们仅请求以下只读权限：",
+    "scopeStars": "你的 star 仓库列表",
+    "scopeMetadata": "公开仓库的元数据",
+    "scopeProfile": "你的公开资料信息",
+    "privacyNote": "无写权限，无私有仓库。数据留在你自己的服务器上。"
   }
 }

@@ -3,6 +3,8 @@ import type { SupabaseClient } from '../client';
 import type { Tables } from '../database.types';
 
 export interface StarredRepoRecord {
+  /** repos 表主键（uuid），用于 tags/collections/notes 等关联写入。 */
+  repoId: string;
   repo: Repo;
   starredAt: string | null;
 }
@@ -56,7 +58,11 @@ export async function listStarredRepos(
   const records: StarredRepoRecord[] = [];
   for (const row of rows) {
     if (row.repos) {
-      records.push({ repo: mapRepoRow(row.repos), starredAt: row.starred_at });
+      records.push({
+        repoId: row.repos.id,
+        repo: mapRepoRow(row.repos),
+        starredAt: row.starred_at,
+      });
     }
   }
   return records;

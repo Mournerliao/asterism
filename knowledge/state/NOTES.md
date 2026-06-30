@@ -33,5 +33,5 @@
 
 ## 待办提醒（便签级）
 
-- **配色 / 圆角 tokens 已定稿**（2026-06-30）：取自 Ardot 设计稿（GitHub Primer 体系），已回填 `contracts/ui-ux.md`，见 `decisions/0005`。**字体 / 间距仍为 TBD**，待外部设计工具产出。注意：`packages/ui` 的 `globals.css` 仍是 neutral 占位，**待按新 token 同步**（见 `BACKLOG.md`）。
+- **配色 / 圆角 tokens 已定稿并落地**（2026-06-30）：取自 Ardot 设计稿（GitHub Primer 体系），已回填 `contracts/ui-ux.md`（见 `decisions/0005`），且 `packages/ui` 的 `globals.css` 已同步为 Primer hex token（light/dark 两套 + `--link` / `--brand-*` + `@theme inline` 映射，`--radius: 0.5rem`），对比度达 WCAG 2.1 AA（见 `logs/2026-06-30-globals-css-primer-sync.md`）。**字体 / 间距仍为 TBD**，待外部设计工具产出后回填契约并同步 `globals.css`。
 - **工作区根目录未迁移**：本次初始化**未执行 `move_agent_to_root`**，当前会话仍以原工作区根为准，仓库位于 `/Users/asherliao/Projects/asterism`。后续若需以该仓库为工作区根，再单独切换。

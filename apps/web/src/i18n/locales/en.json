@@ -38,5 +38,56 @@
     "scopeMetadata": "Public repository metadata",
     "scopeProfile": "Your public profile information",
     "privacyNote": "No write access. No private repos. Your data stays on your server."
+  },
+  "nav": {
+    "browse": "Browse",
+    "collections": "Collections",
+    "tags": "Tags",
+    "dashboard": "Dashboard",
+    "importExport": "Import / Export",
+    "settings": "Settings"
+  },
+  "topbar": {
+    "searchPlaceholder": "Search repositories…",
+    "sync": "Sync",
+    "openMenu": "Open menu",
+    "account": "Account"
+  },
+  "browse": {
+    "title": "All Repositories",
+    "emptyTitle": "No repositories yet",
+    "emptyDescription": "Sync your GitHub stars to start organizing them here."
+  },
+  "collections": {
+    "title": "Collections",
+    "comingSoon": "Collections management is coming soon."
+  },
+  "tags": {
+    "title": "Tags",
+    "comingSoon": "Tag management is coming soon."
+  },
+  "dashboard": {
+    "title": "Insights",
+    "comingSoon": "Your stats dashboard is coming soon."
+  },
+  "importExport": {
+    "title": "Import / Export",
+    "comingSoon": "Import and export is coming soon."
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "theme": "Theme",
+    "themeDescription": "Choose between system, light, and dark theme.",
+    "language": "Language",
+    "languageDescription": "Switch interface language.",
+    "account": "Account",
+    "connectedVia": "Connected via GitHub OAuth",
+    "aiFeatures": "AI Features",
+    "comingSoon": "Coming Soon",
+    "apiProvider": "API Provider",
+    "apiProviderPlaceholder": "OpenAI Compatible",
+    "apiKey": "API Key (BYOK)",
+    "customEndpoint": "Custom Endpoint (optional)"
   }
 }

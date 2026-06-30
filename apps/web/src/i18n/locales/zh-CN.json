@@ -38,5 +38,56 @@
     "scopeMetadata": "公开仓库的元数据",
     "scopeProfile": "你的公开资料信息",
     "privacyNote": "无写权限，无私有仓库。数据留在你自己的服务器上。"
+  },
+  "nav": {
+    "browse": "浏览",
+    "collections": "集合",
+    "tags": "标签",
+    "dashboard": "仪表盘",
+    "importExport": "导入 / 导出",
+    "settings": "设置"
+  },
+  "topbar": {
+    "searchPlaceholder": "搜索仓库…",
+    "sync": "同步",
+    "openMenu": "打开菜单",
+    "account": "账号"
+  },
+  "browse": {
+    "title": "全部仓库",
+    "emptyTitle": "还没有仓库",
+    "emptyDescription": "同步你的 GitHub star，开始在这里整理它们。"
+  },
+  "collections": {
+    "title": "集合",
+    "comingSoon": "集合管理即将推出。"
+  },
+  "tags": {
+    "title": "标签",
+    "comingSoon": "标签管理即将推出。"
+  },
+  "dashboard": {
+    "title": "洞察",
+    "comingSoon": "统计仪表盘即将推出。"
+  },
+  "importExport": {
+    "title": "导入 / 导出",
+    "comingSoon": "导入导出即将推出。"
+  },
+  "settings": {
+    "title": "设置",
+    "appearance": "外观",
+    "theme": "主题",
+    "themeDescription": "在跟随系统、浅色与深色之间选择。",
+    "language": "语言",
+    "languageDescription": "切换界面语言。",
+    "account": "账号",
+    "connectedVia": "通过 GitHub OAuth 连接",
+    "aiFeatures": "AI 功能",
+    "comingSoon": "即将推出",
+    "apiProvider": "API 供应商",
+    "apiProviderPlaceholder": "OpenAI 兼容",
+    "apiKey": "API Key（BYOK）",
+    "customEndpoint": "自定义端点（可选）"
   }
 }

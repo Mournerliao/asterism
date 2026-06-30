@@ -51,7 +51,30 @@
     "searchPlaceholder": "搜索仓库…",
     "sync": "同步",
     "openMenu": "打开菜单",
-    "account": "账号"
+    "account": "账号",
+    "clearSearch": "清除搜索"
+  },
+  "filters": {
+    "language": "语言",
+    "allLanguages": "全部语言",
+    "topic": "Topic",
+    "allTopics": "全部 Topic",
+    "stars": "Star 数",
+    "anyStars": "不限 Star",
+    "minStars": "{{value}}+ Star",
+    "pushed": "更新时间",
+    "anyTime": "不限时间",
+    "pushedWithin": "近 {{value}} 天",
+    "status": "状态",
+    "statusAll": "全部",
+    "statusActive": "活跃",
+    "statusArchived": "已归档",
+    "sort": "排序",
+    "sortStarred": "最近收藏",
+    "sortPushed": "最近更新",
+    "sortStars": "Star 最多",
+    "sortName": "名称（A–Z）",
+    "clear": "清除筛选"
   },
   "sync": {
     "syncing": "同步中…",
@@ -74,7 +97,9 @@
     "syncAction": "同步 GitHub Stars",
     "errorTitle": "无法加载仓库",
     "errorDescription": "加载你的仓库时出现问题。",
-    "retry": "重试"
+    "retry": "重试",
+    "noResultsTitle": "没有匹配的仓库",
+    "noResultsDescription": "试试调整筛选条件或搜索关键词。"
   },
   "collections": {
     "title": "集合",

@@ -51,7 +51,30 @@
     "searchPlaceholder": "Search repositories…",
     "sync": "Sync",
     "openMenu": "Open menu",
-    "account": "Account"
+    "account": "Account",
+    "clearSearch": "Clear search"
+  },
+  "filters": {
+    "language": "Language",
+    "allLanguages": "All languages",
+    "topic": "Topic",
+    "allTopics": "All topics",
+    "stars": "Stars",
+    "anyStars": "Any stars",
+    "minStars": "{{value}}+ stars",
+    "pushed": "Pushed",
+    "anyTime": "Any time",
+    "pushedWithin": "Last {{value}} days",
+    "status": "Status",
+    "statusAll": "All",
+    "statusActive": "Active",
+    "statusArchived": "Archived",
+    "sort": "Sort",
+    "sortStarred": "Recently starred",
+    "sortPushed": "Recently pushed",
+    "sortStars": "Most stars",
+    "sortName": "Name (A\u2013Z)",
+    "clear": "Clear filters"
   },
   "sync": {
     "syncing": "Syncing…",
@@ -74,7 +97,9 @@
     "syncAction": "Sync GitHub Stars",
     "errorTitle": "Couldn't load repositories",
     "errorDescription": "Something went wrong while loading your repositories.",
-    "retry": "Retry"
+    "retry": "Retry",
+    "noResultsTitle": "No matching repositories",
+    "noResultsDescription": "Try adjusting your filters or search keywords."
   },
   "collections": {
     "title": "Collections",

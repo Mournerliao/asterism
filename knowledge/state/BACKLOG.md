@@ -23,6 +23,9 @@
 - [x] **DB 强类型查询**（2026-06-30，Slice 3）：`packages/db` 已收紧为 `SupabaseClient<Database>`，新增 `listStarredRepos`/`getLatestStarredAt` 强类型读查询。当前 `database.types.ts` 为**手写**（7 表 Row/Insert/Update + 关系）作为过渡；待 Supabase CLI 流程统一后用 `supabase gen types typescript` 生成版替换（保留此指针）。见 `logs/2026-06-30-phase1-slice3-stars-sync.md`。
 - [ ] **迁移版本管理**：迁移文件用时间戳前缀（兼容 `supabase db push`）。若团队统一改用 Supabase CLI 流程，需在 ADR 固化「迁移即源、禁止手改线上」纪律。
 - [ ] **Web 首屏 chunk 偏大**（2026-06-30，Slice 4 起）：Vite 提示打包 chunk > 500KB。后续按路由 `React.lazy` + `Suspense` code-split（登录/外壳/各分区），并评估 charts 等大依赖懒加载。
+- [ ] **按标签筛选维度**（2026-06-30，Slice 6 后续）：标签已落库，但顶部 `RepoFilterBar` 尚未加入「按标签」维度；待补一个 tag 多选筛选条。
+- [ ] **集合详情页**（2026-06-30，Slice 6 后续）：当前集合归属仅经 Repo Detail Drawer 勾选管理；缺「查看/管理集合内仓库列表」的详情视图。
+- [ ] **标签/集合重名前端校验**（2026-06-30，Slice 6 后续）：唯一约束 `(user_id, name)` 当前仅靠数据库报错，缺前端去重提示与友好错误反馈。
 
 ## 未来任务（按阶段）
 

@@ -14,6 +14,13 @@
   "actions": {
     "toggleLanguage": "切换语言"
   },
+  "common": {
+    "cancel": "取消",
+    "save": "保存",
+    "edit": "编辑",
+    "delete": "删除",
+    "actions": "操作"
+  },
   "theme": {
     "light": "浅色",
     "dark": "深色",
@@ -101,13 +108,55 @@
     "noResultsTitle": "没有匹配的仓库",
     "noResultsDescription": "试试调整筛选条件或搜索关键词。"
   },
+  "drawer": {
+    "title": "仓库详情",
+    "stars": "{{value}} Star",
+    "forks": "{{value}} Fork",
+    "tags": "标签",
+    "addTag": "添加标签",
+    "createTag": "新建标签…",
+    "removeTag": "移除标签 {{name}}",
+    "collections": "集合",
+    "noCollections": "还没有集合，请到「集合」页面创建。",
+    "notes": "笔记",
+    "notesPlaceholder": "为这个仓库写点笔记…",
+    "saveNote": "保存笔记",
+    "openOnGitHub": "在 GitHub 打开"
+  },
   "collections": {
     "title": "集合",
-    "comingSoon": "集合管理即将推出。"
+    "subtitle": "{{total}} 个集合 · 按项目或主题分组仓库",
+    "create": "新建集合",
+    "createTitle": "新建集合",
+    "editTitle": "编辑集合",
+    "repoCount": "{{value}} 个仓库",
+    "nameLabel": "名称",
+    "namePlaceholder": "例如：Web 开发栈",
+    "descriptionLabel": "描述",
+    "descriptionPlaceholder": "这个集合是关于什么的？",
+    "emptyTitle": "还没有集合",
+    "emptyDescription": "按项目或主题把 star 仓库分组，便于更快找到它们。",
+    "deleteTitle": "删除「{{name}}」？",
+    "deleteDescription": "仅删除该集合，不影响你的仓库与 star。"
   },
   "tags": {
     "title": "标签",
-    "comingSoon": "标签管理即将推出。"
+    "subtitle": "{{total}} 个标签 · 整理你的 star 仓库",
+    "create": "新建标签",
+    "createTitle": "新建标签",
+    "editTitle": "编辑标签",
+    "edit": "编辑标签",
+    "delete": "删除标签",
+    "searchPlaceholder": "搜索标签…",
+    "repoCount": "{{value}} 个仓库",
+    "nameLabel": "名称",
+    "namePlaceholder": "例如：frontend",
+    "colorLabel": "颜色",
+    "emptyTitle": "还没有标签",
+    "emptyDescription": "创建标签来标注并分组你的 star 仓库。",
+    "noResults": "没有匹配的标签。",
+    "deleteTitle": "删除「{{name}}」？",
+    "deleteDescription": "将从所有仓库移除该标签，不影响你的 star。"
   },
   "dashboard": {
     "title": "洞察",

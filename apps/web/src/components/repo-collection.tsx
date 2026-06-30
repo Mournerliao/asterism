@@ -1,3 +1,4 @@
+import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useRef, useState } from 'react';
@@ -36,9 +37,13 @@ function useColumns(ref: React.RefObject<HTMLElement | null>, view: RepoViewMode
 export function RepoCollection({
   records,
   view,
+  tagsByRepo,
+  onSelect,
 }: {
   records: StarredRepoRecord[];
   view: RepoViewMode;
+  tagsByRepo?: Map<string, Tag[]>;
+  onSelect?: (record: StarredRepoRecord) => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const columns = useColumns(scrollRef, view);
@@ -81,13 +86,20 @@ export function RepoCollection({
                       key={record.repo.githubId}
                       repo={record.repo}
                       starredAt={record.starredAt}
+                      tags={tagsByRepo?.get(record.repoId)}
+                      onOpen={onSelect ? () => onSelect(record) : undefined}
                     />
                   ))}
                 </div>
               ) : (
-                <div className="flex flex-col pb-3">
+                <div className="flex flex-col gap-2 pb-3">
                   {rowRecords.map((record) => (
-                    <RepoListRow key={record.repo.githubId} repo={record.repo} />
+                    <RepoListRow
+                      key={record.repo.githubId}
+                      repo={record.repo}
+                      tags={tagsByRepo?.get(record.repoId)}
+                      onOpen={onSelect ? () => onSelect(record) : undefined}
+                    />
                   ))}
                 </div>
               )}

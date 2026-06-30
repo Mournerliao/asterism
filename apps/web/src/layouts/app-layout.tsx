@@ -1,5 +1,6 @@
 import { Outlet } from 'react-router-dom';
 import { AppTopbar } from '../components/app-topbar';
+import { RepoDetailDrawer } from '../components/repo-detail-drawer';
 import { SidebarNav } from '../components/sidebar-nav';
 
 export function AppLayout() {
@@ -14,6 +15,7 @@ export function AppLayout() {
           <Outlet />
         </main>
       </div>
+      <RepoDetailDrawer />
     </div>
   );
 }

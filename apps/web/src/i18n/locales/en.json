@@ -14,6 +14,13 @@
   "actions": {
     "toggleLanguage": "Switch language"
   },
+  "common": {
+    "cancel": "Cancel",
+    "save": "Save",
+    "edit": "Edit",
+    "delete": "Delete",
+    "actions": "Actions"
+  },
   "theme": {
     "light": "Light",
     "dark": "Dark",
@@ -101,13 +108,55 @@
     "noResultsTitle": "No matching repositories",
     "noResultsDescription": "Try adjusting your filters or search keywords."
   },
+  "drawer": {
+    "title": "Repository Details",
+    "stars": "{{value}} stars",
+    "forks": "{{value}} forks",
+    "tags": "Tags",
+    "addTag": "Add tag",
+    "createTag": "Create new tag…",
+    "removeTag": "Remove tag {{name}}",
+    "collections": "Collections",
+    "noCollections": "No collections yet. Create one on the Collections page.",
+    "notes": "Notes",
+    "notesPlaceholder": "Write a note about this repository…",
+    "saveNote": "Save note",
+    "openOnGitHub": "Open on GitHub"
+  },
   "collections": {
     "title": "Collections",
-    "comingSoon": "Collections management is coming soon."
+    "subtitle": "{{total}} collections · Group repos by project or topic",
+    "create": "New Collection",
+    "createTitle": "New collection",
+    "editTitle": "Edit collection",
+    "repoCount": "{{value}} repos",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. Web Dev Stack",
+    "descriptionLabel": "Description",
+    "descriptionPlaceholder": "What is this collection about?",
+    "emptyTitle": "No collections yet",
+    "emptyDescription": "Group your starred repos by project or topic to find them faster.",
+    "deleteTitle": "Delete \"{{name}}\"?",
+    "deleteDescription": "This removes the collection. Your repositories and stars are not affected."
   },
   "tags": {
     "title": "Tags",
-    "comingSoon": "Tag management is coming soon."
+    "subtitle": "{{total}} tags · Organize your starred repositories",
+    "create": "Create Tag",
+    "createTitle": "Create tag",
+    "editTitle": "Edit tag",
+    "edit": "Edit tag",
+    "delete": "Delete tag",
+    "searchPlaceholder": "Search tags…",
+    "repoCount": "{{value}} repos",
+    "nameLabel": "Name",
+    "namePlaceholder": "e.g. frontend",
+    "colorLabel": "Color",
+    "emptyTitle": "No tags yet",
+    "emptyDescription": "Create tags to label and group your starred repositories.",
+    "noResults": "No tags match your search.",
+    "deleteTitle": "Delete \"{{name}}\"?",
+    "deleteDescription": "This removes the tag from all repositories. Your stars are not affected."
   },
   "dashboard": {
     "title": "Insights",

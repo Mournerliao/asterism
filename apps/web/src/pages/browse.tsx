@@ -1,4 +1,4 @@
-import { deriveRepoFacets, filterStarredRepos, sortStarredRepos } from '@asterism/core';
+import { deriveRepoFacets, filterStarredRepos, sortStarredRepos, type Tag } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import { AlertTriangleIcon, RefreshCwIcon, SearchXIcon, StarIcon } from 'lucide-react';
 import { useMemo } from 'react';
@@ -8,10 +8,13 @@ import { RepoCollection } from '../components/repo-collection';
 import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoCardSkeleton, RepoListRowSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
+import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
+import { useTags } from '../data/use-tags';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import { useBrowseView } from '../stores/browse-view';
+import { useRepoDrawer } from '../stores/repo-drawer';
 
 const GRID_SKELETON_KEYS = Array.from({ length: 6 }, (_, i) => `grid-skeleton-${i}`);
 const LIST_SKELETON_KEYS = Array.from({ length: 8 }, (_, i) => `list-skeleton-${i}`);
@@ -39,7 +42,10 @@ export function BrowsePage() {
   const { t, i18n } = useTranslation();
   const view = useBrowseView((state) => state.view);
   const filters = useBrowseFilters();
+  const openDrawer = useRepoDrawer((state) => state.open);
   const { data, isLoading, isError, refetch, isFetching } = useStarredRepos();
+  const { data: tags } = useTags();
+  const { data: repoTags } = useRepoTags();
   const sync = useSyncStars();
 
   const records = useMemo(() => data ?? [], [data]);
@@ -48,6 +54,24 @@ export function BrowsePage() {
     () => sortStarredRepos(filterStarredRepos(records, toRepoFilter(filters)), filters.sort),
     [records, filters],
   );
+
+  const tagsByRepo = useMemo(() => {
+    const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
+    const map = new Map<string, Tag[]>();
+    for (const link of repoTags ?? []) {
+      const tag = byId.get(link.tagId);
+      if (!tag) {
+        continue;
+      }
+      const list = map.get(link.repoId);
+      if (list) {
+        list.push(tag);
+      } else {
+        map.set(link.repoId, [tag]);
+      }
+    }
+    return map;
+  }, [tags, repoTags]);
 
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
@@ -106,7 +130,12 @@ export function BrowsePage() {
           }
         />
       ) : (
-        <RepoCollection records={visible} view={view} />
+        <RepoCollection
+          records={visible}
+          view={view}
+          tagsByRepo={tagsByRepo}
+          onSelect={openDrawer}
+        />
       )}
     </div>
   );

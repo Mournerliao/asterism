@@ -1,27 +1,55 @@
-import type { Repo } from '@asterism/core';
+import type { Repo, Tag } from '@asterism/core';
 import { Badge, Card, cn } from '@asterism/ui';
 import { ArchiveIcon, GitForkIcon, StarIcon } from 'lucide-react';
+import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCompactNumber, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 
 const MAX_TOPICS = 3;
+const MAX_TAG_DOTS = 3;
 
-export function RepoListRow({ repo }: { repo: Repo }) {
+export function RepoListRow({
+  repo,
+  tags,
+  onOpen,
+}: {
+  repo: Repo;
+  tags?: Tag[];
+  onOpen?: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const updated = formatRelativeTime(repo.pushedAt, locale);
   const dotColor = languageColor(repo.language);
   const visibleTopics = repo.topics.slice(0, MAX_TOPICS);
+  const tagDots = tags?.slice(0, MAX_TAG_DOTS) ?? [];
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      onOpen?.();
+    }
+  };
 
   return (
-    <Card className="flex flex-row items-center gap-4 px-4 py-3 transition-colors hover:border-ring/60">
+    <Card
+      role={onOpen ? 'button' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      onClick={onOpen}
+      onKeyDown={onOpen ? handleKeyDown : undefined}
+      className={cn(
+        'flex flex-row items-center gap-4 px-4 py-3 transition-colors hover:border-ring/60',
+        onOpen && 'cursor-pointer focus-visible:border-ring focus-visible:outline-none',
+      )}
+    >
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex items-center gap-2">
           <a
             href={`https://github.com/${repo.fullName}`}
             target="_blank"
             rel="noreferrer noopener"
+            onClick={(event) => event.stopPropagation()}
             className="flex min-w-0 items-center gap-2 font-semibold text-link text-sm hover:underline"
           >
             <span
@@ -44,6 +72,21 @@ export function RepoListRow({ repo }: { repo: Repo }) {
           <p className="truncate text-muted-foreground text-sm">{repo.description}</p>
         ) : null}
       </div>
+
+      {tagDots.length > 0 ? (
+        <div className="hidden shrink-0 items-center md:flex" aria-hidden="true">
+          {tagDots.map((tag, index) => (
+            <span
+              key={tag.id}
+              className="-ml-1 size-2.5 rounded-full border border-background first:ml-0"
+              style={{
+                backgroundColor: tag.color ?? 'var(--muted-foreground)',
+                zIndex: tagDots.length - index,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <div className="hidden shrink-0 flex-wrap items-center gap-1.5 md:flex">
         {visibleTopics.map((topic) => (

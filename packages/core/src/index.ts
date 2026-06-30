@@ -14,8 +14,12 @@ export {
   mapStarEdgeToRepo,
   STARRED_REPOS_QUERY,
 } from './github/stars';
+export type { Collection, CollectionId } from './models/collection';
+export type { Note } from './models/note';
 export type { Repo, RepoId } from './models/repo';
 export { repoFullName } from './models/repo';
+export type { Tag, TagId } from './models/tag';
+export { pickTagColor, TAG_COLORS } from './models/tag';
 export type {
   RepoFacets,
   RepoFilter,

@@ -50,9 +50,26 @@ export function BrowsePage() {
 
   const records = useMemo(() => data ?? [], [data]);
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
+  const tagsByRepoId = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const link of repoTags ?? []) {
+      const list = map.get(link.repoId);
+      if (list) {
+        list.push(link.tagId);
+      } else {
+        map.set(link.repoId, [link.tagId]);
+      }
+    }
+    return map;
+  }, [repoTags]);
+
   const visible = useMemo(
-    () => sortStarredRepos(filterStarredRepos(records, toRepoFilter(filters)), filters.sort),
-    [records, filters],
+    () =>
+      sortStarredRepos(
+        filterStarredRepos(records, toRepoFilter(filters), Date.now(), tagsByRepoId),
+        filters.sort,
+      ),
+    [records, filters, tagsByRepoId],
   );
 
   const tagsByRepo = useMemo(() => {
@@ -88,7 +105,7 @@ export function BrowsePage() {
         {hasRepos ? <RepoViewToggle /> : null}
       </div>
 
-      {hasRepos ? <RepoFilterBar facets={facets} /> : null}
+      {hasRepos ? <RepoFilterBar facets={facets} tags={tags ?? []} /> : null}
 
       {isLoading ? (
         <div className="min-h-0 flex-1 overflow-auto">

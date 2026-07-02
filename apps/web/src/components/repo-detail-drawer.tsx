@@ -208,6 +208,7 @@ function TagsSection({ repoId }: { repoId: string }) {
         onOpenChange={setCreateOpen}
         title={t('tags.createTitle')}
         submitLabel={t('tags.create')}
+        existingNames={tags.map((tag) => tag.name)}
         pending={createTag.isPending}
         onSubmit={handleCreate}
       />

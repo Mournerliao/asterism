@@ -24,6 +24,7 @@ export function TagsPage() {
   const [deleting, setDeleting] = useState<TagWithCount | null>(null);
 
   const list = tags ?? [];
+  const tagNames = list.map((tag) => tag.name);
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     if (!q) {
@@ -127,6 +128,7 @@ export function TagsPage() {
         onOpenChange={setCreateOpen}
         title={t('tags.createTitle')}
         submitLabel={t('tags.create')}
+        existingNames={tagNames}
         pending={createTag.isPending}
         onSubmit={(values) => {
           createTag.mutate(
@@ -148,6 +150,7 @@ export function TagsPage() {
         submitLabel={t('common.save')}
         initialName={editing?.name ?? ''}
         initialColor={editing?.color ?? undefined}
+        existingNames={tagNames}
         pending={updateTag.isPending}
         onSubmit={(values) => {
           if (!editing) {

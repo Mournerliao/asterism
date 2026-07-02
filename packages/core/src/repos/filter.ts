@@ -4,6 +4,8 @@ import type { Repo } from '../models/repo';
 export interface StarredRepoLike {
   repo: Repo;
   starredAt: string | null;
+  /** Postgres `repos.id`；按标签筛选时需要。 */
+  repoId?: string;
 }
 
 export type RepoStatus = 'all' | 'active' | 'archived';
@@ -18,6 +20,8 @@ export interface RepoFilter {
   /** 仅保留最近 N 天有 push 的仓库；null/缺省表示不限。 */
   pushedWithinDays?: number | null;
   status?: RepoStatus;
+  /** 至少命中其中一个 tag（OR）；缺省或空数组表示不限。 */
+  tagIds?: string[];
 }
 
 export interface RepoFacets {
@@ -37,6 +41,7 @@ const EMPTY_FILTER: Required<Omit<RepoFilter, 'language' | 'topic'>> & {
   minStars: 0,
   pushedWithinDays: null,
   status: 'all',
+  tagIds: [],
 };
 
 function matchesQuery(repo: Repo, query: string): boolean {
@@ -54,7 +59,8 @@ export function hasActiveFilter(filter: RepoFilter): boolean {
     Boolean(filter.topic) ||
     (filter.minStars ?? 0) > 0 ||
     filter.pushedWithinDays != null ||
-    (filter.status ?? 'all') !== 'all'
+    (filter.status ?? 'all') !== 'all' ||
+    (filter.tagIds?.length ?? 0) > 0
   );
 }
 
@@ -63,13 +69,26 @@ export function filterStarredRepos<T extends StarredRepoLike>(
   items: T[],
   filter: RepoFilter,
   now: number = Date.now(),
+  tagsByRepoId?: Map<string, string[]>,
 ): T[] {
   const f = { ...EMPTY_FILTER, ...filter };
   const query = f.query.trim().toLowerCase();
   const pushedCutoff =
     f.pushedWithinDays != null ? now - f.pushedWithinDays * 24 * 60 * 60 * 1000 : null;
+  const tagFilter = f.tagIds.length > 0;
 
-  return items.filter(({ repo }) => {
+  return items.filter((item) => {
+    const { repo } = item;
+    if (tagFilter) {
+      const repoId = item.repoId;
+      if (!repoId) {
+        return false;
+      }
+      const repoTagIds = tagsByRepoId?.get(repoId) ?? [];
+      if (!f.tagIds.some((tagId) => repoTagIds.includes(tagId))) {
+        return false;
+      }
+    }
     if (query && !matchesQuery(repo, query)) {
       return false;
     }

@@ -66,6 +66,8 @@
     "allLanguages": "All languages",
     "topic": "Topic",
     "allTopics": "All topics",
+    "tags": "Tags",
+    "allTags": "All tags",
     "stars": "Stars",
     "anyStars": "Any stars",
     "minStars": "{{value}}+ stars",
@@ -137,7 +139,16 @@
     "emptyTitle": "No collections yet",
     "emptyDescription": "Group your starred repos by project or topic to find them faster.",
     "deleteTitle": "Delete \"{{name}}\"?",
-    "deleteDescription": "This removes the collection. Your repositories and stars are not affected."
+    "deleteDescription": "This removes the collection. Your repositories and stars are not affected.",
+    "duplicateName": "A collection with this name already exists."
+  },
+  "collectionDetail": {
+    "back": "Back to collections",
+    "repoCount": "{{count}} repositories",
+    "emptyTitle": "No repositories in this collection",
+    "emptyDescription": "Add repositories from the repo detail drawer on the Browse page.",
+    "notFoundTitle": "Collection not found",
+    "notFoundDescription": "This collection may have been deleted or you do not have access."
   },
   "tags": {
     "title": "Tags",
@@ -156,15 +167,57 @@
     "emptyDescription": "Create tags to label and group your starred repositories.",
     "noResults": "No tags match your search.",
     "deleteTitle": "Delete \"{{name}}\"?",
-    "deleteDescription": "This removes the tag from all repositories. Your stars are not affected."
+    "deleteDescription": "This removes the tag from all repositories. Your stars are not affected.",
+    "duplicateName": "A tag with this name already exists."
   },
   "dashboard": {
     "title": "Insights",
-    "comingSoon": "Your stats dashboard is coming soon."
+    "subtitle": "Visual overview of your starred repositories",
+    "totalStars": "Total starred",
+    "languages": "Languages",
+    "taggedRepos": "Tagged repos",
+    "collections": "Collections",
+    "languageDistribution": "Language distribution",
+    "starredTrend": "Starred over time",
+    "topTopics": "Top topics",
+    "archiveAndTags": "Active vs archived",
+    "topTags": "Top tags",
+    "noData": "Not enough data yet",
+    "noTags": "No tags in use",
+    "emptyTitle": "No stars to analyze",
+    "emptyDescription": "Sync your GitHub stars to see insights here.",
+    "errorTitle": "Could not load insights",
+    "errorDescription": "Something went wrong while loading your data."
   },
   "importExport": {
     "title": "Import / Export",
-    "comingSoon": "Import and export is coming soon."
+    "subtitle": "Back up or migrate your tags, collections, and notes",
+    "exportTitle": "Export",
+    "exportDescription": "Download your organizational data. JSON includes tags, collections, links, and notes.",
+    "importTitle": "Import",
+    "importDescription": "Import a previously exported JSON file. Repositories must already be synced.",
+    "format": {
+      "json": "JSON",
+      "csv": "CSV",
+      "markdown": "Markdown"
+    },
+    "download": "Download",
+    "uploadPrompt": "Drop a JSON file here or click to browse",
+    "uploadHint": "Only Asterism v1 JSON exports are supported",
+    "previewTitle": "Export preview",
+    "emptyTitle": "Nothing to export yet",
+    "emptyDescription": "Sync your stars first, then export tags, collections, and notes.",
+    "invalidFile": "Please upload a JSON file",
+    "importSuccess": "Import completed",
+    "importSummary": "{{tags}} tags, {{collections}} collections, {{links}} links, {{notes}} notes",
+    "importSkipped": "Some items were skipped",
+    "importPartial": "Import finished with errors",
+    "importFailed": "Import failed",
+    "errors": {
+      "INVALID_JSON": "Invalid JSON file",
+      "INVALID_SCHEMA": "Unrecognized export format",
+      "UNSUPPORTED_VERSION": "Unsupported export version"
+    }
   },
   "settings": {
     "title": "Settings",

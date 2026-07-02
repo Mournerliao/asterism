@@ -11,6 +11,7 @@ import {
 import { FolderIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { CollectionFormDialog } from '../components/collection-form-dialog';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { EmptyState } from '../components/empty-state';
@@ -27,6 +28,7 @@ const SKELETON_KEYS = ['a', 'b', 'c'];
 
 export function CollectionsPage() {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const { data: collections, isLoading } = useCollections();
   const createCollection = useCreateCollection();
   const updateCollection = useUpdateCollection();
@@ -37,6 +39,7 @@ export function CollectionsPage() {
   const [deleting, setDeleting] = useState<CollectionWithMeta | null>(null);
 
   const list = collections ?? [];
+  const collectionNames = list.map((item) => item.name);
   const subtitle = t('collections.subtitle', {
     total: new Intl.NumberFormat(i18n.language).format(list.length),
   });
@@ -75,7 +78,11 @@ export function CollectionsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {list.map((collection) => (
-            <Card key={collection.id} className="flex flex-col gap-2 p-5">
+            <Card
+              key={collection.id}
+              className="flex cursor-pointer flex-col gap-2 p-5 transition-colors hover:bg-accent/50"
+              onClick={() => navigate(`/collections/${collection.id}`)}
+            >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="min-w-0 truncate font-semibold text-foreground">
                   {collection.name}
@@ -91,11 +98,12 @@ export function CollectionsPage() {
                         size="icon"
                         className="size-7 text-muted-foreground"
                         aria-label={t('common.actions')}
+                        onClick={(event) => event.stopPropagation()}
                       >
                         <MoreHorizontalIcon className="size-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
                       <DropdownMenuItem onSelect={() => setEditing(collection)}>
                         <PencilIcon className="size-4" />
                         {t('common.edit')}
@@ -131,6 +139,7 @@ export function CollectionsPage() {
         onOpenChange={setCreateOpen}
         title={t('collections.createTitle')}
         submitLabel={t('collections.create')}
+        existingNames={collectionNames}
         pending={createCollection.isPending}
         onSubmit={(values) => {
           createCollection.mutate(values, { onSuccess: () => setCreateOpen(false) });
@@ -149,6 +158,7 @@ export function CollectionsPage() {
         submitLabel={t('common.save')}
         initialName={editing?.name ?? ''}
         initialDescription={editing?.description ?? ''}
+        existingNames={collectionNames}
         pending={updateCollection.isPending}
         onSubmit={(values) => {
           if (!editing) {

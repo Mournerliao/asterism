@@ -99,6 +99,33 @@ describe('filterStarredRepos', () => {
       filterStarredRepos(data, { topic: 'compiler', status: 'active' }).map((d) => d.repo.githubId),
     ).toEqual([3]);
   });
+
+  it('filters by tagIds with OR semantics', () => {
+    const withIds: StarredRepoLike[] = data.map((entry, index) => ({
+      ...entry,
+      repoId: String(index + 1),
+    }));
+    const tagsByRepoId = new Map<string, string[]>([
+      ['1', ['tag-a']],
+      ['2', ['tag-b']],
+      ['3', ['tag-a', 'tag-c']],
+    ]);
+    expect(
+      filterStarredRepos(withIds, { tagIds: ['tag-a'] }, NOW, tagsByRepoId).map(
+        (d) => d.repo.githubId,
+      ),
+    ).toEqual([1, 3]);
+    expect(
+      filterStarredRepos(withIds, { tagIds: ['tag-a', 'tag-b'] }, NOW, tagsByRepoId).map(
+        (d) => d.repo.githubId,
+      ),
+    ).toEqual([1, 2, 3]);
+    expect(
+      filterStarredRepos(withIds, { tagIds: ['tag-missing'] }, NOW, tagsByRepoId).map(
+        (d) => d.repo.githubId,
+      ),
+    ).toEqual([]);
+  });
 });
 
 describe('sortStarredRepos', () => {
@@ -156,5 +183,6 @@ describe('hasActiveFilter', () => {
     expect(hasActiveFilter({ status: 'all', minStars: 0, query: '  ' })).toBe(false);
     expect(hasActiveFilter({ language: 'Go' })).toBe(true);
     expect(hasActiveFilter({ query: 'x' })).toBe(true);
+    expect(hasActiveFilter({ tagIds: ['t1'] })).toBe(true);
   });
 });

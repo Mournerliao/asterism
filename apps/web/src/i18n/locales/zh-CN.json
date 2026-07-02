@@ -66,6 +66,8 @@
     "allLanguages": "全部语言",
     "topic": "Topic",
     "allTopics": "全部 Topic",
+    "tags": "标签",
+    "allTags": "全部标签",
     "stars": "Star 数",
     "anyStars": "不限 Star",
     "minStars": "{{value}}+ Star",
@@ -137,7 +139,16 @@
     "emptyTitle": "还没有集合",
     "emptyDescription": "按项目或主题把 star 仓库分组，便于更快找到它们。",
     "deleteTitle": "删除「{{name}}」？",
-    "deleteDescription": "仅删除该集合，不影响你的仓库与 star。"
+    "deleteDescription": "仅删除该集合，不影响你的仓库与 star。",
+    "duplicateName": "已存在同名集合。"
+  },
+  "collectionDetail": {
+    "back": "返回集合列表",
+    "repoCount": "{{count}} 个仓库",
+    "emptyTitle": "集合内暂无仓库",
+    "emptyDescription": "可在 Browse 页打开仓库详情抽屉，将仓库加入此集合。",
+    "notFoundTitle": "未找到集合",
+    "notFoundDescription": "该集合可能已被删除，或你没有访问权限。"
   },
   "tags": {
     "title": "标签",
@@ -156,15 +167,57 @@
     "emptyDescription": "创建标签来标注并分组你的 star 仓库。",
     "noResults": "没有匹配的标签。",
     "deleteTitle": "删除「{{name}}」？",
-    "deleteDescription": "将从所有仓库移除该标签，不影响你的 star。"
+    "deleteDescription": "将从所有仓库移除该标签，不影响你的 star。",
+    "duplicateName": "已存在同名标签。"
   },
   "dashboard": {
     "title": "洞察",
-    "comingSoon": "统计仪表盘即将推出。"
+    "subtitle": "star 仓库的可视化概览",
+    "totalStars": "Star 总数",
+    "languages": "语言数",
+    "taggedRepos": "已打标签",
+    "collections": "集合数",
+    "languageDistribution": "语言分布",
+    "starredTrend": "收藏趋势",
+    "topTopics": "热门 Topic",
+    "archiveAndTags": "活跃 vs 归档",
+    "topTags": "标签使用 Top 5",
+    "noData": "数据不足",
+    "noTags": "暂无标签使用",
+    "emptyTitle": "暂无 star 可分析",
+    "emptyDescription": "同步 GitHub stars 后即可查看统计。",
+    "errorTitle": "无法加载洞察",
+    "errorDescription": "加载数据时出错，请稍后重试。"
   },
   "importExport": {
     "title": "导入 / 导出",
-    "comingSoon": "导入导出即将推出。"
+    "subtitle": "备份或迁移标签、集合与笔记",
+    "exportTitle": "导出",
+    "exportDescription": "下载组织数据。JSON 包含标签、集合、关联与笔记。",
+    "importTitle": "导入",
+    "importDescription": "导入此前导出的 JSON 文件。仓库须已同步到账户。",
+    "format": {
+      "json": "JSON",
+      "csv": "CSV",
+      "markdown": "Markdown"
+    },
+    "download": "下载",
+    "uploadPrompt": "拖拽 JSON 文件到此处，或点击选择",
+    "uploadHint": "仅支持 Asterism v1 JSON 导出",
+    "previewTitle": "导出预览",
+    "emptyTitle": "暂无可导出数据",
+    "emptyDescription": "请先同步 stars，再导出标签、集合与笔记。",
+    "invalidFile": "请上传 JSON 文件",
+    "importSuccess": "导入完成",
+    "importSummary": "{{tags}} 个标签、{{collections}} 个集合、{{links}} 条关联、{{notes}} 条笔记",
+    "importSkipped": "部分项已跳过",
+    "importPartial": "导入完成但存在错误",
+    "importFailed": "导入失败",
+    "errors": {
+      "INVALID_JSON": "JSON 文件无效",
+      "INVALID_SCHEMA": "无法识别的导出格式",
+      "UNSUPPORTED_VERSION": "不支持的导出版本"
+    }
   },
   "settings": {
     "title": "设置",

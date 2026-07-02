@@ -1,5 +1,21 @@
 import type { SupabaseClient } from '../client';
 
+/** 读取当前用户的全部笔记。 */
+export async function listNotes(
+  client: SupabaseClient,
+  userId: string,
+): Promise<Array<{ repoId: string; body: string }>> {
+  const { data, error } = await client.from('notes').select('repo_id, body').eq('user_id', userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? [])
+    .filter((row) => row.body != null && row.body.trim().length > 0)
+    .map((row) => ({ repoId: row.repo_id, body: row.body as string }));
+}
+
 /** 读取某仓库的笔记正文；无记录返回空串。 */
 export async function getNote(
   client: SupabaseClient,

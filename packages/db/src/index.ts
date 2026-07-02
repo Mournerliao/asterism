@@ -5,6 +5,8 @@ export { AsterismCache } from './cache';
 export type { SupabaseClient, SupabaseClientOptions } from './client';
 export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
+export type { ImportUserDataResult } from './import-user-data';
+export { importUserData } from './import-user-data';
 export type { CollectionRepoLink } from './queries/collection-repos';
 export {
   addRepoToCollection,
@@ -18,7 +20,7 @@ export {
   listCollections,
   updateCollection,
 } from './queries/collections';
-export { getNote, saveNote } from './queries/notes';
+export { getNote, listNotes, saveNote } from './queries/notes';
 export type { RepoTagLink } from './queries/repo-tags';
 export { addRepoTag, listRepoTags, removeRepoTag } from './queries/repo-tags';
 export type { StarredRepoRecord } from './queries/repos';

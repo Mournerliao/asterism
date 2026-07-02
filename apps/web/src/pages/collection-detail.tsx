@@ -1,0 +1,129 @@
+import type { Tag } from '@asterism/core';
+import { Button } from '@asterism/ui';
+import { ArrowLeftIcon, FolderIcon } from 'lucide-react';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Link, useParams } from 'react-router-dom';
+import { EmptyState } from '../components/empty-state';
+import { RepoCollection } from '../components/repo-collection';
+import { useCollectionRepos } from '../data/use-collection-repos';
+import { useCollections } from '../data/use-collections';
+import { useRepoTags } from '../data/use-repo-tags';
+import { useStarredRepos } from '../data/use-starred-repos';
+import { useTags } from '../data/use-tags';
+import { useRepoDrawer } from '../stores/repo-drawer';
+
+export function CollectionDetailPage() {
+  const { t, i18n } = useTranslation();
+  const { id } = useParams<{ id: string }>();
+  const openDrawer = useRepoDrawer((state) => state.open);
+
+  const { data: collections, isLoading: collectionsLoading } = useCollections();
+  const { data: starredRepos, isLoading: reposLoading } = useStarredRepos();
+  const { data: collectionRepos, isLoading: linksLoading } = useCollectionRepos();
+  const { data: tags } = useTags();
+  const { data: repoTags } = useRepoTags();
+
+  const collection = useMemo(
+    () => (collections ?? []).find((item) => item.id === id),
+    [collections, id],
+  );
+
+  const memberRecords = useMemo(() => {
+    if (!collection || !starredRepos) {
+      return [];
+    }
+    const memberIds = new Set(
+      (collectionRepos ?? [])
+        .filter((link) => link.collectionId === collection.id)
+        .map((link) => link.repoId),
+    );
+    return starredRepos.filter((record) => memberIds.has(record.repoId));
+  }, [collection, collectionRepos, starredRepos]);
+
+  const tagsByRepo = useMemo(() => {
+    const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
+    const map = new Map<string, Tag[]>();
+    for (const link of repoTags ?? []) {
+      const tag = byId.get(link.tagId);
+      if (!tag) {
+        continue;
+      }
+      const list = map.get(link.repoId);
+      if (list) {
+        list.push(tag);
+      } else {
+        map.set(link.repoId, [tag]);
+      }
+    }
+    return map;
+  }, [tags, repoTags]);
+
+  const isLoading = collectionsLoading || reposLoading || linksLoading;
+  const count = new Intl.NumberFormat(i18n.language).format(memberRecords.length);
+
+  if (!isLoading && !collection) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+        <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
+          <Link to="/collections">
+            <ArrowLeftIcon className="size-4" />
+            {t('collectionDetail.back')}
+          </Link>
+        </Button>
+        <EmptyState
+          icon={FolderIcon}
+          title={t('collectionDetail.notFoundTitle')}
+          description={t('collectionDetail.notFoundDescription')}
+        />
+      </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto flex h-full max-w-6xl flex-col gap-6">
+      <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
+        <Link to="/collections">
+          <ArrowLeftIcon className="size-4" />
+          {t('collectionDetail.back')}
+        </Link>
+      </Button>
+
+      <div className="flex items-start gap-4">
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-lg bg-accent">
+          <FolderIcon className="size-6 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="font-bold text-2xl text-foreground tracking-tight">
+            {collection?.name ?? '…'}
+          </h1>
+          {collection?.description ? (
+            <p className="mt-1 text-muted-foreground text-sm">{collection.description}</p>
+          ) : null}
+          {!isLoading ? (
+            <p className="mt-2 text-muted-foreground text-sm">
+              {t('collectionDetail.repoCount', { count })}
+            </p>
+          ) : null}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="min-h-48 animate-pulse rounded-lg border bg-card" />
+      ) : memberRecords.length === 0 ? (
+        <EmptyState
+          icon={FolderIcon}
+          title={t('collectionDetail.emptyTitle')}
+          description={t('collectionDetail.emptyDescription')}
+        />
+      ) : (
+        <RepoCollection
+          records={memberRecords}
+          view="list"
+          tagsByRepo={tagsByRepo}
+          onSelect={openDrawer}
+        />
+      )}
+    </div>
+  );
+}

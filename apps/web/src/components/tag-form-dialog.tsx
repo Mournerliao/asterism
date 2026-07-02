@@ -9,9 +9,22 @@ import {
   DialogTitle,
   Input,
   Label,
+  toast,
 } from '@asterism/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+function isDuplicateName(name: string, existingNames: string[], excludeName?: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  const exclude = excludeName?.trim().toLowerCase();
+  return existingNames.some((existing) => {
+    const candidate = existing.trim().toLowerCase();
+    if (exclude && candidate === exclude) {
+      return false;
+    }
+    return candidate === normalized;
+  });
+}
 
 /** 标签新建 / 编辑对话框（受控、纯表单），由父级注入提交逻辑。 */
 export function TagFormDialog({
@@ -21,6 +34,7 @@ export function TagFormDialog({
   submitLabel,
   initialName = '',
   initialColor = TAG_COLORS[0],
+  existingNames = [],
   pending = false,
   onSubmit,
 }: {
@@ -30,17 +44,20 @@ export function TagFormDialog({
   submitLabel: string;
   initialName?: string;
   initialColor?: string;
+  existingNames?: string[];
   pending?: boolean;
   onSubmit: (values: { name: string; color: string }) => void;
 }) {
   const { t } = useTranslation();
   const [name, setName] = useState(initialName);
   const [color, setColor] = useState(initialColor);
+  const [nameError, setNameError] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
       setName(initialName);
       setColor(initialColor);
+      setNameError(null);
     }
   }, [open, initialName, initialColor]);
 
@@ -50,6 +67,13 @@ export function TagFormDialog({
     if (!trimmed) {
       return;
     }
+    if (isDuplicateName(trimmed, existingNames, initialName)) {
+      const message = t('tags.duplicateName');
+      setNameError(message);
+      toast.error(message);
+      return;
+    }
+    setNameError(null);
     onSubmit({ name: trimmed, color });
   };
 
@@ -65,11 +89,16 @@ export function TagFormDialog({
             <Input
               id="tag-name"
               value={name}
-              onChange={(event) => setName(event.target.value)}
+              onChange={(event) => {
+                setName(event.target.value);
+                setNameError(null);
+              }}
               placeholder={t('tags.namePlaceholder')}
               autoFocus
               maxLength={50}
+              aria-invalid={Boolean(nameError)}
             />
+            {nameError ? <p className="text-destructive text-sm">{nameError}</p> : null}
           </div>
           <div className="flex flex-col gap-2">
             <Label>{t('tags.colorLabel')}</Label>

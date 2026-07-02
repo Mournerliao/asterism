@@ -20,6 +20,14 @@ export {
   CardHeader,
   CardTitle,
 } from './components/ui/card';
+export type { ChartConfig } from './components/ui/chart';
+export {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+} from './components/ui/chart';
 export {
   Dialog,
   DialogClose,

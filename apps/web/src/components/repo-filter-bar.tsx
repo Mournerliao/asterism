@@ -1,13 +1,24 @@
-import { hasActiveFilter, type RepoFacets, type RepoSort, type RepoStatus } from '@asterism/core';
 import {
+  hasActiveFilter,
+  type RepoFacets,
+  type RepoSort,
+  type RepoStatus,
+  type Tag,
+} from '@asterism/core';
+import {
+  Badge,
   Button,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@asterism/ui';
-import { XIcon } from 'lucide-react';
+import { ChevronDownIcon, XIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 
@@ -15,10 +26,11 @@ const ALL = '__all__';
 const STAR_THRESHOLDS = [100, 1000, 10000, 50000];
 const PUSHED_WINDOWS = [7, 30, 90, 365];
 
-export function RepoFilterBar({ facets }: { facets: RepoFacets }) {
+export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[] }) {
   const { t, i18n } = useTranslation();
   const filters = useBrowseFilters();
   const active = hasActiveFilter(toRepoFilter(filters));
+  const tagCount = filters.tagIds.length;
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -55,6 +67,37 @@ export function RepoFilterBar({ facets }: { facets: RepoFacets }) {
           ))}
         </SelectContent>
       </Select>
+
+      {tags.length > 0 ? (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="min-w-28 gap-1 font-normal">
+              {t('filters.tags')}
+              {tagCount > 0 ? (
+                <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
+                  {tagCount}
+                </Badge>
+              ) : null}
+              <ChevronDownIcon className="size-4 opacity-50" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-64 w-48 overflow-y-auto">
+            {tags.map((tag) => (
+              <DropdownMenuCheckboxItem
+                key={tag.id}
+                checked={filters.tagIds.includes(tag.id)}
+                onCheckedChange={() => filters.toggleTagId(tag.id)}
+              >
+                <span
+                  className="mr-2 size-2 shrink-0 rounded-full"
+                  style={{ backgroundColor: tag.color ?? 'var(--muted-foreground)' }}
+                />
+                {tag.name}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+      ) : null}
 
       <Select
         value={String(filters.minStars)}

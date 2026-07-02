@@ -71,7 +71,7 @@ export function filterStarredRepos<T extends StarredRepoLike>(
   now: number = Date.now(),
   tagsByRepoId?: Map<string, string[]>,
 ): T[] {
-  const f = { ...EMPTY_FILTER, ...filter };
+  const f = { ...EMPTY_FILTER, ...filter, tagIds: filter.tagIds ?? EMPTY_FILTER.tagIds };
   const query = f.query.trim().toLowerCase();
   const pushedCutoff =
     f.pushedWithinDays != null ? now - f.pushedWithinDays * 24 * 60 * 60 * 1000 : null;

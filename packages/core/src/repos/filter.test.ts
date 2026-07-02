@@ -100,6 +100,12 @@ describe('filterStarredRepos', () => {
     ).toEqual([3]);
   });
 
+  it('treats undefined tagIds as no tag filter', () => {
+    expect(filterStarredRepos(data, { tagIds: undefined }).map((d) => d.repo.githubId)).toEqual([
+      1, 2, 3,
+    ]);
+  });
+
   it('filters by tagIds with OR semantics', () => {
     const withIds: StarredRepoLike[] = data.map((entry, index) => ({
       ...entry,

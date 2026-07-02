@@ -60,6 +60,6 @@ export function toRepoFilter(state: BrowseFiltersState): RepoFilter {
     minStars: state.minStars,
     pushedWithinDays: state.pushedWithinDays,
     status: state.status,
-    tagIds: state.tagIds.length > 0 ? state.tagIds : undefined,
+    tagIds: state.tagIds,
   };
 }

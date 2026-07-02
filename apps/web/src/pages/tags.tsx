@@ -83,17 +83,22 @@ export function TagsPage() {
       ) : filtered.length === 0 ? (
         <EmptyState icon={SearchIcon} title={t('tags.noResults')} />
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filtered.map((tag) => (
-            <Card key={tag.id} className="flex items-center justify-between gap-2 p-4">
-              <div className="flex min-w-0 items-center gap-3">
+            <Card
+              key={tag.id}
+              className="flex h-[62px] items-center justify-between gap-2 rounded-lg px-4 py-3.5"
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
                 <span
-                  className="size-3 shrink-0 rounded-full"
+                  className="size-3 shrink-0 rounded-md"
                   style={{ backgroundColor: tag.color ?? 'var(--muted-foreground)' }}
                 />
-                <div className="flex min-w-0 flex-col">
-                  <span className="truncate font-medium text-foreground text-sm">{tag.name}</span>
-                  <span className="text-muted-foreground text-xs">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <span className="truncate font-medium text-[13px] text-foreground">
+                    {tag.name}
+                  </span>
+                  <span className="text-caption text-muted-foreground">
                     {t('tags.repoCount', { value: tag.repoCount })}
                   </span>
                 </div>

@@ -16,7 +16,7 @@ export function StatCard({
           <Icon className="size-5 text-muted-foreground" />
         </div>
         <div className="min-w-0">
-          <p className="text-muted-foreground text-sm">{label}</p>
+          <p className="text-[13px] text-muted-foreground">{label}</p>
           <p className="font-semibold text-2xl text-foreground tabular-nums">{value}</p>
         </div>
       </div>

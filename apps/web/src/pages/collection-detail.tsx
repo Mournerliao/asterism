@@ -94,14 +94,16 @@ export function CollectionDetailPage() {
           <FolderIcon className="size-6 text-muted-foreground" />
         </div>
         <div className="min-w-0 flex-1">
-          <h1 className="font-bold text-2xl text-foreground tracking-tight">
+          <h1 className="font-bold text-page-title text-foreground tracking-tight">
             {collection?.name ?? '…'}
           </h1>
           {collection?.description ? (
-            <p className="mt-1 text-muted-foreground text-sm">{collection.description}</p>
+            <p className="mt-1 text-[13px] text-muted-foreground leading-5">
+              {collection.description}
+            </p>
           ) : null}
           {!isLoading ? (
-            <p className="mt-2 text-muted-foreground text-sm">
+            <p className="mt-2 text-caption text-muted-foreground">
               {t('collectionDetail.repoCount', { count })}
             </p>
           ) : null}

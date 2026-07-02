@@ -10,16 +10,16 @@ export interface Tag {
   color: string | null;
 }
 
-/** 预设标签配色（GitHub 风格强调色），新建标签按序取色，保证视觉区分度。 */
+/** 预设标签配色（对齐 ui-ux.md 8 色分类调色板 light 值）。 */
 export const TAG_COLORS = [
   '#0969da',
   '#1a7f37',
-  '#bf3989',
-  '#9a6700',
-  '#cf222e',
   '#8250df',
   '#bc4c00',
-  '#1b7c83',
+  '#218bff',
+  '#9a6700',
+  '#bf3989',
+  '#2da44e',
 ] as const;
 
 /** 依据已有标签数量挑选下一个配色，循环复用调色板。 */

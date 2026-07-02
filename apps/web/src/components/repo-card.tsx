@@ -43,7 +43,7 @@ export function RepoCard({
       onClick={onOpen}
       onKeyDown={onOpen ? handleKeyDown : undefined}
       className={cn(
-        'flex h-full flex-col gap-3 p-5 transition-colors hover:border-ring/60',
+        'flex h-full flex-col gap-3 rounded-lg p-4 py-4 transition-colors hover:border-ring/60',
         onOpen && 'cursor-pointer focus-visible:border-ring focus-visible:outline-none',
       )}
     >
@@ -53,7 +53,7 @@ export function RepoCard({
           target="_blank"
           rel="noreferrer noopener"
           onClick={(event) => event.stopPropagation()}
-          className="flex min-w-0 items-center gap-2 font-semibold text-link text-sm hover:underline"
+          className="flex min-w-0 items-center gap-2 font-semibold text-link text-[13px] hover:underline"
         >
           <span
             aria-hidden="true"
@@ -73,18 +73,20 @@ export function RepoCard({
       </div>
 
       {repo.description ? (
-        <p className="line-clamp-2 text-muted-foreground text-sm">{repo.description}</p>
+        <p className="line-clamp-2 text-[13px] text-muted-foreground leading-5">
+          {repo.description}
+        </p>
       ) : null}
 
       {visibleTopics.length > 0 ? (
         <div className="flex flex-wrap gap-1.5">
           {visibleTopics.map((topic) => (
-            <Badge key={topic} variant="secondary" className="font-normal">
+            <Badge key={topic} variant="secondary" className="h-[22px] font-normal">
               {topic}
             </Badge>
           ))}
           {extraTopics > 0 ? (
-            <Badge variant="secondary" className="font-normal text-muted-foreground">
+            <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
               +{extraTopics}
             </Badge>
           ) : null}
@@ -97,14 +99,14 @@ export function RepoCard({
             <TagBadge key={tag.id} name={tag.name} color={tag.color} />
           ))}
           {tags && tags.length > visibleTags.length ? (
-            <span className="text-muted-foreground text-xs">
+            <span className="text-caption text-muted-foreground">
               +{tags.length - visibleTags.length}
             </span>
           ) : null}
         </div>
       ) : null}
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-xs">
+      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted-foreground">
         <span className="flex items-center gap-1" title={t('browse.stars')}>
           <StarIcon className="size-3.5" aria-hidden="true" />
           {formatCompactNumber(repo.stargazers, locale)}

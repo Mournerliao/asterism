@@ -4,9 +4,9 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { useEffect, useRef, useState } from 'react';
 import type { RepoViewMode } from '../stores/browse-view';
 import { RepoCard } from './repo-card';
-import { RepoListRow } from './repo-list-row';
+import { RepoTable } from './repo-table';
 
-const MIN_CARD_WIDTH = 320;
+const MIN_CARD_WIDTH = 370;
 const MAX_COLUMNS = 3;
 
 function useColumns(ref: React.RefObject<HTMLElement | null>, view: RepoViewMode): number {
@@ -50,17 +50,24 @@ export function RepoCollection({
   const rowCount = Math.ceil(records.length / columns);
 
   const virtualizer = useVirtualizer({
-    count: rowCount,
+    count: view === 'list' ? 1 : rowCount,
     getScrollElement: () => scrollRef.current,
-    estimateSize: () => (view === 'grid' ? 210 : 76),
+    estimateSize: () => (view === 'grid' ? 210 : records.length * 56 + 40),
     overscan: 6,
   });
 
-  // 列数 / 视图变化后行的组合与高度估计都变了，必须重置测量缓存（按 index 缓存的旧高度会失真）。
-  // biome-ignore lint/correctness/useExhaustiveDependencies: columns/view 改变即需重测，是有意的触发依赖
+  // biome-ignore lint/correctness/useExhaustiveDependencies: columns/view 改变即需重测
   useEffect(() => {
     virtualizer.measure();
-  }, [virtualizer, columns, view]);
+  }, [virtualizer, columns, view, records.length]);
+
+  if (view === 'list') {
+    return (
+      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+        <RepoTable records={records} tagsByRepo={tagsByRepo} onSelect={onSelect} />
+      </div>
+    );
+  }
 
   return (
     <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
@@ -76,33 +83,20 @@ export function RepoCollection({
               className="absolute top-0 left-0 w-full"
               style={{ transform: `translateY(${row.start}px)` }}
             >
-              {view === 'grid' ? (
-                <div
-                  className="grid gap-4 pb-4"
-                  style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-                >
-                  {rowRecords.map((record) => (
-                    <RepoCard
-                      key={record.repo.githubId}
-                      repo={record.repo}
-                      starredAt={record.starredAt}
-                      tags={tagsByRepo?.get(record.repoId)}
-                      onOpen={onSelect ? () => onSelect(record) : undefined}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="flex flex-col gap-2 pb-3">
-                  {rowRecords.map((record) => (
-                    <RepoListRow
-                      key={record.repo.githubId}
-                      repo={record.repo}
-                      tags={tagsByRepo?.get(record.repoId)}
-                      onOpen={onSelect ? () => onSelect(record) : undefined}
-                    />
-                  ))}
-                </div>
-              )}
+              <div
+                className="grid gap-4 pb-4"
+                style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+              >
+                {rowRecords.map((record) => (
+                  <RepoCard
+                    key={record.repo.githubId}
+                    repo={record.repo}
+                    starredAt={record.starredAt}
+                    tags={tagsByRepo?.get(record.repoId)}
+                    onOpen={onSelect ? () => onSelect(record) : undefined}
+                  />
+                ))}
+              </div>
             </div>
           );
         })}

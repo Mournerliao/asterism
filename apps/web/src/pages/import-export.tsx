@@ -105,7 +105,7 @@ export function ImportExportPage() {
   const hasData = (starredRepos?.length ?? 0) > 0;
 
   const handleDownload = () => {
-    const option = FORMAT_OPTIONS.find((item) => item.id === format) ?? FORMAT_OPTIONS[0];
+    const option = FORMAT_OPTIONS.find((item) => item.id === format) ?? FORMAT_OPTIONS[0]!;
     const stamp = new Date().toISOString().slice(0, 10);
     downloadText(preview, `asterism-export-${stamp}.${option.ext}`, option.mime);
   };
@@ -167,8 +167,12 @@ export function ImportExportPage() {
         <>
           <div className="grid gap-6 md:grid-cols-2">
             <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
-              <h2 className="font-semibold text-foreground">{t('importExport.exportTitle')}</h2>
-              <p className="text-muted-foreground text-sm">{t('importExport.exportDescription')}</p>
+              <h2 className="font-semibold text-base text-foreground">
+                {t('importExport.exportTitle')}
+              </h2>
+              <p className="text-[13px] text-muted-foreground">
+                {t('importExport.exportDescription')}
+              </p>
               <div className="flex flex-wrap gap-2">
                 {FORMAT_OPTIONS.map(({ id, icon: Icon }) => (
                   <Button
@@ -189,8 +193,12 @@ export function ImportExportPage() {
             </section>
 
             <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
-              <h2 className="font-semibold text-foreground">{t('importExport.importTitle')}</h2>
-              <p className="text-muted-foreground text-sm">{t('importExport.importDescription')}</p>
+              <h2 className="font-semibold text-base text-foreground">
+                {t('importExport.importTitle')}
+              </h2>
+              <p className="text-[13px] text-muted-foreground">
+                {t('importExport.importDescription')}
+              </p>
               <button
                 type="button"
                 className={`flex min-h-36 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
@@ -227,7 +235,9 @@ export function ImportExportPage() {
           </div>
 
           <section className="flex flex-col gap-2">
-            <h2 className="font-semibold text-foreground">{t('importExport.previewTitle')}</h2>
+            <h2 className="font-semibold text-base text-foreground">
+              {t('importExport.previewTitle')}
+            </h2>
             <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
               {preview}
             </pre>

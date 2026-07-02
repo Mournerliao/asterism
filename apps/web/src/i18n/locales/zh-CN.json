@@ -89,7 +89,8 @@
     "syncing": "同步中…",
     "success": "已同步 {{count}} 个 star 仓库",
     "error": "同步失败，请重试。",
-    "noToken": "GitHub 会话已过期，请重新登录后再同步。"
+    "noToken": "GitHub 会话已过期，请重新登录后再同步。",
+    "progress": "正在同步 GitHub Stars… {{current}} / {{total}} 个仓库"
   },
   "browse": {
     "title": "全部仓库",
@@ -108,7 +109,14 @@
     "errorDescription": "加载你的仓库时出现问题。",
     "retry": "重试",
     "noResultsTitle": "没有匹配的仓库",
-    "noResultsDescription": "试试调整筛选条件或搜索关键词。"
+    "noResultsDescription": "试试调整筛选条件或搜索关键词。",
+    "table": {
+      "repository": "仓库",
+      "language": "语言",
+      "stars": "Star 数",
+      "tags": "标签",
+      "starred": "收藏时间"
+    }
   },
   "drawer": {
     "title": "仓库详情",

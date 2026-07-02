@@ -85,6 +85,8 @@ export { Skeleton } from './components/ui/skeleton';
 export { Toaster } from './components/ui/sonner';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 export { Textarea } from './components/ui/textarea';
+export { Toggle, toggleVariants } from './components/ui/toggle';
+export { ToggleGroup, ToggleGroupItem } from './components/ui/toggle-group';
 export {
   Tooltip,
   TooltipContent,

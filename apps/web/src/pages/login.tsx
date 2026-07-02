@@ -28,9 +28,9 @@ export function LoginPage() {
 
   return (
     <main className="grid min-h-svh grid-cols-1 lg:grid-cols-2">
-      <section className="relative flex flex-col justify-between gap-12 bg-background px-8 py-10 lg:px-16 lg:py-14">
-        <div className="flex items-center gap-2">
-          <BrandLogo className="size-7 text-link" title={t('app.name')} />
+      <section className="relative flex flex-col justify-between gap-12 bg-background px-8 py-10 lg:px-16 lg:py-16">
+        <div className="flex items-center gap-2.5">
+          <BrandLogo className="size-7" title={t('app.name')} />
           <span className="font-semibold text-foreground text-xl">{t('app.name')}</span>
         </div>
 
@@ -45,7 +45,7 @@ export function LoginPage() {
 
         <ul className="flex flex-col gap-3">
           {FEATURES.map(({ icon: Icon, key }) => (
-            <li key={key} className="flex items-center gap-3 text-muted-foreground text-sm">
+            <li key={key} className="flex items-center gap-3 text-[13px] text-muted-foreground">
               <Icon className="size-4 shrink-0 text-link" aria-hidden="true" />
               {t(key)}
             </li>
@@ -57,36 +57,42 @@ export function LoginPage() {
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
-        <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex w-full max-w-[380px] flex-col gap-8">
           <div className="flex flex-col gap-2 text-center">
-            <h2 className="font-bold text-2xl text-card-foreground">{t('login.getStarted')}</h2>
-            <p className="text-muted-foreground text-sm">{t('login.connectPrompt')}</p>
+            <h2 className="font-bold text-[28px] text-card-foreground leading-tight">
+              {t('login.getStarted')}
+            </h2>
+            <p className="text-[14px] text-muted-foreground leading-[22px]">
+              {t('login.connectPrompt')}
+            </p>
           </div>
 
           <Button
-            className="h-11 w-full gap-2.5 bg-foreground text-background hover:bg-foreground/90"
+            className="h-12 w-full gap-2.5 rounded-lg bg-foreground text-[15px] text-background hover:bg-foreground/90"
             onClick={handleSignIn}
           >
             <GitHubIcon className="size-5" />
             {t('login.continueWithGitHub')}
           </Button>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <span className="h-px flex-1 bg-border" />
-            <span className="text-muted-foreground text-xs">{t('login.minimalPermissions')}</span>
+            <span className="text-caption text-muted-foreground">
+              {t('login.minimalPermissions')}
+            </span>
             <span className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-4">
-            <p className="font-medium text-card-foreground text-sm">{t('login.scopesTitle')}</p>
+          <div className="flex flex-col gap-3 rounded-lg bg-background p-4">
+            <p className="font-medium text-[13px] text-card-foreground">{t('login.scopesTitle')}</p>
             <ul className="flex flex-col gap-1">
               {SCOPES.map((key) => (
-                <li key={key} className="text-muted-foreground text-sm">
+                <li key={key} className="text-[13px] text-muted-foreground">
                   • {t(key)}
                 </li>
               ))}
             </ul>
-            <p className="pt-1 text-link text-xs">{t('login.privacyNote')}</p>
+            <p className="pt-1 text-caption text-link">{t('login.privacyNote')}</p>
           </div>
         </div>
       </section>

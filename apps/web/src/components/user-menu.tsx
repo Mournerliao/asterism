@@ -37,7 +37,7 @@ export function UserMenu() {
           className="rounded-full"
           aria-label={t('topbar.account')}
         >
-          <Avatar className="size-8">
+          <Avatar className="size-7">
             {avatarUrl ? <AvatarImage src={avatarUrl} alt={name} /> : null}
             <AvatarFallback>{initial}</AvatarFallback>
           </Avatar>

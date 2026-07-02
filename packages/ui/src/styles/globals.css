@@ -1,3 +1,5 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
@@ -6,6 +8,18 @@
 @source '../components';
 
 :root {
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+  --text-display: 1.75rem;
+  --text-page-title: 1.5rem;
+  --text-section-title: 1.25rem;
+  --text-drawer-title: 1rem;
+  --text-repo-name: 1.375rem;
+  --text-body: 0.8125rem;
+  --text-caption: 0.75rem;
+  --text-micro: 0.6875rem;
+  --leading-body: 1.25rem;
+  --spacing-unit: 0.25rem;
   --radius: 0.5rem;
   /* Surfaces · Primer light */
   --background: #ffffff;
@@ -48,6 +62,10 @@
   --sidebar-accent-foreground: #1f2328;
   --sidebar-border: #d0d7de;
   --sidebar-ring: #0969da;
+  /* Scrollbar */
+  --scrollbar-size: 8px;
+  --scrollbar-thumb: color-mix(in oklch, var(--muted-foreground) 30%, transparent);
+  --scrollbar-thumb-hover: color-mix(in oklch, var(--muted-foreground) 50%, transparent);
 }
 
 .dark {
@@ -95,6 +113,16 @@
 }
 
 @theme inline {
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --text-display: var(--text-display);
+  --text-page-title: var(--text-page-title);
+  --text-section-title: var(--text-section-title);
+  --text-drawer-title: var(--text-drawer-title);
+  --text-repo-name: var(--text-repo-name);
+  --text-body: var(--text-body);
+  --text-caption: var(--text-caption);
+  --text-micro: var(--text-micro);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -139,9 +167,44 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: var(--scrollbar-size);
+    height: var(--scrollbar-size);
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background-color: var(--scrollbar-thumb);
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: var(--scrollbar-thumb-hover);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background font-sans text-foreground;
+  }
+}
+
+@layer utilities {
+  .text-brand-gradient {
+    background: linear-gradient(135deg, var(--brand-from), var(--brand-to));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
 }

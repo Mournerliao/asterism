@@ -12,12 +12,16 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-dashed px-6 py-16 text-center">
-      {Icon ? <Icon className="size-8 text-muted-foreground" aria-hidden="true" /> : null}
-      <div className="flex flex-col gap-1">
-        <p className="font-medium text-foreground">{title}</p>
+    <div className="flex flex-col items-center justify-center gap-5 py-16 text-center">
+      {Icon ? (
+        <div className="flex size-16 items-center justify-center">
+          <Icon className="size-12 text-muted-foreground/60" aria-hidden="true" />
+        </div>
+      ) : null}
+      <div className="flex max-w-sm flex-col gap-2">
+        <p className="font-semibold text-section-title text-foreground">{title}</p>
         {description ? (
-          <p className="max-w-sm text-muted-foreground text-sm">{description}</p>
+          <p className="text-[14px] text-muted-foreground leading-snug">{description}</p>
         ) : null}
       </div>
       {action}

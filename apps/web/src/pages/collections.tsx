@@ -80,15 +80,18 @@ export function CollectionsPage() {
           {list.map((collection) => (
             <Card
               key={collection.id}
-              className="flex cursor-pointer flex-col gap-2 p-5 transition-colors hover:bg-accent/50"
+              className="flex min-h-[130px] cursor-pointer flex-col gap-3 rounded-lg p-5 py-5 transition-colors hover:bg-accent/50"
               onClick={() => navigate(`/collections/${collection.id}`)}
             >
               <div className="flex items-start justify-between gap-2">
-                <h2 className="min-w-0 truncate font-semibold text-foreground">
+                <h2 className="min-w-0 truncate font-semibold text-base text-foreground">
                   {collection.name}
                 </h2>
                 <div className="flex shrink-0 items-center gap-1">
-                  <Badge variant="secondary" className="font-normal text-muted-foreground">
+                  <Badge
+                    variant="secondary"
+                    className="rounded-[10px] bg-secondary font-normal text-caption text-muted-foreground"
+                  >
                     {t('collections.repoCount', { value: collection.repoCount })}
                   </Badge>
                   <DropdownMenu>
@@ -120,11 +123,11 @@ export function CollectionsPage() {
                 </div>
               </div>
               {collection.description ? (
-                <p className="line-clamp-2 text-muted-foreground text-sm">
+                <p className="line-clamp-2 text-[13px] text-muted-foreground leading-5">
                   {collection.description}
                 </p>
               ) : null}
-              <p className="mt-auto text-muted-foreground text-xs">
+              <p className="mt-auto text-caption text-muted-foreground">
                 {t('browse.updated', {
                   time: formatRelativeTime(collection.updatedAt, i18n.language) ?? '',
                 })}

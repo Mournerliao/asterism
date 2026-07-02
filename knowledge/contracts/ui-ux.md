@@ -2,7 +2,7 @@
 
 > 本文件定义 Asterism 的设计 tokens、组件使用规范、明暗模式、可访问性目标与品牌语气。它是设计层 verification 的依据。
 >
-> **重要**：配色与圆角 tokens 已**定稿**为 **GitHub Primer 体系**（dark 取自 Ardot 设计稿实测、light 为 Primer 官方配对，见 [ADR 0005](../decisions/0005-design-tokens-github-primer.md) 与下方「设计源」小节）。值以 **hex（sRGB）** 为权威，取自设计稿 / Primer 官方色板。字体 / 间距等其余 tokens 仍为 **TBD（待填）**，由用户用外部设计工具产出后填入。在对应 tokens 落定前，UI 实现一律采用本契约给出的值，不得自行臆造视觉风格。
+> **重要**：配色、圆角、字体与间距 tokens 已**定稿**（见 [ADR 0005](../decisions/0005-design-tokens-github-primer.md)、[ADR 0007](../decisions/0007-typography-spacing-tokens.md) 与下方各小节）。值以 **hex（sRGB）** 为权威，取自设计稿 / Primer 官方色板。
 
 ## Design Source · 设计源（Ardot）
 
@@ -158,22 +158,50 @@
 }
 ```
 
-### Typography · 字体（TBD）
+### Typography · 字体（定稿 · 取自设计稿）
 
 | Token | 用途 | 值 |
 | --- | --- | --- |
-| `--font-sans` | 正文无衬线字体栈 | _TBD_ |
-| `--font-mono` | 代码 / 仓库名等等宽字体 | _TBD_ |
-| 字号阶梯 | h1 / h2 / h3 / body / caption | _TBD_ |
-| 字重 | regular / medium / semibold / bold | _TBD_ |
-| 行高 | 标题 / 正文 | _TBD_ |
+| `--font-sans` | 正文无衬线字体栈 | `"Geist Variable", ui-sans-serif, system-ui, sans-serif` |
+| `--font-mono` | 数字 / 日期等宽字体 | `"Geist Mono Variable", ui-monospace, monospace` |
+| `--text-display` | Login 主标题等 | `1.75rem`（28px）/ Bold |
+| `--text-page-title` | 页面标题（Settings/Dashboard/Tags） | `1.5rem`（24px）/ Bold |
+| `--text-section-title` | 区块标题（Browse 页头、空状态） | `1.25rem`（20px）/ SemiBold |
+| `--text-drawer-title` | Drawer 标题 | `1rem`（16px）/ SemiBold |
+| `--text-repo-name` | Drawer 仓库名 | `1.375rem`（22px）/ Bold |
+| `--text-body` | 描述、卡片正文 | `0.8125rem`（13px）/ line-height `1.25rem` |
+| `--text-caption` | 筛选、统计、副标题 | `0.75rem`（12px） |
+| `--text-micro` | 表格列头 | `0.6875rem`（11px）/ Medium |
 
-### Spacing · 间距（TBD）
+字重：Regular 400 · Medium 500 · SemiBold 600 · Bold 700。
 
-| Token | 值 |
-| --- | --- |
-| 间距基准单位（如 4px / 8px 栅格） | _TBD_ |
-| 间距阶梯（xs / sm / md / lg / xl） | _TBD_ |
+### Spacing · 间距（定稿 · 4px 栅格）
+
+| Token | 值 | 用途 |
+| --- | --- | --- |
+| `--spacing-unit` | `0.25rem`（4px） | 基准单位 |
+| xs | 4px | 紧凑间隙 |
+| sm | 8px | 筛选 chip 间距 |
+| md | 12px | 卡片内 section 间距 |
+| lg | 16px | 卡片 padding、网格 gap |
+| xl | 20px | Browse 内容区 section gap |
+| 2xl | 24px | 页面内容 padding（Browse）、Topbar 水平 padding |
+| 3xl | 32px | Tags/Collections/Settings 页面 padding |
+
+### Scrollbar · 滚动条（定稿）
+
+> 全局样式落在 `packages/ui/src/styles/globals.css` `@layer base`，所有可滚动区域（主内容区、Drawer、下拉菜单、代码预览等）统一应用。
+
+| Token / 属性 | 值 | 说明 |
+| --- | --- | --- |
+| `--scrollbar-size` | `8px` | 滚动条宽高 |
+| `--scrollbar-thumb` | `color-mix(in oklch, var(--muted-foreground) 30%, transparent)` | 滑块默认色，随明暗主题自动适配 |
+| `--scrollbar-thumb-hover` | `color-mix(in oklch, var(--muted-foreground) 50%, transparent)` | 滑块悬停色 |
+| 轨道 | `transparent` | 无默认灰轨道 |
+| 形状 | `border-radius: 9999px` + `background-clip: content-box` | pill 形态，两侧留白 |
+| Firefox | `scrollbar-width: thin` + `scrollbar-color` | 跨浏览器兜底 |
+
+行为：**始终可见**细滚动条（非 hover 才显示）；hover 时滑块略加深。
 
 ### Radius · 圆角（定稿 · 取自设计稿）
 

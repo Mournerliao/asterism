@@ -89,7 +89,8 @@
     "syncing": "Syncing…",
     "success": "Synced {{count}} starred repositories",
     "error": "Sync failed. Please try again.",
-    "noToken": "Your GitHub session expired. Please sign in again to sync."
+    "noToken": "Your GitHub session expired. Please sign in again to sync.",
+    "progress": "Syncing GitHub Stars… {{current}} / {{total}} repositories"
   },
   "browse": {
     "title": "All Repositories",
@@ -108,7 +109,14 @@
     "errorDescription": "Something went wrong while loading your repositories.",
     "retry": "Retry",
     "noResultsTitle": "No matching repositories",
-    "noResultsDescription": "Try adjusting your filters or search keywords."
+    "noResultsDescription": "Try adjusting your filters or search keywords.",
+    "table": {
+      "repository": "Repository",
+      "language": "Language",
+      "stars": "Stars",
+      "tags": "Tags",
+      "starred": "Starred"
+    }
   },
   "drawer": {
     "title": "Repository Details",

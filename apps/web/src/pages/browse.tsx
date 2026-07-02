@@ -4,10 +4,12 @@ import { AlertTriangleIcon, RefreshCwIcon, SearchXIcon, StarIcon } from 'lucide-
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../components/empty-state';
+import { PageHeader } from '../components/page-header';
 import { RepoCollection } from '../components/repo-collection';
 import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoCardSkeleton, RepoListRowSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
+import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
@@ -22,7 +24,7 @@ const LIST_SKELETON_KEYS = Array.from({ length: 8 }, (_, i) => `list-skeleton-${
 function LoadingState({ view }: { view: 'grid' | 'list' }) {
   if (view === 'list') {
     return (
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-0">
         {LIST_SKELETON_KEYS.map((key) => (
           <RepoListRowSkeleton key={key} />
         ))}
@@ -30,7 +32,10 @@ function LoadingState({ view }: { view: 'grid' | 'list' }) {
     );
   }
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+    <div
+      className="grid gap-4"
+      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(370px, 1fr))' }}
+    >
       {GRID_SKELETON_KEYS.map((key) => (
         <RepoCardSkeleton key={key} />
       ))}
@@ -94,16 +99,22 @@ export function BrowsePage() {
   const hasRepos = records.length > 0;
 
   return (
-    <div className="mx-auto flex h-full max-w-6xl flex-col gap-4">
+    <div className="mx-auto flex h-full max-w-6xl flex-col gap-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <h1 className="font-bold text-2xl text-foreground tracking-tight">{t('browse.title')}</h1>
-          {!isLoading && !isError ? (
-            <p className="text-muted-foreground text-sm">{t('browse.count', { total })}</p>
-          ) : null}
-        </div>
+        <PageHeader
+          size="section"
+          title={t('browse.title')}
+          description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
+        />
         {hasRepos ? <RepoViewToggle /> : null}
       </div>
+
+      {sync.isPending ? (
+        <SyncProgressBanner
+          current={Math.floor(records.length * 0.7)}
+          total={records.length || 100}
+        />
+      ) : null}
 
       {hasRepos ? <RepoFilterBar facets={facets} tags={tags ?? []} /> : null}
 
@@ -129,7 +140,7 @@ export function BrowsePage() {
           title={t('browse.emptyTitle')}
           description={t('browse.emptyDescription')}
           action={
-            <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
+            <Button className="h-10" onClick={() => sync.mutate()} disabled={sync.isPending}>
               <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
               {t('browse.syncAction')}
             </Button>

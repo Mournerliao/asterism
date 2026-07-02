@@ -27,12 +27,12 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
   const { t } = useTranslation();
 
   return (
-    <div className="flex h-full flex-col gap-6 p-3">
-      <div className="flex items-center gap-2 px-2 pt-2">
-        <BrandLogo className="size-6 text-link" title={t('app.name')} />
-        <span className="font-semibold text-foreground text-lg">{t('app.name')}</span>
+    <div className="flex h-full flex-col gap-2 p-4">
+      <div className="flex items-center gap-2.5 px-2 pb-4">
+        <BrandLogo className="size-6" title={t('app.name')} />
+        <span className="font-semibold text-base text-foreground">{t('app.name')}</span>
       </div>
-      <nav className="flex flex-col gap-1">
+      <nav className="flex flex-col gap-0.5">
         {NAV_ITEMS.map(({ to, key, icon: Icon, end }) => (
           <NavLink
             key={to}
@@ -41,7 +41,7 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
+                'flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] transition-colors',
                 isActive
                   ? 'bg-accent font-medium text-accent-foreground'
                   : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',

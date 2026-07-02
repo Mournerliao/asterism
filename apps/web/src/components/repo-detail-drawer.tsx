@@ -22,6 +22,7 @@ import {
   GitForkIcon,
   PlusIcon,
   StarIcon,
+  XIcon,
 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -49,7 +50,10 @@ export function RepoDetailDrawer() {
         }
       }}
     >
-      <SheetContent side="right" className="w-full gap-0 p-0 sm:max-w-md">
+      <SheetContent
+        side="right"
+        className="w-full gap-0 p-0 sm:max-w-[480px] [&>button.absolute]:hidden"
+      >
         {record ? <DrawerBody record={record} /> : null}
       </SheetContent>
     </Sheet>
@@ -57,7 +61,7 @@ export function RepoDetailDrawer() {
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-semibold text-foreground text-sm">{children}</h3>;
+  return <h3 className="font-semibold text-[13px] text-foreground">{children}</h3>;
 }
 
 function DrawerBody({ record }: { record: StarredRepoRecord }) {
@@ -69,20 +73,28 @@ function DrawerBody({ record }: { record: StarredRepoRecord }) {
 
   return (
     <>
-      <SheetHeader className="border-b">
-        <SheetTitle>{t('drawer.title')}</SheetTitle>
+      <SheetHeader className="flex-row items-center justify-between border-b px-6 py-6">
+        <SheetTitle className="font-semibold text-drawer-title">{t('drawer.title')}</SheetTitle>
+        <button
+          type="button"
+          onClick={() => useRepoDrawer.getState().close()}
+          className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+          aria-label={t('common.cancel')}
+        >
+          <XIcon className="size-4" />
+        </button>
       </SheetHeader>
 
-      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-6 py-5">
         <div className="flex flex-col gap-2">
-          <span className="text-muted-foreground text-xs">{repo.owner}</span>
-          <h2 className="font-bold text-foreground text-xl">{repo.name}</h2>
+          <span className="text-[13px] text-muted-foreground">{repo.owner}</span>
+          <h2 className="font-bold text-repo-name text-foreground">{repo.name}</h2>
           {repo.description ? (
-            <p className="text-muted-foreground text-sm">{repo.description}</p>
+            <p className="text-[13px] text-muted-foreground leading-5">{repo.description}</p>
           ) : null}
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-muted-foreground text-xs">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted-foreground">
             {repo.language ? (
-              <span className="flex items-center gap-1.5">
+              <span className="flex items-center gap-1.5 text-foreground">
                 <span
                   aria-hidden="true"
                   className={cn('size-2.5 rounded-full', !dotColor && 'bg-muted-foreground')}
@@ -91,12 +103,12 @@ function DrawerBody({ record }: { record: StarredRepoRecord }) {
                 {repo.language}
               </span>
             ) : null}
-            <span className="flex items-center gap-1">
+            <span className="flex items-center gap-1 font-mono">
               <StarIcon className="size-3.5" aria-hidden="true" />
               {t('drawer.stars', { value: formatCompactNumber(repo.stargazers, locale) })}
             </span>
             {repo.forks != null ? (
-              <span className="flex items-center gap-1">
+              <span className="flex items-center gap-1 font-mono">
                 <GitForkIcon className="size-3.5" aria-hidden="true" />
                 {t('drawer.forks', { value: formatCompactNumber(repo.forks, locale) })}
               </span>
@@ -116,8 +128,8 @@ function DrawerBody({ record }: { record: StarredRepoRecord }) {
         <NotesSection repoId={repoId} />
       </div>
 
-      <div className="border-t p-4">
-        <Button asChild variant="outline" className="w-full">
+      <div className="border-t px-6 py-4">
+        <Button asChild variant="outline" className="h-9 w-full">
           <a
             href={`https://github.com/${repoFullName(repo)}`}
             target="_blank"
@@ -172,7 +184,7 @@ function TagsSection({ repoId }: { repoId: string }) {
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-6 gap-1 rounded-full px-2 text-xs">
+            <Button variant="outline" size="sm" className="h-6 gap-1 rounded-sm px-2 text-caption">
               <PlusIcon className="size-3" />
               {t('drawer.addTag')}
             </Button>
@@ -231,7 +243,7 @@ function CollectionsSection({ repoId }: { repoId: string }) {
     <section className="flex flex-col gap-2">
       <SectionLabel>{t('drawer.collections')}</SectionLabel>
       {collections.length === 0 ? (
-        <p className="text-muted-foreground text-sm">{t('drawer.noCollections')}</p>
+        <p className="text-[13px] text-muted-foreground">{t('drawer.noCollections')}</p>
       ) : (
         <div className="flex flex-col gap-1">
           {collections.map((collection) => {
@@ -242,10 +254,10 @@ function CollectionsSection({ repoId }: { repoId: string }) {
                 type="button"
                 onClick={() => toggle.mutate({ collectionId: collection.id, repoId, member })}
                 className={cn(
-                  'flex items-center justify-between rounded-md border px-3 py-2 text-left text-sm transition-colors',
+                  'flex h-8 items-center justify-between rounded-sm px-2 text-left text-[13px] transition-colors',
                   member
-                    ? 'border-ring/60 bg-accent/50 text-foreground'
-                    : 'text-muted-foreground hover:bg-accent/40 hover:text-foreground',
+                    ? 'bg-background text-foreground'
+                    : 'bg-background/50 text-muted-foreground hover:text-foreground',
                 )}
               >
                 <span className="truncate">{collection.name}</span>
@@ -264,32 +276,68 @@ function NotesSection({ repoId }: { repoId: string }) {
   const { data: serverBody = '' } = useNote(repoId);
   const save = useSaveNote();
   const [body, setBody] = useState('');
+  const [editing, setEditing] = useState(false);
 
   useEffect(() => {
     setBody(serverBody);
+    setEditing(false);
   }, [serverBody]);
 
   const dirty = body !== serverBody;
 
   return (
     <section className="flex flex-col gap-2">
-      <SectionLabel>{t('drawer.notes')}</SectionLabel>
-      <Textarea
-        value={body}
-        onChange={(event) => setBody(event.target.value)}
-        placeholder={t('drawer.notesPlaceholder')}
-        rows={4}
-      />
-      {dirty ? (
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setBody(serverBody)}>
-            {t('common.cancel')}
-          </Button>
-          <Button size="sm" disabled={save.isPending} onClick={() => save.mutate({ repoId, body })}>
-            {t('drawer.saveNote')}
-          </Button>
+      <div className="flex items-center justify-between">
+        <SectionLabel>{t('drawer.notes')}</SectionLabel>
+        {!editing && serverBody ? (
+          <button
+            type="button"
+            className="text-caption text-link hover:underline"
+            onClick={() => setEditing(true)}
+          >
+            {t('common.edit')}
+          </button>
+        ) : null}
+      </div>
+      {editing || !serverBody ? (
+        <>
+          <Textarea
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder={t('drawer.notesPlaceholder')}
+            rows={4}
+            className="min-h-16 rounded-md bg-background text-[13px] leading-5"
+          />
+          {dirty ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setBody(serverBody);
+                  setEditing(false);
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                disabled={save.isPending}
+                onClick={() => {
+                  save.mutate({ repoId, body });
+                  setEditing(false);
+                }}
+              >
+                {t('drawer.saveNote')}
+              </Button>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <div className="rounded-md bg-background p-3 text-[13px] text-muted-foreground leading-5">
+          {serverBody}
         </div>
-      ) : null}
+      )}
     </section>
   );
 }

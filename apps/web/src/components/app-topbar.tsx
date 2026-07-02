@@ -17,28 +17,28 @@ export function AppTopbar() {
   const setQuery = useBrowseFilters((state) => state.setQuery);
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-4">
+    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-6 py-3">
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetTrigger asChild>
           <Button
             variant="ghost"
-            size="icon"
+            size="icon-sm"
             className="lg:hidden"
             aria-label={t('topbar.openMenu')}
           >
             <MenuIcon className="size-5" />
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="w-64 p-0">
+        <SheetContent side="left" className="w-60 bg-sidebar p-0">
           <SheetTitle className="sr-only">{t('app.name')}</SheetTitle>
           <SidebarNav onNavigate={() => setMobileNavOpen(false)} />
         </SheetContent>
       </Sheet>
 
-      <div className="relative w-full max-w-md">
-        <SearchIcon className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
+      <div className="relative w-full max-w-[400px]">
+        <SearchIcon className="-translate-y-1/2 absolute top-1/2 left-2.5 size-4 text-muted-foreground" />
         <Input
-          className="px-9"
+          className="h-8 bg-card px-9"
           placeholder={t('topbar.searchPlaceholder')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}
@@ -52,18 +52,22 @@ export function AppTopbar() {
           >
             <XIcon className="size-4" />
           </button>
-        ) : null}
+        ) : (
+          <kbd className="-translate-y-1/2 absolute top-1/2 right-2 flex h-5 items-center rounded-sm bg-background px-1.5 font-mono text-[11px] text-muted-foreground">
+            /
+          </kbd>
+        )}
       </div>
 
-      <div className="ml-auto flex items-center gap-1">
+      <div className="ml-auto flex items-center gap-3">
         <Button
           variant="outline"
-          size="sm"
-          className="gap-2"
+          size="xs"
+          className="h-8 gap-1.5 px-3 text-[13px]"
           disabled={sync.isPending}
           onClick={() => sync.mutate()}
         >
-          <RefreshCwIcon className={cn('size-4', sync.isPending && 'animate-spin')} />
+          <RefreshCwIcon className={cn('size-3.5', sync.isPending && 'animate-spin')} />
           <span className="hidden sm:inline">
             {sync.isPending ? t('sync.syncing') : t('topbar.sync')}
           </span>

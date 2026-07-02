@@ -38,7 +38,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.language ?? ALL}
         onValueChange={(value) => filters.setLanguage(value === ALL ? null : value)}
       >
-        <SelectTrigger size="sm" className="min-w-32">
+        <SelectTrigger size="sm" className="h-7 min-w-32 text-caption">
           <SelectValue placeholder={t('filters.language')} />
         </SelectTrigger>
         <SelectContent>
@@ -55,7 +55,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.topic ?? ALL}
         onValueChange={(value) => filters.setTopic(value === ALL ? null : value)}
       >
-        <SelectTrigger size="sm" className="min-w-32">
+        <SelectTrigger size="sm" className="h-7 min-w-32 text-caption">
           <SelectValue placeholder={t('filters.topic')} />
         </SelectTrigger>
         <SelectContent>
@@ -71,7 +71,11 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
       {tags.length > 0 ? (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="min-w-28 gap-1 font-normal">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-7 min-w-28 gap-1 font-normal text-caption"
+            >
               {t('filters.tags')}
               {tagCount > 0 ? (
                 <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
@@ -103,7 +107,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={String(filters.minStars)}
         onValueChange={(value) => filters.setMinStars(Number(value))}
       >
-        <SelectTrigger size="sm" className="min-w-28">
+        <SelectTrigger size="sm" className="h-7 min-w-28 text-caption">
           <SelectValue placeholder={t('filters.stars')} />
         </SelectTrigger>
         <SelectContent>
@@ -122,7 +126,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.pushedWithinDays === null ? ALL : String(filters.pushedWithinDays)}
         onValueChange={(value) => filters.setPushedWithinDays(value === ALL ? null : Number(value))}
       >
-        <SelectTrigger size="sm" className="min-w-32">
+        <SelectTrigger size="sm" className="h-7 min-w-32 text-caption">
           <SelectValue placeholder={t('filters.pushed')} />
         </SelectTrigger>
         <SelectContent>
@@ -139,7 +143,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.status}
         onValueChange={(value) => filters.setStatus(value as RepoStatus)}
       >
-        <SelectTrigger size="sm" className="min-w-28">
+        <SelectTrigger size="sm" className="h-7 min-w-28 text-caption">
           <SelectValue placeholder={t('filters.status')} />
         </SelectTrigger>
         <SelectContent>
@@ -150,7 +154,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
       </Select>
 
       <Select value={filters.sort} onValueChange={(value) => filters.setSort(value as RepoSort)}>
-        <SelectTrigger size="sm" className="min-w-40">
+        <SelectTrigger size="sm" className="h-7 min-w-40 text-caption">
           <SelectValue placeholder={t('filters.sort')} />
         </SelectTrigger>
         <SelectContent>

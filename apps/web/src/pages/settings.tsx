@@ -52,8 +52,8 @@ function SettingRow({
 
 function SectionTitle({ children, badge }: { children: ReactNode; badge?: ReactNode }) {
   return (
-    <div className="flex items-center gap-2">
-      <h2 className="font-semibold text-foreground text-lg">{children}</h2>
+    <div className="mb-4 flex items-center gap-2">
+      <h2 className="font-semibold text-base text-foreground">{children}</h2>
       {badge}
     </div>
   );
@@ -76,7 +76,7 @@ export function SettingsPage() {
     <div className="mx-auto flex max-w-3xl flex-col gap-8">
       <PageHeader title={t('settings.title')} />
 
-      <section className="flex flex-col gap-1">
+      <section className="flex flex-col">
         <SectionTitle>{t('settings.appearance')}</SectionTitle>
         <SettingRow
           title={t('settings.theme')}

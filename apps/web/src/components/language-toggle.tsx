@@ -8,7 +8,8 @@ export function LanguageToggle() {
   return (
     <Button
       variant="ghost"
-      size="sm"
+      size="icon-sm"
+      className="font-mono text-caption"
       onClick={() => void i18n.changeLanguage(isZh ? 'en' : 'zh-CN')}
       aria-label={t('actions.toggleLanguage')}
     >

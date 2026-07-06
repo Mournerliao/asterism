@@ -90,6 +90,10 @@
     "success": "已同步 {{count}} 个 star 仓库",
     "error": "同步失败，请重试。",
     "noToken": "GitHub 会话已过期，请重新登录后再同步。",
+    "reconnectAction": "重新连接 GitHub",
+    "reconnecting": "连接中…",
+    "reconnectNotice": "Asterism 账号仍处于登录状态，但同步前需要刷新 GitHub 授权。",
+    "reconnectError": "无法发起 GitHub 重新连接。",
     "progress": "正在同步 GitHub Stars… {{current}} / {{total}} 个仓库"
   },
   "browse": {

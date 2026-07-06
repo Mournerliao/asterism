@@ -2,6 +2,7 @@ import { invokeSyncStars } from '@asterism/db';
 import { toast } from '@asterism/ui';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { useSession } from '../auth/use-session';
 import { supabase } from '../lib/supabase';
 import { repoKeys } from './keys';
@@ -12,10 +13,11 @@ const NO_PROVIDER_TOKEN = 'NO_PROVIDER_TOKEN';
 export function useSyncStars() {
   const { t } = useTranslation();
   const { session } = useSession();
+  const { reconnect, requiresReconnect } = useGitHubReconnect();
   const queryClient = useQueryClient();
   const userId = session?.user.id;
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: () => {
       const providerToken = session?.provider_token;
       if (!providerToken) {
@@ -38,4 +40,17 @@ export function useSyncStars() {
       toast.error(t('sync.error'), detail ? { description: detail } : undefined);
     },
   });
+
+  return {
+    ...mutation,
+    requiresReconnect,
+    reconnect,
+    sync: () => {
+      if (requiresReconnect) {
+        void reconnect();
+        return;
+      }
+      mutation.mutate();
+    },
+  };
 }

@@ -11,14 +11,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@asterism/ui';
-import { LogOutIcon } from 'lucide-react';
+import { LoaderCircleIcon, LogInIcon, LogOutIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { useSession } from '../auth/use-session';
 import { supabase } from '../lib/supabase';
 
 export function UserMenu() {
   const { t } = useTranslation();
   const { session } = useSession();
+  const { reconnectPending, requiresReconnect, reconnect } = useGitHubReconnect();
   const user = session?.user;
   const name =
     (user?.user_metadata?.user_name as string | undefined) ??
@@ -46,6 +48,16 @@ export function UserMenu() {
       <DropdownMenuContent align="end" className="w-48">
         <DropdownMenuLabel className="truncate">{name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {requiresReconnect ? (
+          <DropdownMenuItem disabled={reconnectPending} onClick={() => void reconnect()}>
+            {reconnectPending ? (
+              <LoaderCircleIcon className="size-4 animate-spin" />
+            ) : (
+              <LogInIcon className="size-4" />
+            )}
+            {reconnectPending ? t('sync.reconnecting') : t('sync.reconnectAction')}
+          </DropdownMenuItem>
+        ) : null}
         <DropdownMenuItem variant="destructive" onClick={() => void signOut(supabase)}>
           <LogOutIcon className="size-4" />
           {t('auth.signOut')}

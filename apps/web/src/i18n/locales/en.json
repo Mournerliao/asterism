@@ -90,6 +90,10 @@
     "success": "Synced {{count}} starred repositories",
     "error": "Sync failed. Please try again.",
     "noToken": "Your GitHub session expired. Please sign in again to sync.",
+    "reconnectAction": "Reconnect GitHub",
+    "reconnecting": "Connecting…",
+    "reconnectNotice": "Your Asterism account is still signed in, but GitHub authorization needs to be refreshed before syncing.",
+    "reconnectError": "Couldn't start GitHub reconnect.",
     "progress": "Syncing GitHub Stars… {{current}} / {{total}} repositories"
   },
   "browse": {

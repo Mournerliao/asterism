@@ -60,18 +60,20 @@ export function AppTopbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        <Button
-          variant="outline"
-          size="xs"
-          className="h-8 gap-1.5 px-3 text-[13px]"
-          disabled={sync.isPending}
-          onClick={() => sync.mutate()}
-        >
-          <RefreshCwIcon className={cn('size-3.5', sync.isPending && 'animate-spin')} />
-          <span className="hidden sm:inline">
-            {sync.isPending ? t('sync.syncing') : t('topbar.sync')}
-          </span>
-        </Button>
+        {sync.requiresReconnect ? null : (
+          <Button
+            variant="outline"
+            size="xs"
+            className="h-8 gap-1.5 px-3 text-[13px]"
+            disabled={sync.isPending}
+            onClick={sync.sync}
+          >
+            <RefreshCwIcon className={cn('size-3.5', sync.isPending && 'animate-spin')} />
+            <span className="hidden sm:inline">
+              {sync.isPending ? t('sync.syncing') : t('topbar.sync')}
+            </span>
+          </Button>
+        )}
         <LanguageToggle />
         <ThemeToggle />
         <UserMenu />

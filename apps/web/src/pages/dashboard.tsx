@@ -87,10 +87,12 @@ export function DashboardPage() {
           title={t('dashboard.emptyTitle')}
           description={t('dashboard.emptyDescription')}
           action={
-            <Button onClick={() => sync.mutate()} disabled={sync.isPending}>
-              <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
-              {t('browse.syncAction')}
-            </Button>
+            sync.requiresReconnect ? undefined : (
+              <Button onClick={sync.sync} disabled={sync.isPending}>
+                <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
+                {t('browse.syncAction')}
+              </Button>
+            )
           }
         />
       ) : (

@@ -5,10 +5,8 @@ import type { KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCompactNumber, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
+import { OverflowChipRow } from './overflow-chip-row';
 import { TagBadge } from './tag-badge';
-
-const MAX_TOPICS = 4;
-const MAX_TAGS = 4;
 
 export function RepoCard({
   repo,
@@ -25,9 +23,6 @@ export function RepoCard({
   const locale = i18n.language;
   const updated = formatRelativeTime(repo.pushedAt, locale);
   const dotColor = languageColor(repo.language);
-  const visibleTopics = repo.topics.slice(0, MAX_TOPICS);
-  const extraTopics = repo.topics.length - visibleTopics.length;
-  const visibleTags = tags?.slice(0, MAX_TAGS) ?? [];
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
@@ -78,32 +73,38 @@ export function RepoCard({
         </p>
       ) : null}
 
-      {visibleTopics.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {visibleTopics.map((topic) => (
-            <Badge key={topic} variant="secondary" className="h-[22px] font-normal">
+      {repo.topics.length > 0 ? (
+        <OverflowChipRow
+          items={repo.topics}
+          getKey={(topic) => topic}
+          getItemLabel={(topic) => topic}
+          overflowLabel={(count) => t('browse.moreTopicsLabel', { count })}
+          renderChip={(topic) => (
+            <Badge variant="secondary" className="h-[22px] font-normal">
               {topic}
             </Badge>
-          ))}
-          {extraTopics > 0 ? (
+          )}
+          renderOverflowChip={(count) => (
             <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
-              +{extraTopics}
+              +{count}
             </Badge>
-          ) : null}
-        </div>
+          )}
+        />
       ) : null}
 
-      {visibleTags.length > 0 ? (
-        <div className="flex flex-wrap gap-1.5">
-          {visibleTags.map((tag) => (
-            <TagBadge key={tag.id} name={tag.name} color={tag.color} />
-          ))}
-          {tags && tags.length > visibleTags.length ? (
-            <span className="text-caption text-muted-foreground">
-              +{tags.length - visibleTags.length}
+      {tags && tags.length > 0 ? (
+        <OverflowChipRow
+          items={tags}
+          getKey={(tag) => tag.id}
+          getItemLabel={(tag) => tag.name}
+          overflowLabel={(count) => t('browse.moreTagsLabel', { count })}
+          renderChip={(tag) => <TagBadge name={tag.name} color={tag.color} />}
+          renderOverflowChip={(count) => (
+            <span className="inline-flex h-6 items-center rounded-sm bg-secondary px-2 text-caption text-muted-foreground">
+              +{count}
             </span>
-          ) : null}
-        </div>
+          )}
+        />
       ) : null}
 
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted-foreground">

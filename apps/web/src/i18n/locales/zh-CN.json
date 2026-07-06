@@ -101,6 +101,8 @@
     "count": "{{total}} 个 star 仓库",
     "viewGrid": "卡片视图",
     "viewList": "列表视图",
+    "moreTopicsLabel": "还有 {{count}} 个 Topic",
+    "moreTagsLabel": "还有 {{count}} 个标签",
     "archived": "已归档",
     "stars": "Star 数",
     "forks": "Fork 数",

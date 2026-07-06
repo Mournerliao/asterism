@@ -101,6 +101,8 @@
     "count": "{{total}} starred repositories",
     "viewGrid": "Grid view",
     "viewList": "List view",
+    "moreTopicsLabel": "{{count}} more topics",
+    "moreTagsLabel": "{{count}} more tags",
     "archived": "Archived",
     "stars": "Stars",
     "forks": "Forks",

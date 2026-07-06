@@ -10,6 +10,8 @@
 
 > 修复（2026-06-30，见 `logs/2026-06-30-sync-stars-deploy-fix.md`）：顶部栏「Sync」此前报通用错误，根因是 `sync-stars` Edge Function **从未部署**到项目（端点 404）。已 `supabase functions deploy sync-stars`（现 `ACTIVE v1`），并让 `invokeSyncStars` 透传函数返回的真实错误（`FunctionsHttpError.context`）+ toast 附 `description`，避免再吞错。`provider_token` 不持久化的局限不变（刷新后需重登）。**部署是每环境一次性手工步骤**。
 
+> 修复（2026-07-06，见 `logs/2026-07-06-ui-dist-alias-fix.md`）：`packages/ui` 的 dev/watch 产物曾残留 `@/lib/utils`、`@/components/*` path alias，导致 Web Vite 消费 `@asterism/ui/dist` 时报 `[plugin:vite:import-analysis] Failed to resolve import "@/lib/utils"`。已将 `packages/ui/src` 内部导入改为相对路径并重建，`dist` 不再含 `@/` alias。
+
 Phase 1 已完成（见 `logs/2026-06-30-phase1-shell.md`、`logs/2026-06-30-phase1-slice3-stars-sync.md`、`logs/2026-06-30-phase1-slice4-browse.md`、`logs/2026-06-30-phase1-slice5-filter-search.md`、`logs/2026-06-30-phase1-slice6-tags-collections-notes.md`）：
 
 - **契约裁决（ADR 0006）**：stars 同步写入走 Edge Function `sync-stars`（service role），客户端只触发 + 读取；修正 `architecture.md` 数据流与 `roadmap.md` 状态表。

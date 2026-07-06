@@ -24,9 +24,15 @@ import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useTags } from '../data/use-tags';
 
+const DEFAULT_FORMAT_OPTION = {
+  id: 'json',
+  icon: FileJsonIcon,
+  ext: 'json',
+  mime: 'application/json',
+} satisfies { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string };
 const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string }[] =
   [
-    { id: 'json', icon: FileJsonIcon, ext: 'json', mime: 'application/json' },
+    DEFAULT_FORMAT_OPTION,
     { id: 'csv', icon: FileSpreadsheetIcon, ext: 'csv', mime: 'text/csv' },
     { id: 'markdown', icon: FileTextIcon, ext: 'md', mime: 'text/markdown' },
   ];
@@ -105,7 +111,7 @@ export function ImportExportPage() {
   const hasData = (starredRepos?.length ?? 0) > 0;
 
   const handleDownload = () => {
-    const option = FORMAT_OPTIONS.find((item) => item.id === format) ?? FORMAT_OPTIONS[0]!;
+    const option = FORMAT_OPTIONS.find((item) => item.id === format) ?? DEFAULT_FORMAT_OPTION;
     const stamp = new Date().toISOString().slice(0, 10);
     downloadText(preview, `asterism-export-${stamp}.${option.ext}`, option.mime);
   };

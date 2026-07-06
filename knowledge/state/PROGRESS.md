@@ -14,6 +14,10 @@
 
 > 修复（2026-07-06，见 `logs/2026-07-06-github-session-reconnect.md`）：刷新/恢复 Supabase 会话后可能缺少 GitHub `provider_token`，此前点击 Sync 只提示 session 过期，但界面仍显示已登录且没有重新登录入口。已将「Asterism 已登录但 GitHub 授权需刷新」建模为独立状态：应用顶部显示提示条并提供唯一可见的 Reconnect GitHub 主入口，点击后立即显示 pending 反馈，账号菜单保留备用入口，并新增 web 侧 Vitest 回归测试。
 
+> 修复（2026-07-06，见 `logs/2026-07-06-app-page-scrollbar.md`）：应用内页面级纵向滚动统一由 `AppLayout` 主内容区承担，Browse / Collection Detail 的仓库虚拟列表不再创建内部纵向滚动条，滚动条贴主内容区右边缘；全局 scrollbar thumb 调轻调细，局部弹层/菜单/代码预览滚动保留。
+
+> 优化（2026-07-06，见 `logs/2026-07-06-browse-sticky-toolbar.md`）：Browse 页上下分栏，标题 + 筛选栏固定、仅列表区滚动；`main` 恢复统一 `p-6`，不再用 sticky 或各页面补 `pt-6`。
+
 Phase 1 已完成（见 `logs/2026-06-30-phase1-shell.md`、`logs/2026-06-30-phase1-slice3-stars-sync.md`、`logs/2026-06-30-phase1-slice4-browse.md`、`logs/2026-06-30-phase1-slice5-filter-search.md`、`logs/2026-06-30-phase1-slice6-tags-collections-notes.md`）：
 
 - **契约裁决（ADR 0006）**：stars 同步写入走 Edge Function `sync-stars`（service role），客户端只触发 + 读取；修正 `architecture.md` 数据流与 `roadmap.md` 状态表。

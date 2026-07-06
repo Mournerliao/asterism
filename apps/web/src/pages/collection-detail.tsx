@@ -64,7 +64,7 @@ export function CollectionDetailPage() {
 
   if (!isLoading && !collection) {
     return (
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
         <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
           <Link to="/collections">
             <ArrowLeftIcon className="size-4" />
@@ -81,7 +81,7 @@ export function CollectionDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex h-full max-w-6xl flex-col gap-6">
+    <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
       <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
         <Link to="/collections">
           <ArrowLeftIcon className="size-4" />

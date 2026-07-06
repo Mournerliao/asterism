@@ -1,7 +1,7 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { RepoViewMode } from '../stores/browse-view';
 import { RepoCard } from './repo-card';
 import { RepoTable } from './repo-table';
@@ -34,43 +34,78 @@ function useColumns(ref: React.RefObject<HTMLElement | null>, view: RepoViewMode
   return columns;
 }
 
+function measureScrollMargin(element: HTMLElement, scrollElement: HTMLElement): number {
+  const elementRect = element.getBoundingClientRect();
+  const scrollRect = scrollElement.getBoundingClientRect();
+  return elementRect.top - scrollRect.top + scrollElement.scrollTop;
+}
+
 export function RepoCollection({
   records,
   view,
   tagsByRepo,
   onSelect,
+  scrollElement,
 }: {
   records: StarredRepoRecord[];
   view: RepoViewMode;
   tagsByRepo?: Map<string, Tag[]>;
   onSelect?: (record: StarredRepoRecord) => void;
+  scrollElement?: HTMLElement | null;
 }) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-  const columns = useColumns(scrollRef, view);
+  const collectionRef = useRef<HTMLDivElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+  const columns = useColumns(collectionRef, view);
   const rowCount = Math.ceil(records.length / columns);
 
   const virtualizer = useVirtualizer({
-    count: view === 'list' ? 1 : rowCount,
-    getScrollElement: () => scrollRef.current,
-    estimateSize: () => (view === 'grid' ? 210 : records.length * 56 + 40),
+    count: rowCount,
+    getScrollElement: () => scrollElement ?? null,
+    estimateSize: () => 210,
     overscan: 6,
+    scrollMargin,
   });
+
+  useLayoutEffect(() => {
+    const element = collectionRef.current;
+    if (!element || !scrollElement) {
+      return;
+    }
+    setScrollMargin(measureScrollMargin(element, scrollElement));
+  });
+
+  useEffect(() => {
+    const element = collectionRef.current;
+    if (!element || !scrollElement) {
+      return;
+    }
+    const update = () => setScrollMargin(measureScrollMargin(element, scrollElement));
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    observer.observe(scrollElement);
+    window.addEventListener('resize', update);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', update);
+    };
+  }, [scrollElement]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: columns/view 改变即需重测
   useEffect(() => {
     virtualizer.measure();
-  }, [virtualizer, columns, view, records.length]);
+  }, [virtualizer, columns, view, records.length, scrollMargin]);
 
   if (view === 'list') {
     return (
-      <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+      <div ref={collectionRef} className="w-full">
         <RepoTable records={records} tagsByRepo={tagsByRepo} onSelect={onSelect} />
       </div>
     );
   }
 
   return (
-    <div ref={scrollRef} className="min-h-0 flex-1 overflow-auto">
+    <div ref={collectionRef} className="relative w-full">
       <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualizer.getVirtualItems().map((row) => {
           const start = row.index * columns;
@@ -81,7 +116,7 @@ export function RepoCollection({
               data-index={row.index}
               ref={virtualizer.measureElement}
               className="absolute top-0 left-0 w-full"
-              style={{ transform: `translateY(${row.start}px)` }}
+              style={{ transform: `translateY(${row.start - scrollMargin}px)` }}
             >
               <div
                 className="grid gap-4 pb-4"

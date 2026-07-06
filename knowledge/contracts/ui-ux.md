@@ -190,18 +190,24 @@
 
 ### Scrollbar · 滚动条（定稿）
 
-> 全局样式落在 `packages/ui/src/styles/globals.css` `@layer base`，所有可滚动区域（主内容区、Drawer、下拉菜单、代码预览等）统一应用。
+> 全局样式落在 `packages/ui/src/styles/globals.css` `@layer base`，所有可滚动区域（页面内容区、Drawer、下拉菜单、代码预览等）统一应用。Authenticated app 的 `AppLayout` 主内容区**不滚动**（`overflow-hidden`），各页面根节点或 Browse 列表区自行承担纵向滚动；Browse 列表区可用 `-mx-6 px-6` 使滚动条贴主内容区右边缘。Drawer / Dropdown / Select / 代码预览 / 横向表格等局部交互可保留局部滚动。
 
 | Token / 属性 | 值 | 说明 |
 | --- | --- | --- |
 | `--scrollbar-size` | `8px` | 滚动条宽高 |
-| `--scrollbar-thumb` | `color-mix(in oklch, var(--muted-foreground) 30%, transparent)` | 滑块默认色，随明暗主题自动适配 |
-| `--scrollbar-thumb-hover` | `color-mix(in oklch, var(--muted-foreground) 50%, transparent)` | 滑块悬停色 |
+| `--scrollbar-thumb` | `color-mix(in oklch, var(--muted-foreground) 24%, transparent)` | 滑块默认色，随明暗主题自动适配 |
+| `--scrollbar-thumb-hover` | `color-mix(in oklch, var(--muted-foreground) 44%, transparent)` | 滑块悬停色 |
 | 轨道 | `transparent` | 无默认灰轨道 |
-| 形状 | `border-radius: 9999px` + `background-clip: content-box` | pill 形态，两侧留白 |
+| 形状 | `border-radius: 9999px` + `3px transparent border` + `background-clip: content-box` | pill 形态，保留 8px 命中区域但视觉更细 |
 | Firefox | `scrollbar-width: thin` + `scrollbar-color` | 跨浏览器兜底 |
 
 行为：**始终可见**细滚动条（非 hover 才显示）；hover 时滑块略加深。
+
+应用主内容区（`AppLayout` 的 `<main>`）为 **flex 列容器、不滚动**（`overflow-hidden p-6`），各页面自行声明滚动区域。
+
+Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 + 筛选栏（及同步进度条）固定在上方 `shrink-0` 区域；仅下方列表区 `flex-1 overflow-y-auto` 滚动，虚拟列表绑定该区域。无需 `position: sticky`，也不依赖修改 `main` 的 padding 或给各页面补 `pt-6`。
+
+其余页面根节点使用 `flex-1 min-h-0 overflow-y-auto` 整页滚动。
 
 ### Radius · 圆角（定稿 · 取自设计稿）
 

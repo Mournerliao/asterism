@@ -1,7 +1,7 @@
 import { deriveRepoFacets, filterStarredRepos, sortStarredRepos, type Tag } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import { AlertTriangleIcon, RefreshCwIcon, SearchXIcon, StarIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../components/empty-state';
 import { PageHeader } from '../components/page-header';
@@ -52,6 +52,7 @@ export function BrowsePage() {
   const { data: tags } = useTags();
   const { data: repoTags } = useRepoTags();
   const sync = useSyncStars();
+  const [listScrollElement, setListScrollElement] = useState<HTMLElement | null>(null);
 
   const records = useMemo(() => data ?? [], [data]);
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
@@ -98,16 +99,92 @@ export function BrowsePage() {
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
 
-  return (
-    <div className="mx-auto flex h-full max-w-6xl flex-col gap-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <PageHeader
-          size="section"
-          title={t('browse.title')}
-          description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
-        />
-        {hasRepos ? <RepoViewToggle /> : null}
+  const listBody = isLoading ? (
+    <div>
+      <LoadingState view={view} />
+    </div>
+  ) : isError ? (
+    <EmptyState
+      icon={AlertTriangleIcon}
+      title={t('browse.errorTitle')}
+      description={t('browse.errorDescription')}
+      action={
+        <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
+          <RefreshCwIcon className="size-4" />
+          {t('browse.retry')}
+        </Button>
+      }
+    />
+  ) : !hasRepos ? (
+    <EmptyState
+      icon={StarIcon}
+      title={t('browse.emptyTitle')}
+      description={t('browse.emptyDescription')}
+      action={
+        sync.requiresReconnect ? undefined : (
+          <Button className="h-10" onClick={sync.sync} disabled={sync.isPending}>
+            <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
+            {t('browse.syncAction')}
+          </Button>
+        )
+      }
+    />
+  ) : visible.length === 0 ? (
+    <EmptyState
+      icon={SearchXIcon}
+      title={t('browse.noResultsTitle')}
+      description={t('browse.noResultsDescription')}
+      action={
+        <Button variant="outline" onClick={filters.reset}>
+          {t('filters.clear')}
+        </Button>
+      }
+    />
+  ) : (
+    <RepoCollection
+      records={visible}
+      view={view}
+      tagsByRepo={tagsByRepo}
+      onSelect={openDrawer}
+      scrollElement={listScrollElement}
+    />
+  );
+
+  if (hasRepos) {
+    return (
+      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5">
+        <div className="flex shrink-0 flex-col gap-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <PageHeader
+              size="section"
+              title={t('browse.title')}
+              description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
+            />
+            <RepoViewToggle />
+          </div>
+          <RepoFilterBar facets={facets} tags={tags ?? []} />
+          {sync.isPending ? (
+            <SyncProgressBanner
+              current={Math.floor(records.length * 0.7)}
+              total={records.length || 100}
+            />
+          ) : null}
+        </div>
+
+        <div ref={setListScrollElement} className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
+          {listBody}
+        </div>
       </div>
+    );
+  }
+
+  return (
+    <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5 overflow-y-auto">
+      <PageHeader
+        size="section"
+        title={t('browse.title')}
+        description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
+      />
 
       {sync.isPending ? (
         <SyncProgressBanner
@@ -116,57 +193,7 @@ export function BrowsePage() {
         />
       ) : null}
 
-      {hasRepos ? <RepoFilterBar facets={facets} tags={tags ?? []} /> : null}
-
-      {isLoading ? (
-        <div className="min-h-0 flex-1 overflow-auto">
-          <LoadingState view={view} />
-        </div>
-      ) : isError ? (
-        <EmptyState
-          icon={AlertTriangleIcon}
-          title={t('browse.errorTitle')}
-          description={t('browse.errorDescription')}
-          action={
-            <Button variant="outline" onClick={() => refetch()} disabled={isFetching}>
-              <RefreshCwIcon className="size-4" />
-              {t('browse.retry')}
-            </Button>
-          }
-        />
-      ) : !hasRepos ? (
-        <EmptyState
-          icon={StarIcon}
-          title={t('browse.emptyTitle')}
-          description={t('browse.emptyDescription')}
-          action={
-            sync.requiresReconnect ? undefined : (
-              <Button className="h-10" onClick={sync.sync} disabled={sync.isPending}>
-                <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
-                {t('browse.syncAction')}
-              </Button>
-            )
-          }
-        />
-      ) : visible.length === 0 ? (
-        <EmptyState
-          icon={SearchXIcon}
-          title={t('browse.noResultsTitle')}
-          description={t('browse.noResultsDescription')}
-          action={
-            <Button variant="outline" onClick={filters.reset}>
-              {t('filters.clear')}
-            </Button>
-          }
-        />
-      ) : (
-        <RepoCollection
-          records={visible}
-          view={view}
-          tagsByRepo={tagsByRepo}
-          onSelect={openDrawer}
-        />
-      )}
+      {listBody}
     </div>
   );
 }

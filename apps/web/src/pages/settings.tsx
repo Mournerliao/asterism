@@ -73,7 +73,7 @@ export function SettingsPage() {
   const initial = name.slice(0, 1).toUpperCase() || '?';
 
   return (
-    <div className="mx-auto flex max-w-3xl flex-col gap-8">
+    <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-8 overflow-y-auto">
       <PageHeader title={t('settings.title')} />
 
       <section className="flex flex-col">

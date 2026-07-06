@@ -35,5 +35,8 @@ supabase/.temp/
 # Local overrides
 *.local
 
+# Cursor (local harness: skills, hooks — install per machine)
+.cursor/
+
 # OS
 .DS_Store

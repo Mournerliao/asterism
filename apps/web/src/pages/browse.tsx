@@ -1,7 +1,7 @@
 import { deriveRepoFacets, filterStarredRepos, sortStarredRepos, type Tag } from '@asterism/core';
-import { Button } from '@asterism/ui';
+import { Button, GlassControlRow } from '@asterism/ui';
 import { AlertTriangleIcon, RefreshCwIcon, SearchXIcon, StarIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../components/empty-state';
 import { PageHeader } from '../components/page-header';
@@ -53,6 +53,18 @@ export function BrowsePage() {
   const { data: repoTags } = useRepoTags();
   const sync = useSyncStars();
   const [listScrollElement, setListScrollElement] = useState<HTMLElement | null>(null);
+  const [stuck, setStuck] = useState(false);
+
+  useEffect(() => {
+    const el = listScrollElement;
+    if (!el) {
+      return;
+    }
+    const update = () => setStuck(el.scrollTop > 0);
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    return () => el.removeEventListener('scroll', update);
+  }, [listScrollElement]);
 
   const records = useMemo(() => data ?? [], [data]);
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
@@ -154,15 +166,17 @@ export function BrowsePage() {
     return (
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5">
         <div className="flex shrink-0 flex-col gap-4">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <PageHeader
-              size="section"
-              title={t('browse.title')}
-              description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
-            />
-            <RepoViewToggle />
-          </div>
-          <RepoFilterBar facets={facets} tags={tags ?? []} />
+          <GlassControlRow stuck={stuck} className="flex-col items-stretch gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <PageHeader
+                size="section"
+                title={t('browse.title')}
+                description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
+              />
+              <RepoViewToggle />
+            </div>
+            <RepoFilterBar facets={facets} tags={tags ?? []} />
+          </GlassControlRow>
           {sync.isPending ? (
             <SyncProgressBanner
               current={Math.floor(records.length * 0.7)}

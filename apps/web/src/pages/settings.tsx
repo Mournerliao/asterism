@@ -5,9 +5,9 @@ import {
   AvatarImage,
   Badge,
   Button,
-  cn,
   Input,
   Label,
+  SegmentedControl,
   Select,
   SelectContent,
   SelectItem,
@@ -82,23 +82,17 @@ export function SettingsPage() {
           title={t('settings.theme')}
           description={t('settings.themeDescription')}
           control={
-            <div className="inline-flex rounded-md border p-0.5">
-              {THEME_OPTIONS.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => setTheme(option.value)}
-                  className={cn(
-                    'rounded px-3 py-1 text-sm transition-colors',
-                    theme === option.value
-                      ? 'bg-accent text-accent-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {t(option.labelKey)}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl<Theme>
+              variant="solid"
+              value={theme}
+              onValueChange={setTheme}
+              ariaLabel={t('settings.theme')}
+              size="md"
+              options={THEME_OPTIONS.map((option) => ({
+                value: option.value,
+                label: t(option.labelKey),
+              }))}
+            />
           }
         />
         <Separator />

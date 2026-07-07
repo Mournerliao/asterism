@@ -56,8 +56,16 @@ export {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from './components/ui/dropdown-menu';
+export { GlassControlRow } from './components/ui/glass-control-row';
+export { GlassRail } from './components/ui/glass-rail';
 export { Input } from './components/ui/input';
 export { Label } from './components/ui/label';
+export type {
+  SegmentedControlDisplay,
+  SegmentedControlOption,
+  SegmentedControlSize,
+} from './components/ui/segmented-control';
+export { SegmentedControl } from './components/ui/segmented-control';
 export {
   Select,
   SelectContent,

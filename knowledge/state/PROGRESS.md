@@ -20,6 +20,12 @@
 
 > 优化（2026-07-06，见 `logs/2026-07-06-card-tag-overflow.md`）：Browse 卡片视图的 GitHub topics 与用户自定义 tags 统一为单行 chip 行，按真实宽度动态折叠为 `+n`，hover/focus 展示剩余项 tooltip，避免长标签撑高卡片。
 
+> 优化（2026-07-07，见 `logs/2026-07-07-glass-segmented-controls.md`）：设计系统新增按 Lumno 源码值对齐的 `GlassControlRow`、`GlassRail` 与滑块式 `SegmentedControl`（page noise、stuck row 背景/line、4px blur、4px inset、8px/14px tab padding、源码色值/动效），先落地 Browse 视图切换、Settings 主题切换与 Browse 筛选 rail；限定玻璃质感只作为控制区承托，不扩散到主卡片或列表行。
+
+> 基础设施（2026-07-07，见 `logs/2026-07-07-agent-skills-vendor.md`）：新增项目级 agent skills 治理层 `knowledge/skills/`，vendor `vercel-labs/agent-skills` 的 React / composition / Vercel 部署与优化 skills，并同步到仓库内 `.agents/skills/`；根 `AGENTS.md` 已声明触发规则，后续 React 与 Vercel 相关任务需按需读取对应 skill，且本项目 contracts 优先。
+
+> 修复（2026-07-07，见 `logs/2026-07-07-glass-control-fixes.md`）：复查磨砂控制条复刻发现三处偏差并修复——Browse 吸顶动效未接线（`GlassControlRow` 从未收到 `stuck`，已接入基于 `listScrollElement.scrollTop` 的检测）、Settings 主题切换误用磨砂吸顶条（`GlassRail`/`SegmentedControl` 新增 `variant: 'glass'|'solid'`，Settings 改用 `solid` 且去掉 `GlassControlRow` 包裹）、意外带回水彩背景图（已从 `app-layout.tsx` 移除引用）。尺寸/圆角/透明度/变换保留 Lumno 原始字面量不变；散落的硬编码颜色新增为专属 `--glass-*` token 集中管理，视觉零差异。
+
 Phase 1 已完成（见 `logs/2026-06-30-phase1-shell.md`、`logs/2026-06-30-phase1-slice3-stars-sync.md`、`logs/2026-06-30-phase1-slice4-browse.md`、`logs/2026-06-30-phase1-slice5-filter-search.md`、`logs/2026-06-30-phase1-slice6-tags-collections-notes.md`）：
 
 - **契约裁决（ADR 0006）**：stars 同步写入走 Edge Function `sync-stars`（service role），客户端只触发 + 读取；修正 `architecture.md` 数据流与 `roadmap.md` 状态表。

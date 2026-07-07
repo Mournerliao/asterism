@@ -12,6 +12,7 @@ import {
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
   DropdownMenuTrigger,
+  GlassRail,
   Select,
   SelectContent,
   SelectItem,
@@ -25,6 +26,8 @@ import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 const ALL = '__all__';
 const STAR_THRESHOLDS = [100, 1000, 10000, 50000];
 const PUSHED_WINDOWS = [7, 30, 90, 365];
+const FILTER_TRIGGER_CLASS =
+  'h-7 rounded-lg border-border/50 bg-background/45 text-caption shadow-none hover:bg-background/75 dark:bg-background/20 dark:hover:bg-accent/60';
 
 export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[] }) {
   const { t, i18n } = useTranslation();
@@ -33,12 +36,12 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
   const tagCount = filters.tagIds.length;
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <GlassRail className="flex flex-wrap items-center gap-2">
       <Select
         value={filters.language ?? ALL}
         onValueChange={(value) => filters.setLanguage(value === ALL ? null : value)}
       >
-        <SelectTrigger size="sm" className="h-7 min-w-32 text-caption">
+        <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-32`}>
           <SelectValue placeholder={t('filters.language')} />
         </SelectTrigger>
         <SelectContent>
@@ -55,7 +58,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.topic ?? ALL}
         onValueChange={(value) => filters.setTopic(value === ALL ? null : value)}
       >
-        <SelectTrigger size="sm" className="h-7 min-w-32 text-caption">
+        <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-32`}>
           <SelectValue placeholder={t('filters.topic')} />
         </SelectTrigger>
         <SelectContent>
@@ -74,7 +77,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
             <Button
               variant="outline"
               size="sm"
-              className="h-7 min-w-28 gap-1 font-normal text-caption"
+              className={`${FILTER_TRIGGER_CLASS} min-w-28 gap-1 font-normal`}
             >
               {t('filters.tags')}
               {tagCount > 0 ? (
@@ -107,7 +110,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={String(filters.minStars)}
         onValueChange={(value) => filters.setMinStars(Number(value))}
       >
-        <SelectTrigger size="sm" className="h-7 min-w-28 text-caption">
+        <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-28`}>
           <SelectValue placeholder={t('filters.stars')} />
         </SelectTrigger>
         <SelectContent>
@@ -126,7 +129,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.pushedWithinDays === null ? ALL : String(filters.pushedWithinDays)}
         onValueChange={(value) => filters.setPushedWithinDays(value === ALL ? null : Number(value))}
       >
-        <SelectTrigger size="sm" className="h-7 min-w-32 text-caption">
+        <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-32`}>
           <SelectValue placeholder={t('filters.pushed')} />
         </SelectTrigger>
         <SelectContent>
@@ -143,7 +146,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
         value={filters.status}
         onValueChange={(value) => filters.setStatus(value as RepoStatus)}
       >
-        <SelectTrigger size="sm" className="h-7 min-w-28 text-caption">
+        <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-28`}>
           <SelectValue placeholder={t('filters.status')} />
         </SelectTrigger>
         <SelectContent>
@@ -154,7 +157,7 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
       </Select>
 
       <Select value={filters.sort} onValueChange={(value) => filters.setSort(value as RepoSort)}>
-        <SelectTrigger size="sm" className="h-7 min-w-40 text-caption">
+        <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-40`}>
           <SelectValue placeholder={t('filters.sort')} />
         </SelectTrigger>
         <SelectContent>
@@ -176,6 +179,6 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
           {t('filters.clear')}
         </Button>
       ) : null}
-    </div>
+    </GlassRail>
   );
 }

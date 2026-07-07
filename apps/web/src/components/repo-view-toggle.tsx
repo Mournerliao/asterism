@@ -1,6 +1,7 @@
-import { ToggleGroup, ToggleGroupItem } from '@asterism/ui';
+import { SegmentedControl } from '@asterism/ui';
 import { LayoutGrid, List } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import type { RepoViewMode } from '../stores/browse-view';
 import { useBrowseView } from '../stores/browse-view';
 
 export function RepoViewToggle() {
@@ -9,21 +10,16 @@ export function RepoViewToggle() {
   const setView = useBrowseView((state) => state.setView);
 
   return (
-    <ToggleGroup
-      type="single"
-      variant="outline"
+    <SegmentedControl<RepoViewMode>
       value={view}
-      onValueChange={(value) => {
-        if (value) setView(value as 'grid' | 'list');
-      }}
-      aria-label={t('browse.viewGrid')}
-    >
-      <ToggleGroupItem value="grid" aria-label={t('browse.viewGrid')}>
-        <LayoutGrid />
-      </ToggleGroupItem>
-      <ToggleGroupItem value="list" aria-label={t('browse.viewList')}>
-        <List />
-      </ToggleGroupItem>
-    </ToggleGroup>
+      onValueChange={setView}
+      ariaLabel={t('browse.viewMode')}
+      display="icon"
+      size="sm"
+      options={[
+        { value: 'grid', label: t('browse.viewGrid'), icon: <LayoutGrid /> },
+        { value: 'list', label: t('browse.viewList'), icon: <List /> },
+      ]}
+    />
   );
 }

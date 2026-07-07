@@ -99,6 +99,7 @@
   "browse": {
     "title": "全部仓库",
     "count": "{{total}} 个 star 仓库",
+    "viewMode": "仓库视图模式",
     "viewGrid": "卡片视图",
     "viewList": "列表视图",
     "moreTopicsLabel": "还有 {{count}} 个 Topic",

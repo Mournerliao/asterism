@@ -252,6 +252,39 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
   - **营销 / 落地页** → 可酌情用 **Magic UI / Aceternity** 等做动效与视觉，但**仅限 marketing 场景**，不渗入核心应用界面，避免风格割裂与体积膨胀。
 - **不得凭空造新风格**：组件实现须对齐本契约（tokens 填妥后），不自行引入与设计系统冲突的配色 / 间距 / 圆角。
 
+### Glass Control Pattern · 磨砂控制条模式
+
+用于高频、紧凑、状态明确的控制区域：视图切换、筛选工具条、Drawer 内局部分区导航。实现以 `GlassControlRow` + `GlassRail` + `SegmentedControl` 为准，并对齐 Lumno options 源码参数：light page `#f1f5f9`、fixed noise overlay opacity `.24`、stuck row `rgba(241,245,249,.92)` + 1px sticky line、4px rail padding、12px rail radius、4px backdrop blur、4px indicator inset、8px/14px tab padding、10px tab radius、14px icon、240ms indicator 滑动。这些尺寸 / 圆角 / 透明度 / 变换 / 动效时长均为 Lumno 已调好的字面量，**保留原值，不映射到 Tailwind 预设刻度**。
+
+**`variant: 'glass' | 'solid'`**（`GlassRail` / `SegmentedControl`，默认 `'glass'`）：
+
+- `glass`：上述磨砂效果（backdrop-blur + 半透明背景），用于 Browse 视图切换、筛选栏等吸顶 / 悬浮控制条。
+- `solid`：不透明背景、无 blur、无 sticky 语义，对应 Lumno 内联小控件（如 Settings 主题切换）；**不要**用 `GlassControlRow` 包裹 `solid` 控件——`GlassControlRow` 自带 `position: sticky`，只服务于真正需要吸顶的磨砂控制条。
+
+**`--glass-*` 专属 token**（`globals.css` 的 `:root` / `.dark`，独立命名空间，不与核心 Primer 语义色混用，颜色数值 100% 取自 Lumno options 源码）：
+
+| Token | Light | Dark | 用途 |
+| --- | --- | --- | --- |
+| `--glass-page-bg` | `#f1f5f9` | — | `asterism-glass-page` 背景（dark 走 `var(--background)`） |
+| `--glass-rail-bg` | `rgba(255,255,255,.25)` | `#1f2732` | `GlassRail` glass 变体背景 |
+| `--glass-rail-border` | `rgba(146,161,114,.25)` | `rgba(148,163,184,.2)` | `GlassRail` glass 变体边框 |
+| `--glass-rail-solid-bg` | `rgba(15,23,42,.04)` | `#2f2f2f` | `GlassRail` solid 变体背景 |
+| `--glass-rail-solid-border` | `rgba(15,23,42,.05)` | `rgba(255,255,255,.12)` | `GlassRail` solid 变体边框 |
+| `--glass-indicator-bg` | `#ffffff` | `linear-gradient(180deg,#475569 0%,#4e6382 100%)` | `SegmentedControl` 滑块背景 |
+| `--glass-indicator-border` | 无边框 | `#5e779d` | 滑块 dark 态描边（light 不加 `border`） |
+| `--glass-indicator-shadow` | `0 1px 3px rgba(15,23,42,.06)` | `0 1px 2px rgba(0,0,0,.15)` | 滑块阴影 |
+| `--glass-tab-active-text` | `#0f172a` | `#f8fafc` | 选中 tab 文字 |
+| `--glass-tab-inactive-text` | `#8b94a4` | `#7f8898` | 未选中 tab 文字 |
+| `--glass-stuck-bg` | `rgba(241,245,249,.92)` | `rgba(17,17,17,.9)` | `GlassControlRow[data-stuck]` 背景 |
+| `--glass-sticky-line` | `rgba(15,23,42,.08)` | `rgba(241,245,249,.16)` | 吸顶下划线颜色 |
+| `--glass-row-before-bg` | 复用 `--glass-page-bg` | `#111111` | `::before` 吸顶背景淡入层 |
+
+组件通过 Tailwind 任意值 / 任意属性引用（如 `bg-[var(--glass-rail-bg)]`、`[background:var(--glass-indicator-bg)]`），CSS 规则里直接 `var(--glass-stuck-bg)`；渐变类的值需用 `[background:var(...)]` 任意属性而非 `bg-[var(...)]`，否则 Tailwind 会当作 `background-color` 处理导致渐变失效。
+
+**`stuck` 判定**：`GlassControlRow` 的吸顶视觉状态（背景淡入 + 噪点 + 下划线生长）由调用方传入的 `stuck: boolean` 驱动，非自带检测。当控制条所在容器不使用原生 `position: sticky`（如 Browse 头部本身 `shrink-0` + 独立滚动列表区，见上文滚动策略），调用方需自行监听列表容器 `scrollTop`，`> 0` 时设为 `true`；订阅派生布尔值而非连续 scrollTop，避免逐像素 re-render。
+
+边界：Lumno neutral page/noise 背景只作为 glass controls 的承托环境；不得引入水彩 / 插画 / 新图片资产，不得玻璃化 repo cards、列表行或大面积内容 section。颜色、圆角、阴影、动效必须来自该模式定义或现有 tokens，动效需支持 `prefers-reduced-motion`。
+
 ## Dark Mode · 明暗模式
 
 - **默认跟随系统 + 可切换**：首次进入跟随操作系统偏好（system），并提供显式切换（light / dark）。

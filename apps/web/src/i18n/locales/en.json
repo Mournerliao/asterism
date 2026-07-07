@@ -99,6 +99,7 @@
   "browse": {
     "title": "All Repositories",
     "count": "{{total}} starred repositories",
+    "viewMode": "Repository view mode",
     "viewGrid": "Grid view",
     "viewList": "List view",
     "moreTopicsLabel": "{{count}} more topics",

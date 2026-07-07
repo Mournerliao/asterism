@@ -14,6 +14,7 @@
 | 决策 Decisions | `decisions/` | 我们为什么这样选？有哪些取舍？（ADR） |
 | 路线图 Roadmap | `roadmap.md` | 我们分几个阶段、先做什么后做什么？ |
 | 循环 Loops | `loops/` | 可复用的工作流程是怎样的？（带 goal / verification / guardrails） |
+| 技能 Skills | `skills/` | 项目认可哪些 agent skills？何时使用？如何同步？ |
 | 持久状态 State | `state/` | 上次进行到哪了？有哪些便签和待办？（跨会话的"记忆"） |
 | 运行手册 Runbooks | `runbooks/` | 怎么把它跑起来/部署？ |
 | 运行日志 Logs | `logs/` | 每一轮 loop 实际发生了什么？（用于改进循环本身） |
@@ -48,6 +49,10 @@ knowledge/
 │   ├── README.md          #   loop 清单与用法
 │   ├── _template.loop.md  #   模板：goal / inputs / steps / verification / guardrails / stop
 │   └── ui-generation.loop.md  # UI 生成循环：生成 → 对齐 ui-ux 契约 → 落 packages/ui → a11y 验收
+├── skills/                # Skills 层：项目级 agent skills 清单、vendor 副本与同步规则
+│   ├── README.md          #   skill 治理规则与使用场景
+│   ├── manifest.json      #   上游来源、锁定 commit、vendor 与 .agents 同步目标
+│   └── vendor/            #   外部 skill 的仓库内可审计副本
 ├── state/                 # 持久状态层：跨会话存活的"记忆"
 │   ├── PROGRESS.md        #   当前进度与里程碑
 │   ├── NOTES.md           #   工作便签（context 之外）

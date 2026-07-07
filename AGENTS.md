@@ -29,6 +29,29 @@ silently diverging.
 - **Record important decisions** as ADRs in `knowledge/decisions/` (one decision
   per file: context, trade-offs, conclusion).
 
+## Project skills
+
+Project-approved agent skills are governed by `knowledge/skills/` and vendored
+under `.agents/skills/`. Before applying a skill, read its `SKILL.md` and any
+referenced rule or reference files needed for the task.
+
+- Use `.agents/skills/react-best-practices/SKILL.md` for React components,
+  hooks, TanStack Query, bundle/performance, rendering performance, and client
+  data-fetching work.
+- Use `.agents/skills/composition-patterns/SKILL.md` for `packages/ui`,
+  reusable component APIs, provider/context design, compound components, and
+  component refactors.
+- Use `.agents/skills/vercel-cli-with-tokens/SKILL.md` for Vercel CLI work that
+  involves `VERCEL_TOKEN`, project linking, environment variables, deployment
+  inspection, or domain management.
+- Use `.agents/skills/deploy-to-vercel/SKILL.md` for Vercel preview/production
+  deployments and deployment URL retrieval.
+- Use `.agents/skills/vercel-optimize/SKILL.md` only for post-deployment Vercel
+  cost/performance audits backed by real Vercel metrics.
+
+If a vendored skill conflicts with `knowledge/contracts/*`, the Asterism
+contracts win. Never commit secrets while following deployment-related skills.
+
 ## Runtime baseline
 
 Node 22 · pnpm · Turborepo · Biome · Vitest. Do not introduce alternative

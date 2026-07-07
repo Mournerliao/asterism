@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-07-07",
+  "upstream": {
+    "repo": "vercel-labs/agent-skills",
+    "url": "https://github.com/vercel-labs/agent-skills",
+    "ref": "f8a72b9603728bb92a217a879b7e62e43ad76c81"
+  },
+  "sync": {
+    "vendorRoot": "knowledge/skills/vendor/vercel-labs-agent-skills",
+    "agentRoot": ".agents/skills",
+    "script": "scripts/sync-agent-skills.mjs"
+  },
+  "skills": [
+    {
+      "name": "react-best-practices",
+      "upstreamPath": "skills/react-best-practices",
+      "vendorPath": "knowledge/skills/vendor/vercel-labs-agent-skills/react-best-practices",
+      "agentPath": ".agents/skills/react-best-practices",
+      "useWhen": "React components, hooks, TanStack Query, bundle size, rendering performance, data fetching, or performance-sensitive UI changes.",
+      "notes": "Use as a React performance and code-quality guardrail. Asterism contracts still take precedence over external guidance."
+    },
+    {
+      "name": "composition-patterns",
+      "upstreamPath": "skills/composition-patterns",
+      "vendorPath": "knowledge/skills/vendor/vercel-labs-agent-skills/composition-patterns",
+      "agentPath": ".agents/skills/composition-patterns",
+      "useWhen": "Reusable component APIs, packages/ui work, provider/context design, compound components, or component refactors.",
+      "notes": "Use to avoid boolean-prop proliferation and keep shared UI APIs composable."
+    },
+    {
+      "name": "vercel-cli-with-tokens",
+      "upstreamPath": "skills/vercel-cli-with-tokens",
+      "vendorPath": "knowledge/skills/vendor/vercel-labs-agent-skills/vercel-cli-with-tokens",
+      "agentPath": ".agents/skills/vercel-cli-with-tokens",
+      "useWhen": "Vercel CLI operations with VERCEL_TOKEN, project linking, environment variables, deployment inspection, or domain management.",
+      "notes": "Use for non-interactive/token-based Vercel workflows. Never put tokens in command arguments or committed files."
+    },
+    {
+      "name": "deploy-to-vercel",
+      "upstreamPath": "skills/deploy-to-vercel",
+      "vendorPath": "knowledge/skills/vendor/vercel-labs-agent-skills/deploy-to-vercel",
+      "agentPath": ".agents/skills/deploy-to-vercel",
+      "useWhen": "Preview or production Vercel deployments, project linking for deployment, or retrieving deployment URLs.",
+      "notes": "Default to preview deployments unless the user explicitly asks for production."
+    },
+    {
+      "name": "vercel-optimize",
+      "upstreamPath": "skills/vercel-optimize",
+      "vendorPath": "knowledge/skills/vendor/vercel-labs-agent-skills/vercel-optimize",
+      "agentPath": ".agents/skills/vercel-optimize",
+      "useWhen": "Post-deployment Vercel cost, Core Web Vitals, usage, metrics, caching, or route-performance audits.",
+      "notes": "Use only after the app is deployed and has Vercel metrics. For Vite SPA, treat output as limited platform guidance unless the skill confirms stronger support."
+    }
+  ]
+}

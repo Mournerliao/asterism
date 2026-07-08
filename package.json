@@ -16,7 +16,7 @@
     "format": "biome format --write .",
     "test": "turbo run test",
     "typecheck": "turbo run typecheck",
-    "prepare": "lefthook install"
+    "prepare": "git rev-parse --is-inside-work-tree >/dev/null 2>&1 && lefthook install || exit 0"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.1",

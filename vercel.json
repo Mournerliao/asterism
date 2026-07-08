@@ -1,0 +1,7 @@
+{
+  "framework": "vite",
+  "installCommand": "pnpm install",
+  "buildCommand": "turbo run build --filter=@asterism/web",
+  "outputDirectory": "apps/web/dist",
+  "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
+}

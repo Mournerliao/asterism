@@ -32,6 +32,12 @@ supabase/.temp/
 .env.*
 !.env.example
 
+# Vercel local link state (not committed)
+.vercel/
+
+# WorkBuddy local runtime data (agent memory/logs/automation — not project source)
+.workbuddy/
+
 # Local overrides
 *.local
 
@@ -40,3 +46,4 @@ supabase/.temp/
 
 # OS
 .DS_Store
+.vercel

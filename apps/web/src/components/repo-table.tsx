@@ -1,6 +1,6 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { cn } from '@asterism/ui';
+import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { KeyboardEvent } from 'react';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -49,7 +49,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   };
 
   return (
-    <tr
+    <TableRow
       role={handleOpen ? 'button' : undefined}
       tabIndex={handleOpen ? 0 : undefined}
       onClick={handleOpen}
@@ -59,7 +59,7 @@ export const RepoTableRow = memo(function RepoTableRow({
         handleOpen && 'cursor-pointer focus-visible:bg-accent/40 focus-visible:outline-none',
       )}
     >
-      <td className="px-4 py-0 align-middle">
+      <TableCell className="px-4 py-0 align-middle">
         <div className="flex min-w-0 max-w-[340px] flex-col gap-0.5">
           <a
             href={`https://github.com/${repo.fullName}`}
@@ -74,8 +74,8 @@ export const RepoTableRow = memo(function RepoTableRow({
             <p className="truncate text-[13px] text-muted-foreground">{repo.description}</p>
           ) : null}
         </div>
-      </td>
-      <td className="hidden w-[100px] px-4 align-middle md:table-cell">
+      </TableCell>
+      <TableCell className="hidden w-[100px] px-4 align-middle md:table-cell">
         {repo.language ? (
           <span className="flex items-center gap-1.5 text-caption text-foreground">
             <span
@@ -88,21 +88,21 @@ export const RepoTableRow = memo(function RepoTableRow({
         ) : (
           <span className="text-caption text-muted-foreground">—</span>
         )}
-      </td>
-      <td className="w-20 px-4 align-middle font-mono text-caption text-foreground">
+      </TableCell>
+      <TableCell className="w-20 px-4 align-middle font-mono text-caption text-foreground">
         {formatCompactNumber(repo.stargazers, locale)}
-      </td>
-      <td className="hidden w-[200px] px-4 align-middle lg:table-cell">
+      </TableCell>
+      <TableCell className="hidden w-[200px] px-4 align-middle lg:table-cell">
         <div className="flex flex-wrap gap-1">
           {visibleTags.map((tag) => (
             <TagPill key={tag.id} tag={tag} />
           ))}
         </div>
-      </td>
-      <td className="hidden w-[100px] px-4 align-middle font-mono text-caption text-muted-foreground sm:table-cell">
+      </TableCell>
+      <TableCell className="hidden w-[100px] px-4 align-middle font-mono text-caption text-muted-foreground sm:table-cell">
         {formatStarredDate(starredAt)}
-      </td>
-    </tr>
+      </TableCell>
+    </TableRow>
   );
 });
 
@@ -145,31 +145,31 @@ export const RepoTable = memo(function RepoTable({
   const paddingBottom = lastItem ? virtualizer.getTotalSize() - (lastItem.end - scrollMargin) : 0;
 
   return (
-    <div ref={tableRef} className="w-full overflow-x-auto rounded-lg border">
-      <table className="w-full min-w-[640px] border-collapse text-left">
-        <thead>
-          <tr className="sticky top-0 z-10 h-9 border-border border-b bg-background">
-            <th className="px-4 font-medium text-[11px] text-muted-foreground">
+    <div ref={tableRef} className="w-full rounded-lg border">
+      <Table className="min-w-[640px] border-collapse text-left">
+        <TableHeader>
+          <TableRow className="sticky top-0 z-10 h-9 border-border border-b bg-background">
+            <TableHead className="px-4 font-medium text-[11px] text-muted-foreground">
               {t('browse.table.repository')}
-            </th>
-            <th className="hidden px-4 font-medium text-[11px] text-muted-foreground md:table-cell">
+            </TableHead>
+            <TableHead className="hidden px-4 font-medium text-[11px] text-muted-foreground md:table-cell">
               {t('browse.table.language')}
-            </th>
-            <th className="px-4 font-medium text-[11px] text-muted-foreground">
+            </TableHead>
+            <TableHead className="px-4 font-medium text-[11px] text-muted-foreground">
               {t('browse.table.stars')}
-            </th>
-            <th className="hidden px-4 font-medium text-[11px] text-muted-foreground lg:table-cell">
+            </TableHead>
+            <TableHead className="hidden px-4 font-medium text-[11px] text-muted-foreground lg:table-cell">
               {t('browse.table.tags')}
-            </th>
-            <th className="hidden px-4 font-medium text-[11px] text-muted-foreground sm:table-cell">
+            </TableHead>
+            <TableHead className="hidden px-4 font-medium text-[11px] text-muted-foreground sm:table-cell">
               {t('browse.table.starred')}
-            </th>
-          </tr>
-        </thead>
-        <tbody>
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
           {paddingTop > 0 ? (
             <tr>
-              <td colSpan={5} style={{ height: paddingTop, padding: 0, border: 0 }} />
+              <TableCell colSpan={5} style={{ height: paddingTop, padding: 0, border: 0 }} />
             </tr>
           ) : null}
           {virtualItems.map((virtualRow) => {
@@ -188,11 +188,11 @@ export const RepoTable = memo(function RepoTable({
           })}
           {paddingBottom > 0 ? (
             <tr>
-              <td colSpan={5} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+              <TableCell colSpan={5} style={{ height: paddingBottom, padding: 0, border: 0 }} />
             </tr>
           ) : null}
-        </tbody>
-      </table>
+        </TableBody>
+      </Table>
     </div>
   );
 });

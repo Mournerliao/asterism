@@ -205,12 +205,21 @@ export function ImportExportPage() {
               <p className="text-[13px] text-muted-foreground">
                 {t('importExport.importDescription')}
               </p>
-              <button
-                type="button"
-                className={`flex min-h-36 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
+              {/* 拖拽区交互不适合原生 button，按用户要求使用 div 承载 role=button */}
+              {/* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */}
+              <div
+                role="button"
+                tabIndex={0}
+                className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
                   dragOver ? 'border-primary bg-accent' : 'border-border bg-muted/30'
                 }`}
                 onClick={() => fileInputRef.current?.click()}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    fileInputRef.current?.click();
+                  }
+                }}
                 onDragOver={(event) => {
                   event.preventDefault();
                   setDragOver(true);
@@ -223,7 +232,7 @@ export function ImportExportPage() {
                   {t('importExport.uploadPrompt')}
                 </span>
                 <span className="text-muted-foreground">{t('importExport.uploadHint')}</span>
-              </button>
+              </div>
               <input
                 ref={fileInputRef}
                 type="file"

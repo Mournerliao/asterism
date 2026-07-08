@@ -44,14 +44,16 @@ export function AppTopbar() {
           onChange={(event) => setQuery(event.target.value)}
         />
         {query ? (
-          <button
+          <Button
             type="button"
+            variant="ghost"
+            size="icon"
             aria-label={t('topbar.clearSearch')}
-            className="-translate-y-1/2 absolute top-1/2 right-2 flex size-6 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+            className="-translate-y-1/2 absolute top-1/2 right-2 size-6 text-muted-foreground hover:bg-accent hover:text-foreground"
             onClick={() => setQuery('')}
           >
             <XIcon className="size-4" />
-          </button>
+          </Button>
         ) : (
           <kbd className="-translate-y-1/2 absolute top-1/2 right-2 flex h-5 items-center rounded-sm bg-background px-1.5 font-mono text-[11px] text-muted-foreground">
             /

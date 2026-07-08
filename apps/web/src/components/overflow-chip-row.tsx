@@ -123,31 +123,36 @@ export function OverflowChipRow<T>({
           </span>
         ))}
         {overflowCount > 0 ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <button
-                type="button"
-                aria-label={overflowLabel(overflowCount)}
-                className="inline-flex shrink-0 cursor-default border-0 bg-transparent p-0 text-inherit"
-                onClick={(event) => event.stopPropagation()}
-                onKeyDown={(event) => event.stopPropagation()}
-              >
-                {renderOverflowChip(overflowCount)}
-              </button>
-            </TooltipTrigger>
-            <TooltipContent sideOffset={6} className="max-w-64 text-left">
-              <div className="flex max-w-64 flex-wrap gap-1.5">
-                {overflowItems.map((item) => (
-                  <span
-                    key={getKey(item)}
-                    className="rounded-sm bg-secondary px-2 py-0.5 text-caption text-secondary-foreground"
-                  >
-                    {getItemLabel(item)}
-                  </span>
-                ))}
-              </div>
-            </TooltipContent>
-          </Tooltip>
+          <span className="shrink-0">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                {/* 按需求用 div 承载 tooltip 触发器（shadcn Button 不适用），以 role=button 保留可访问性 */}
+                {/* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  aria-label={overflowLabel(overflowCount)}
+                  className="inline-flex cursor-default bg-transparent p-0 leading-none text-inherit"
+                  onClick={(event) => event.stopPropagation()}
+                  onKeyDown={(event) => event.stopPropagation()}
+                >
+                  {renderOverflowChip(overflowCount)}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent sideOffset={6} className="max-w-64 text-left">
+                <div className="flex max-w-64 flex-wrap gap-1.5">
+                  {overflowItems.map((item) => (
+                    <span
+                      key={getKey(item)}
+                      className="rounded-sm bg-secondary px-2 py-0.5 text-caption text-secondary-foreground"
+                    >
+                      {getItemLabel(item)}
+                    </span>
+                  ))}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </span>
         ) : null}
       </div>
 

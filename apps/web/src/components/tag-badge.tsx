@@ -1,5 +1,5 @@
 import type { Tag } from '@asterism/core';
-import { cn } from '@asterism/ui';
+import { Button, cn } from '@asterism/ui';
 import { XIcon } from 'lucide-react';
 
 function tagBg(color: string): string {
@@ -31,14 +31,16 @@ export function TagBadge({
       <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: dotColor }} />
       <span className="font-medium text-foreground">{name}</span>
       {onRemove ? (
-        <button
+        <Button
           type="button"
+          variant="ghost"
+          size="icon"
           aria-label={removeLabel}
           onClick={onRemove}
-          className="flex size-4 items-center justify-center rounded-sm text-muted-foreground hover:text-foreground"
+          className="size-4 rounded-sm text-muted-foreground hover:text-foreground"
         >
           <XIcon className="size-3" />
-        </button>
+        </Button>
       ) : null}
     </span>
   );

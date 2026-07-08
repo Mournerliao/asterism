@@ -91,6 +91,16 @@ export {
 } from './components/ui/sheet';
 export { Skeleton } from './components/ui/skeleton';
 export { Toaster } from './components/ui/sonner';
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/ui/table';
 export { Tabs, TabsContent, TabsList, TabsTrigger } from './components/ui/tabs';
 export { Textarea } from './components/ui/textarea';
 export { Toggle, toggleVariants } from './components/ui/toggle';

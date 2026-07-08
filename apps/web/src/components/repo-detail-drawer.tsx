@@ -10,6 +10,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   Sheet,
+  SheetClose,
   SheetContent,
   SheetHeader,
   SheetTitle,
@@ -75,14 +76,17 @@ function DrawerBody({ record }: { record: StarredRepoRecord }) {
     <>
       <SheetHeader className="flex-row items-center justify-between border-b px-6 py-6">
         <SheetTitle className="font-semibold text-drawer-title">{t('drawer.title')}</SheetTitle>
-        <button
-          type="button"
-          onClick={() => useRepoDrawer.getState().close()}
-          className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
-          aria-label={t('common.cancel')}
-        >
-          <XIcon className="size-4" />
-        </button>
+        <SheetClose asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:bg-accent hover:text-foreground"
+            aria-label={t('common.cancel')}
+          >
+            <XIcon className="size-4" />
+          </Button>
+        </SheetClose>
       </SheetHeader>
 
       <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-auto px-6 py-5">
@@ -249,12 +253,13 @@ function CollectionsSection({ repoId }: { repoId: string }) {
           {collections.map((collection) => {
             const member = memberIds.has(collection.id);
             return (
-              <button
+              <Button
                 key={collection.id}
                 type="button"
+                variant="ghost"
                 onClick={() => toggle.mutate({ collectionId: collection.id, repoId, member })}
                 className={cn(
-                  'flex h-8 items-center justify-between rounded-sm px-2 text-left text-[13px] transition-colors',
+                  'h-8 w-full justify-between rounded-sm px-2 text-left text-[13px] transition-colors',
                   member
                     ? 'bg-background text-foreground'
                     : 'bg-background/50 text-muted-foreground hover:text-foreground',
@@ -262,7 +267,7 @@ function CollectionsSection({ repoId }: { repoId: string }) {
               >
                 <span className="truncate">{collection.name}</span>
                 {member ? <CheckIcon className="size-4 shrink-0 text-link" /> : null}
-              </button>
+              </Button>
             );
           })}
         </div>
@@ -290,13 +295,14 @@ function NotesSection({ repoId }: { repoId: string }) {
       <div className="flex items-center justify-between">
         <SectionLabel>{t('drawer.notes')}</SectionLabel>
         {!editing && serverBody ? (
-          <button
+          <Button
             type="button"
-            className="text-caption text-link hover:underline"
+            variant="link"
+            className="text-caption text-link p-0 h-auto hover:underline"
             onClick={() => setEditing(true)}
           >
             {t('common.edit')}
-          </button>
+          </Button>
         ) : null}
       </div>
       {editing || !serverBody ? (

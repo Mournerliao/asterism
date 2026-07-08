@@ -11,15 +11,15 @@
 
 - 后端：**Supabase 免费实例**（Auth + Postgres + pgvector + Edge Functions + Realtime）。
 - 前端：**静态托管 Web**（Vercel / Netlify / Cloudflare Pages 之一）。
-- 提供一个**公共体验地址**（占位 `asterism.dev`，最终域名待定）。
+- 提供一个**公共体验地址**（占位 `asterism.dev`，最终域名待定；当前 Vercel 生产实例：`https://asterism-xcm1115s-projects.vercel.app`）。
 
 > 该路径由项目维护者运维；普通用户访问公共地址即可，无需配置环境变量。
 
 `TODO（Phase 0）`：
 
-- [ ] 确认公共实例域名（替换占位 `asterism.dev`）
+- [ ] 确认公共实例域名（替换占位 `asterism.dev`；当前临时域名为 Vercel 分配的 `asterism-xcm1115s-projects.vercel.app`）
 - [x] 记录 Supabase schema/RLS 初始化步骤 —— 见 `supabase/README.md`（迁移文件对齐 `contracts/data-model.md`）
-- [ ] 记录静态托管的构建命令与产物目录
+- [x] 记录静态托管的构建命令与产物目录 —— Vercel：`framework=vite`，构建 `turbo run build --filter=@asterism/web`，产物 `apps/web/dist`，详见仓库根 `vercel.json` 与 `decisions/0008-vercel-web-hosting.md`
 - [x] 记录 GitHub OAuth App 的回调 URL 配置 —— 见 `supabase/README.md`
 
 ### 路径 B：自部署者（自有实例）

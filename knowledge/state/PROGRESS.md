@@ -28,6 +28,8 @@
 
 > 优化（2026-07-08，见 `logs/2026-07-07-browse-view-switch-perf.md`、`logs/2026-07-08-browse-tab-immediate-response.md`、`logs/2026-07-08-browse-tab-paint-boundary.md`）：Browse 宫格/列表切换收敛为最终方案——tab 本地选中态与 `SegmentedControl` 滑块立即响应；内容视图通过 double `requestAnimationFrame` 让出一次 paint 后再用 `startTransition` 提交；grid/list 首次访问后常驻挂载，后续仅 CSS 显隐，避免虚拟列表反复重建；视图偏好仍异步持久化到 Zustand/localStorage。
 
+> 部署（2026-07-08，见 `logs/2026-07-08-vercel-prod-deploy.md`）：Asterism Web（`apps/web`，Vite SPA）首次部署到 Vercel **生产环境**，项目落在团队 `xcm1115s-projects`，生产稳定域名为 `https://asterism-xcm1115s-projects.vercel.app`。新增仓库根 `vercel.json` 固化 framework=vite、installCommand=`pnpm install`、buildCommand=`turbo run build --filter=@asterism/web`、outputDirectory=apps/web/dist 与 SPA 回退路由 `/ (.*) → /index.html`；将 `package.json` 的 `prepare` 脚本改为「仅在 git 仓库内安装 lefthook」，规避 Vercel 构建环境（无 `.git`）下 `pnpm install` 因 `lefthook install` 失败导致构建中止；`.gitignore` 增补 `.vercel/`。生产环境变量 `VITE_SUPABASE_URL` / `VITE_SUPABASE_PUBLISHABLE_KEY` 沿用既有值（9 天前已配置，无需覆盖）。**关键后续**：需把生产域名加入 Supabase Auth 的 Site URL / Redirect URLs，否则 GitHub OAuth 登录回调会失败。
+
 Phase 1 已完成（见 `logs/2026-06-30-phase1-shell.md`、`logs/2026-06-30-phase1-slice3-stars-sync.md`、`logs/2026-06-30-phase1-slice4-browse.md`、`logs/2026-06-30-phase1-slice5-filter-search.md`、`logs/2026-06-30-phase1-slice6-tags-collections-notes.md`）：
 
 - **契约裁决（ADR 0006）**：stars 同步写入走 Edge Function `sync-stars`（service role），客户端只触发 + 读取；修正 `architecture.md` 数据流与 `roadmap.md` 状态表。

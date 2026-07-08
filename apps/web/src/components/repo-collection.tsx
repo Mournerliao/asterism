@@ -1,7 +1,8 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
+import { useScrollMargin } from '../lib/scroll-margin';
 import type { RepoViewMode } from '../stores/browse-view';
 import { RepoCard } from './repo-card';
 import { RepoTable } from './repo-table';
@@ -9,16 +10,19 @@ import { RepoTable } from './repo-table';
 const MIN_CARD_WIDTH = 370;
 const MAX_COLUMNS = 3;
 
-function useColumns(ref: React.RefObject<HTMLElement | null>, view: RepoViewMode): number {
+type RepoCollectionProps = {
+  records: StarredRepoRecord[];
+  tagsByRepo?: Map<string, Tag[]>;
+  onSelect?: (record: StarredRepoRecord) => void;
+  scrollElement?: HTMLElement | null;
+};
+
+function useColumns(ref: React.RefObject<HTMLElement | null>): number {
   const [columns, setColumns] = useState(1);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) {
-      return;
-    }
-    if (view === 'list') {
-      setColumns(1);
       return;
     }
     const update = () => {
@@ -29,33 +33,20 @@ function useColumns(ref: React.RefObject<HTMLElement | null>, view: RepoViewMode
     const observer = new ResizeObserver(update);
     observer.observe(el);
     return () => observer.disconnect();
-  }, [ref, view]);
+  }, [ref]);
 
   return columns;
 }
 
-function measureScrollMargin(element: HTMLElement, scrollElement: HTMLElement): number {
-  const elementRect = element.getBoundingClientRect();
-  const scrollRect = scrollElement.getBoundingClientRect();
-  return elementRect.top - scrollRect.top + scrollElement.scrollTop;
-}
-
-export function RepoCollection({
+const RepoGridView = memo(function RepoGridView({
   records,
-  view,
   tagsByRepo,
   onSelect,
   scrollElement,
-}: {
-  records: StarredRepoRecord[];
-  view: RepoViewMode;
-  tagsByRepo?: Map<string, Tag[]>;
-  onSelect?: (record: StarredRepoRecord) => void;
-  scrollElement?: HTMLElement | null;
-}) {
+}: RepoCollectionProps) {
   const collectionRef = useRef<HTMLDivElement>(null);
-  const [scrollMargin, setScrollMargin] = useState(0);
-  const columns = useColumns(collectionRef, view);
+  const scrollMargin = useScrollMargin(collectionRef, scrollElement);
+  const columns = useColumns(collectionRef);
   const rowCount = Math.ceil(records.length / columns);
 
   const virtualizer = useVirtualizer({
@@ -66,43 +57,10 @@ export function RepoCollection({
     scrollMargin,
   });
 
-  useLayoutEffect(() => {
-    const element = collectionRef.current;
-    if (!element || !scrollElement) {
-      return;
-    }
-    setScrollMargin(measureScrollMargin(element, scrollElement));
-  });
-
-  useEffect(() => {
-    const element = collectionRef.current;
-    if (!element || !scrollElement) {
-      return;
-    }
-    const update = () => setScrollMargin(measureScrollMargin(element, scrollElement));
-    update();
-    const observer = new ResizeObserver(update);
-    observer.observe(element);
-    observer.observe(scrollElement);
-    window.addEventListener('resize', update);
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, [scrollElement]);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: columns/view 改变即需重测
+  // biome-ignore lint/correctness/useExhaustiveDependencies: columns/records 改变即需重测
   useEffect(() => {
     virtualizer.measure();
-  }, [virtualizer, columns, view, records.length, scrollMargin]);
-
-  if (view === 'list') {
-    return (
-      <div ref={collectionRef} className="w-full">
-        <RepoTable records={records} tagsByRepo={tagsByRepo} onSelect={onSelect} />
-      </div>
-    );
-  }
+  }, [virtualizer, columns, records.length, scrollMargin]);
 
   return (
     <div ref={collectionRef} className="relative w-full">
@@ -125,10 +83,9 @@ export function RepoCollection({
                 {rowRecords.map((record) => (
                   <RepoCard
                     key={record.repo.githubId}
-                    repo={record.repo}
-                    starredAt={record.starredAt}
+                    record={record}
                     tags={tagsByRepo?.get(record.repoId)}
-                    onOpen={onSelect ? () => onSelect(record) : undefined}
+                    onSelect={onSelect}
                   />
                 ))}
               </div>
@@ -138,4 +95,50 @@ export function RepoCollection({
       </div>
     </div>
   );
-}
+});
+
+const RepoListView = memo(function RepoListView({
+  records,
+  tagsByRepo,
+  onSelect,
+  scrollElement,
+}: RepoCollectionProps) {
+  return (
+    <RepoTable
+      records={records}
+      tagsByRepo={tagsByRepo}
+      onSelect={onSelect}
+      scrollElement={scrollElement}
+    />
+  );
+});
+
+// memo 让常驻挂载但当前不可见的那一侧在切换时跳过整棵子树的重渲染，
+// 只有真正 props 变化(如 scrollElement 从 null 变为真实节点)的一侧才会重新渲染。
+export const RepoCollection = memo(function RepoCollection({
+  records,
+  view,
+  tagsByRepo,
+  onSelect,
+  scrollElement,
+}: RepoCollectionProps & { view: RepoViewMode }) {
+  if (view === 'list') {
+    return (
+      <RepoListView
+        records={records}
+        tagsByRepo={tagsByRepo}
+        onSelect={onSelect}
+        scrollElement={scrollElement}
+      />
+    );
+  }
+
+  return (
+    <RepoGridView
+      records={records}
+      tagsByRepo={tagsByRepo}
+      onSelect={onSelect}
+      scrollElement={scrollElement}
+    />
+  );
+});

@@ -1,7 +1,7 @@
 'use client';
 
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { cn } from '../../lib/utils';
 import { GlassRail, type GlassRailVariant } from './glass-rail';
 
@@ -20,6 +20,8 @@ type IndicatorState = {
   x: number;
   ready: boolean;
 };
+
+const INDICATOR_INSET = 4;
 
 const sizeClasses: Record<SegmentedControlSize, string> = {
   sm: 'px-[14px] py-2 text-[13px] leading-normal',
@@ -55,11 +57,10 @@ function SegmentedControl<T extends string>({
   const [indicator, setIndicator] = useState<IndicatorState>({ width: 0, x: 0, ready: false });
   const enabledOptions = options.filter((option) => !option.disabled);
 
-  const updateIndicator = useCallback(() => {
+  const updateIndicatorForItem = useCallback((item: HTMLButtonElement) => {
     const root = rootRef.current;
-    const item = itemRefs.current.get(value);
 
-    if (!root || !item) {
+    if (!root) {
       setIndicator((current) => ({ ...current, ready: false }));
       return;
     }
@@ -67,17 +68,46 @@ function SegmentedControl<T extends string>({
     const rootRect = root.getBoundingClientRect();
     const itemRect = item.getBoundingClientRect();
 
-    const railInset = 4;
-
     setIndicator({
       width: Math.round(itemRect.width),
-      x: Math.max(0, Math.round(itemRect.left - rootRect.left - railInset)),
+      x: Math.max(0, Math.round(itemRect.left - rootRect.left - INDICATOR_INSET)),
       ready: true,
     });
-  }, [value]);
+  }, []);
 
-  useLayoutEffect(() => {
-    updateIndicator();
+  const updateIndicator = useCallback(() => {
+    const item = itemRefs.current.get(value);
+
+    if (!item) {
+      setIndicator((current) => ({ ...current, ready: false }));
+      return;
+    }
+
+    updateIndicatorForItem(item);
+  }, [updateIndicatorForItem, value]);
+
+  const activateValue = useCallback(
+    (nextValue: T) => {
+      const item = itemRefs.current.get(nextValue);
+      if (item) {
+        updateIndicatorForItem(item);
+      }
+      onValueChange(nextValue);
+    },
+    [onValueChange, updateIndicatorForItem],
+  );
+
+  const moveFocus = useCallback(
+    (nextValue: T) => {
+      activateValue(nextValue);
+      window.requestAnimationFrame(() => itemRefs.current.get(nextValue)?.focus());
+    },
+    [activateValue],
+  );
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(updateIndicator);
+    return () => cancelAnimationFrame(frame);
   }, [updateIndicator]);
 
   useLayoutEffect(() => {
@@ -94,11 +124,6 @@ function SegmentedControl<T extends string>({
 
     return () => observer.disconnect();
   }, [updateIndicator]);
-
-  const moveFocus = (nextValue: T) => {
-    onValueChange(nextValue);
-    window.requestAnimationFrame(() => itemRefs.current.get(nextValue)?.focus());
-  };
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (enabledOptions.length === 0) {
@@ -181,7 +206,7 @@ function SegmentedControl<T extends string>({
             aria-label={iconOnly ? option.label : undefined}
             disabled={option.disabled}
             tabIndex={selected ? 0 : -1}
-            onClick={() => onValueChange(option.value)}
+            onClick={() => activateValue(option.value)}
             className={cn(
               'relative z-10 inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] font-normal outline-none [transition:color_0.2s_ease,transform_120ms_ease,filter_120ms_ease] disabled:pointer-events-none disabled:opacity-45 active:[filter:brightness(0.95)] active:[transform:translateY(1px)_scale(0.98)] [&_svg]:size-[14px] [&_svg]:shrink-0 [&_svg]:[transition:opacity_0.2s_ease,transform_0.2s_ease]',
               iconOnly ? iconOnlySizeClasses[size] : sizeClasses[size],

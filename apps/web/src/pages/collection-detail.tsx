@@ -1,7 +1,7 @@
 import type { Tag } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import { ArrowLeftIcon, FolderIcon } from 'lucide-react';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { EmptyState } from '../components/empty-state';
@@ -61,6 +61,7 @@ export function CollectionDetailPage() {
 
   const isLoading = collectionsLoading || reposLoading || linksLoading;
   const count = new Intl.NumberFormat(i18n.language).format(memberRecords.length);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
   if (!isLoading && !collection) {
     return (
@@ -81,7 +82,10 @@ export function CollectionDetailPage() {
   }
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
+    <div
+      ref={setScrollElement}
+      className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto"
+    >
       <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
         <Link to="/collections">
           <ArrowLeftIcon className="size-4" />
@@ -124,6 +128,7 @@ export function CollectionDetailPage() {
           view="list"
           tagsByRepo={tagsByRepo}
           onSelect={openDrawer}
+          scrollElement={scrollElement}
         />
       )}
     </div>

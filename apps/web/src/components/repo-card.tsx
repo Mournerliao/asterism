@@ -1,45 +1,47 @@
-import type { Repo, Tag } from '@asterism/core';
+import type { Tag } from '@asterism/core';
+import type { StarredRepoRecord } from '@asterism/db';
 import { Badge, Card, cn } from '@asterism/ui';
 import { ArchiveIcon, GitForkIcon, StarIcon } from 'lucide-react';
 import type { KeyboardEvent } from 'react';
+import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCompactNumber, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { OverflowChipRow } from './overflow-chip-row';
 import { TagBadge } from './tag-badge';
 
-export function RepoCard({
-  repo,
-  starredAt,
+export const RepoCard = memo(function RepoCard({
+  record,
   tags,
-  onOpen,
+  onSelect,
 }: {
-  repo: Repo;
-  starredAt?: string | null;
+  record: StarredRepoRecord;
   tags?: Tag[];
-  onOpen?: () => void;
+  onSelect?: (record: StarredRepoRecord) => void;
 }) {
+  const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const updated = formatRelativeTime(repo.pushedAt, locale);
   const dotColor = languageColor(repo.language);
+  const handleOpen = onSelect ? () => onSelect(record) : undefined;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault();
-      onOpen?.();
+      handleOpen?.();
     }
   };
 
   return (
     <Card
-      role={onOpen ? 'button' : undefined}
-      tabIndex={onOpen ? 0 : undefined}
-      onClick={onOpen}
-      onKeyDown={onOpen ? handleKeyDown : undefined}
+      role={handleOpen ? 'button' : undefined}
+      tabIndex={handleOpen ? 0 : undefined}
+      onClick={handleOpen}
+      onKeyDown={handleOpen ? handleKeyDown : undefined}
       className={cn(
         'flex h-full flex-col gap-3 rounded-lg p-4 py-4 transition-colors hover:border-ring/60',
-        onOpen && 'cursor-pointer focus-visible:border-ring focus-visible:outline-none',
+        handleOpen && 'cursor-pointer focus-visible:border-ring focus-visible:outline-none',
       )}
     >
       <div className="flex items-start justify-between gap-2">
@@ -127,4 +129,4 @@ export function RepoCard({
       </div>
     </Card>
   );
-}
+});

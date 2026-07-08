@@ -1,13 +1,17 @@
-import type { Repo, Tag } from '@asterism/core';
+import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { cn } from '@asterism/ui';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import type { KeyboardEvent } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCompactNumber } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
+import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
 import { TagPill } from './tag-badge';
 
 const MAX_TAGS = 3;
+const ROW_HEIGHT = 56;
 
 function formatStarredDate(iso: string | null | undefined): string {
   if (!iso) {
@@ -20,38 +24,39 @@ function formatStarredDate(iso: string | null | undefined): string {
   return date.toISOString().slice(0, 10);
 }
 
-export function RepoTableRow({
-  repo,
-  starredAt,
+export const RepoTableRow = memo(function RepoTableRow({
+  record,
   tags,
-  onOpen,
+  onSelect,
 }: {
-  repo: Repo;
-  starredAt?: string | null;
+  record: StarredRepoRecord;
   tags?: Tag[];
-  onOpen?: () => void;
+  onSelect?: (record: StarredRepoRecord) => void;
 }) {
+  const { repo, starredAt } = record;
   const { i18n } = useTranslation();
   const locale = i18n.language;
   const dotColor = languageColor(repo.language);
   const visibleTags = tags?.slice(0, MAX_TAGS) ?? [];
 
+  const handleOpen = onSelect ? () => onSelect(record) : undefined;
+
   const handleKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-    if (onOpen && (event.key === 'Enter' || event.key === ' ')) {
+    if (handleOpen && (event.key === 'Enter' || event.key === ' ')) {
       event.preventDefault();
-      onOpen();
+      handleOpen();
     }
   };
 
   return (
     <tr
-      role={onOpen ? 'button' : undefined}
-      tabIndex={onOpen ? 0 : undefined}
-      onClick={onOpen}
-      onKeyDown={onOpen ? handleKeyDown : undefined}
+      role={handleOpen ? 'button' : undefined}
+      tabIndex={handleOpen ? 0 : undefined}
+      onClick={handleOpen}
+      onKeyDown={handleOpen ? handleKeyDown : undefined}
       className={cn(
         'h-14 border-border/50 border-b transition-colors hover:bg-accent/30',
-        onOpen && 'cursor-pointer focus-visible:bg-accent/40 focus-visible:outline-none',
+        handleOpen && 'cursor-pointer focus-visible:bg-accent/40 focus-visible:outline-none',
       )}
     >
       <td className="px-4 py-0 align-middle">
@@ -99,24 +104,51 @@ export function RepoTableRow({
       </td>
     </tr>
   );
-}
+});
 
-export function RepoTable({
+export const RepoTable = memo(function RepoTable({
   records,
   tagsByRepo,
   onSelect,
+  scrollElement,
 }: {
   records: StarredRepoRecord[];
   tagsByRepo?: Map<string, Tag[]>;
   onSelect?: (record: StarredRepoRecord) => void;
+  scrollElement?: HTMLElement | null;
 }) {
   const { t } = useTranslation();
+  const tableRef = useRef<HTMLDivElement>(null);
+  const [resolvedScroll, setResolvedScroll] = useState<HTMLElement | null>(scrollElement ?? null);
+  const scrollMargin = useScrollMargin(tableRef, resolvedScroll);
+
+  useEffect(() => {
+    if (scrollElement) {
+      setResolvedScroll(scrollElement);
+      return;
+    }
+    setResolvedScroll(findScrollParent(tableRef.current));
+  }, [scrollElement]);
+
+  const virtualizer = useVirtualizer({
+    count: records.length,
+    getScrollElement: () => resolvedScroll,
+    estimateSize: () => ROW_HEIGHT,
+    overscan: 10,
+    scrollMargin,
+  });
+
+  const virtualItems = virtualizer.getVirtualItems();
+  const firstItem = virtualItems[0];
+  const lastItem = virtualItems.at(-1);
+  const paddingTop = firstItem ? firstItem.start - scrollMargin : 0;
+  const paddingBottom = lastItem ? virtualizer.getTotalSize() - (lastItem.end - scrollMargin) : 0;
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div ref={tableRef} className="w-full overflow-x-auto rounded-lg border">
       <table className="w-full min-w-[640px] border-collapse text-left">
         <thead>
-          <tr className="h-9 border-border border-b">
+          <tr className="sticky top-0 z-10 h-9 border-border border-b bg-background">
             <th className="px-4 font-medium text-[11px] text-muted-foreground">
               {t('browse.table.repository')}
             </th>
@@ -135,17 +167,32 @@ export function RepoTable({
           </tr>
         </thead>
         <tbody>
-          {records.map((record) => (
-            <RepoTableRow
-              key={record.repo.githubId}
-              repo={record.repo}
-              starredAt={record.starredAt}
-              tags={tagsByRepo?.get(record.repoId)}
-              onOpen={onSelect ? () => onSelect(record) : undefined}
-            />
-          ))}
+          {paddingTop > 0 ? (
+            <tr>
+              <td colSpan={5} style={{ height: paddingTop, padding: 0, border: 0 }} />
+            </tr>
+          ) : null}
+          {virtualItems.map((virtualRow) => {
+            const record = records[virtualRow.index];
+            if (!record) {
+              return null;
+            }
+            return (
+              <RepoTableRow
+                key={record.repo.githubId}
+                record={record}
+                tags={tagsByRepo?.get(record.repoId)}
+                onSelect={onSelect}
+              />
+            );
+          })}
+          {paddingBottom > 0 ? (
+            <tr>
+              <td colSpan={5} style={{ height: paddingBottom, padding: 0, border: 0 }} />
+            </tr>
+          ) : null}
         </tbody>
       </table>
     </div>
   );
-}
+});

@@ -26,6 +26,8 @@
 
 > 修复（2026-07-07，见 `logs/2026-07-07-glass-control-fixes.md`）：复查磨砂控制条复刻发现三处偏差并修复——Browse 吸顶动效未接线（`GlassControlRow` 从未收到 `stuck`，已接入基于 `listScrollElement.scrollTop` 的检测）、Settings 主题切换误用磨砂吸顶条（`GlassRail`/`SegmentedControl` 新增 `variant: 'glass'|'solid'`，Settings 改用 `solid` 且去掉 `GlassControlRow` 包裹）、意外带回水彩背景图（已从 `app-layout.tsx` 移除引用）。尺寸/圆角/透明度/变换保留 Lumno 原始字面量不变；散落的硬编码颜色新增为专属 `--glass-*` token 集中管理，视觉零差异。
 
+> 优化（2026-07-08，见 `logs/2026-07-07-browse-view-switch-perf.md`、`logs/2026-07-08-browse-tab-immediate-response.md`、`logs/2026-07-08-browse-tab-paint-boundary.md`）：Browse 宫格/列表切换收敛为最终方案——tab 本地选中态与 `SegmentedControl` 滑块立即响应；内容视图通过 double `requestAnimationFrame` 让出一次 paint 后再用 `startTransition` 提交；grid/list 首次访问后常驻挂载，后续仅 CSS 显隐，避免虚拟列表反复重建；视图偏好仍异步持久化到 Zustand/localStorage。
+
 Phase 1 已完成（见 `logs/2026-06-30-phase1-shell.md`、`logs/2026-06-30-phase1-slice3-stars-sync.md`、`logs/2026-06-30-phase1-slice4-browse.md`、`logs/2026-06-30-phase1-slice5-filter-search.md`、`logs/2026-06-30-phase1-slice6-tags-collections-notes.md`）：
 
 - **契约裁决（ADR 0006）**：stars 同步写入走 Edge Function `sync-stars`（service role），客户端只触发 + 读取；修正 `architecture.md` 数据流与 `roadmap.md` 状态表。

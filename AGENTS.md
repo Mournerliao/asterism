@@ -110,3 +110,22 @@ runtimes, package managers, or test/lint tools without an ADR.
 - **BYOK keys are encrypted at rest** — never store user API keys in plaintext.
 - **Keep `knowledge/` in sync** with every behavior/scope/decision change; a
   change that does not update the knowledge base is incomplete.
+
+## Agent skills
+
+### Issue tracker
+
+Issues live in the repo's GitHub Issues, driven by the `gh` CLI. External PRs are
+**not** a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles map 1:1 to default label strings (`needs-triage`,
+`needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See
+`docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context; domain language lives in `knowledge/contracts/` and ADRs in
+`knowledge/decisions/` (per the `knowledge/` single-source-of-truth convention).
+See `docs/agents/domain.md`.

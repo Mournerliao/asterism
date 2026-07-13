@@ -24,15 +24,9 @@ import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useTags } from '../data/use-tags';
 
-const DEFAULT_FORMAT_OPTION = {
-  id: 'json',
-  icon: FileJsonIcon,
-  ext: 'json',
-  mime: 'application/json',
-} satisfies { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string };
 const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string }[] =
   [
-    DEFAULT_FORMAT_OPTION,
+    { id: 'json', icon: FileJsonIcon, ext: 'json', mime: 'application/json' },
     { id: 'csv', icon: FileSpreadsheetIcon, ext: 'csv', mime: 'text/csv' },
     { id: 'markdown', icon: FileTextIcon, ext: 'md', mime: 'text/markdown' },
   ];
@@ -40,7 +34,6 @@ const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string
 export function ImportExportPage() {
   const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [format, setFormat] = useState<ExportFormat>('json');
   const [dragOver, setDragOver] = useState(false);
 
   const { data: starredRepos } = useStarredRepos();
@@ -107,13 +100,12 @@ export function ImportExportPage() {
     };
   }, [starredRepos, tags, collections, repoTags, collectionRepos, notesList]);
 
-  const preview = useMemo(() => serializeExport(snapshot, format), [snapshot, format]);
   const hasData = (starredRepos?.length ?? 0) > 0;
 
-  const handleDownload = () => {
-    const option = FORMAT_OPTIONS.find((item) => item.id === format) ?? DEFAULT_FORMAT_OPTION;
+  const handleDownload = (option: (typeof FORMAT_OPTIONS)[number]) => {
     const stamp = new Date().toISOString().slice(0, 10);
-    downloadText(preview, `asterism-export-${stamp}.${option.ext}`, option.mime);
+    const content = serializeExport(snapshot, option.id);
+    downloadText(content, `asterism-export-${stamp}.${option.ext}`, option.mime);
   };
 
   const handleImportFile = async (file: File) => {
@@ -170,94 +162,108 @@ export function ImportExportPage() {
           description={t('importExport.emptyDescription')}
         />
       ) : (
-        <>
-          <div className="grid gap-6 md:grid-cols-2">
-            <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
+        <div className="grid items-start gap-6 md:grid-cols-2">
+          <section className="overflow-hidden rounded-lg border bg-card">
+            <div className="flex flex-col gap-1.5 border-b p-5">
               <h2 className="font-semibold text-base text-foreground">
                 {t('importExport.exportTitle')}
               </h2>
-              <p className="text-[13px] text-muted-foreground">
+              <p className="text-[13px] leading-5 text-muted-foreground">
                 {t('importExport.exportDescription')}
               </p>
-              <div className="flex flex-wrap gap-2">
-                {FORMAT_OPTIONS.map(({ id, icon: Icon }) => (
-                  <Button
-                    key={id}
-                    variant={format === id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setFormat(id)}
+            </div>
+            <div className="divide-y">
+              {FORMAT_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                const descriptionId = `export-format-${option.id}`;
+
+                return (
+                  <div
+                    key={option.id}
+                    className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center"
                   >
-                    <Icon className="size-4" />
-                    {t(`importExport.format.${id}`)}
-                  </Button>
-                ))}
-              </div>
-              <Button onClick={handleDownload} className="w-fit">
-                <DownloadIcon className="size-4" />
-                {t('importExport.download')}
-              </Button>
-            </section>
-
-            <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
-              <h2 className="font-semibold text-base text-foreground">
-                {t('importExport.importTitle')}
-              </h2>
-              <p className="text-[13px] text-muted-foreground">
-                {t('importExport.importDescription')}
-              </p>
-              {/* 拖拽区交互不适合原生 button，按用户要求使用 div 承载 role=button */}
-              {/* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */}
-              <div
-                role="button"
-                tabIndex={0}
-                className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
-                  dragOver ? 'border-primary bg-accent' : 'border-border bg-muted/30'
-                }`}
-                onClick={() => fileInputRef.current?.click()}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter' || event.key === ' ') {
-                    event.preventDefault();
-                    fileInputRef.current?.click();
-                  }
-                }}
-                onDragOver={(event) => {
-                  event.preventDefault();
-                  setDragOver(true);
-                }}
-                onDragLeave={() => setDragOver(false)}
-                onDrop={onDrop}
-              >
-                <UploadIcon className="size-8 text-muted-foreground" />
-                <span className="font-medium text-foreground">
-                  {t('importExport.uploadPrompt')}
-                </span>
-                <span className="text-muted-foreground">{t('importExport.uploadHint')}</span>
-              </div>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="application/json,.json"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void handleImportFile(file);
-                  }
-                  event.target.value = '';
-                }}
-              />
-            </section>
-          </div>
-
-          <section className="flex flex-col gap-2">
-            <h2 className="font-semibold text-base text-foreground">
-              {t('importExport.previewTitle')}
-            </h2>
-            <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/40 p-4 font-mono text-xs leading-relaxed">
-              {preview}
-            </pre>
+                    <div className="flex min-w-0 flex-1 items-start gap-3">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                        <Icon className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="font-medium text-sm text-foreground">
+                          {t(`importExport.format.${option.id}`)}
+                        </h3>
+                        <p
+                          id={descriptionId}
+                          className="mt-1 text-[13px] leading-5 text-muted-foreground"
+                        >
+                          {t(`importExport.formatDescription.${option.id}`)}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant={option.id === 'json' ? 'default' : 'outline'}
+                      size="sm"
+                      className="w-full sm:w-auto"
+                      aria-describedby={descriptionId}
+                      onClick={() => handleDownload(option)}
+                    >
+                      <DownloadIcon className="size-4" />
+                      {t('importExport.downloadFormat', {
+                        format: t(`importExport.format.${option.id}`),
+                      })}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
           </section>
-        </>
+
+          <section className="flex flex-col gap-4 rounded-lg border bg-card p-5">
+            <h2 className="font-semibold text-base text-foreground">
+              {t('importExport.importTitle')}
+            </h2>
+            <p className="text-[13px] leading-5 text-muted-foreground">
+              {t('importExport.importDescription')}
+            </p>
+            {/* 拖拽区交互不适合原生 button，按用户要求使用 div 承载 role=button */}
+            {/* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */}
+            <div
+              role="button"
+              tabIndex={0}
+              className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
+                dragOver ? 'border-primary bg-accent' : 'border-border bg-muted/30'
+              }`}
+              onClick={() => fileInputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  fileInputRef.current?.click();
+                }
+              }}
+              onDragOver={(event) => {
+                event.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={onDrop}
+            >
+              <UploadIcon className="size-8 text-muted-foreground" />
+              <span className="font-medium text-foreground">{t('importExport.uploadPrompt')}</span>
+              <span className="text-muted-foreground">{t('importExport.uploadHint')}</span>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json,.json"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleImportFile(file);
+                }
+                event.target.value = '';
+              }}
+            />
+          </section>
+        </div>
       )}
     </div>
   );

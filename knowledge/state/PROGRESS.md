@@ -8,6 +8,8 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> 优化（2026-07-13，见 `logs/2026-07-13-import-export-clarity.md`）：导出区从“先选格式、再点通用下载”的隐含两步交互改为 JSON / CSV / Markdown 三条直接下载路径；每种格式明确标注用途、数据范围与能否恢复，并移除低价值的原始文本预览。导入区改称“恢复备份”，明确只恢复已同步仓库的组织数据，不会新增 star 或仓库；en / zh-CN 文案同步更新。
+
 > 视觉系统升级（2026-07-13，见 `logs/2026-07-13-graphite-glass-visual-system.md`、ADR 0009）：按 Impeccable 的 shape → colorize → critique → audit → polish 流程，将 Primer/独立 Lumno 色彩重构为 **Asterism Graphite Glass**。Light/Dark 使用冷蓝石墨灰阶，单一电光蓝统一品牌、主操作、链接、焦点与选中状态；玻璃严格限制在顶栏、搜索、筛选、切换器与浮层等交互层，内容卡片和图表保持实体表面。Logo、Dashboard 图表、Repo Card、Sidebar、Login、Drawer/Dialog 与共享 UI token 已同步；响应式触控目标、键盘激活、focus-visible、reduced-motion 与无 blur 降级完成。Impeccable detector 对 `apps/web/src`、`packages/ui/src` 均为 0 findings；lint/typecheck/test/build 全绿，核心颜色组合达到 WCAG 2.1 AA。
 
 > 修复（2026-06-30，见 `logs/2026-06-30-sync-stars-deploy-fix.md`）：顶部栏「Sync」此前报通用错误，根因是 `sync-stars` Edge Function **从未部署**到项目（端点 404）。已 `supabase functions deploy sync-stars`（现 `ACTIVE v1`），并让 `invokeSyncStars` 透传函数返回的真实错误（`FunctionsHttpError.context`）+ toast 附 `description`，避免再吞错。`provider_token` 不持久化的局限不变（刷新后需重登）。**部署是每环境一次性手工步骤**。

@@ -207,19 +207,23 @@
   "importExport": {
     "title": "导入 / 导出",
     "subtitle": "备份或迁移标签、集合与笔记",
-    "exportTitle": "导出",
-    "exportDescription": "下载组织数据。JSON 包含标签、集合、关联与笔记。",
-    "importTitle": "导入",
-    "importDescription": "导入此前导出的 JSON 文件。仓库须已同步到账户。",
+    "exportTitle": "导出数据",
+    "exportDescription": "根据文件的后续用途选择导出格式。",
+    "importTitle": "恢复备份",
+    "importDescription": "为当前账号已同步的仓库恢复标签、集合与笔记，不会新增 star 或仓库。",
     "format": {
       "json": "JSON",
       "csv": "CSV",
       "markdown": "Markdown"
     },
-    "download": "下载",
-    "uploadPrompt": "拖拽 JSON 文件到此处，或点击选择",
-    "uploadHint": "仅支持 Asterism v1 JSON 导出",
-    "previewTitle": "导出预览",
+    "formatDescription": {
+      "json": "完整的 Asterism 备份，包含仓库、标签、集合、关联与笔记，之后可恢复到 Asterism。",
+      "csv": "适合用电子表格处理的仓库清单，仅包含仓库元数据，无法恢复到 Asterism。",
+      "markdown": "按集合与标签整理的可读归档，包含仓库链接与笔记，无法恢复到 Asterism。"
+    },
+    "downloadFormat": "下载 {{format}}",
+    "uploadPrompt": "选择 Asterism JSON 备份",
+    "uploadHint": "或拖拽到此处 · Asterism v1 导出（.json）",
     "emptyTitle": "暂无可导出数据",
     "emptyDescription": "请先同步 stars，再导出标签、集合与笔记。",
     "invalidFile": "请上传 JSON 文件",

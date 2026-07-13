@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "updatedAt": "2026-07-07",
+  "updatedAt": "2026-07-10",
   "upstream": {
     "repo": "vercel-labs/agent-skills",
     "url": "https://github.com/vercel-labs/agent-skills",
@@ -51,6 +51,17 @@
       "agentPath": ".agents/skills/vercel-optimize",
       "useWhen": "Post-deployment Vercel cost, Core Web Vitals, usage, metrics, caching, or route-performance audits.",
       "notes": "Use only after the app is deployed and has Vercel metrics. For Vite SPA, treat output as limited platform guidance unless the skill confirms stronger support."
+    }
+  ],
+  "installerManagedSkills": [
+    {
+      "name": "impeccable",
+      "upstream": "pbakaus/impeccable",
+      "version": "3.9.1",
+      "agentPath": ".agents/skills/impeccable",
+      "hookPath": ".codex/hooks.json",
+      "useWhen": "Frontend design, redesign, shape, colorize, critique, audit, polish, responsive, interaction, motion, or design-system work.",
+      "notes": "Managed by the official Impeccable CLI. Asterism contracts take precedence."
     }
   ]
 }

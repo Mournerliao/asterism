@@ -48,6 +48,9 @@ referenced rule or reference files needed for the task.
   deployments and deployment URL retrieval.
 - Use `.agents/skills/vercel-optimize/SKILL.md` only for post-deployment Vercel
   cost/performance audits backed by real Vercel metrics.
+- Use `.agents/skills/impeccable/SKILL.md` for UI design, redesign, shape,
+  colorize, critique, audit, polish, responsive, interaction, and motion work.
+  Run its project context loader against the concrete app target before acting.
 
 If a vendored skill conflicts with `knowledge/contracts/*`, the Asterism
 contracts win. Never commit secrets while following deployment-related skills.

@@ -20,6 +20,18 @@
 | `vercel-cli-with-tokens` | Vercel token/env/CLI 管理、project linking、部署检查、域名与环境变量 |
 | `deploy-to-vercel` | Vercel preview/production 部署、部署链接获取、部署流程 |
 | `vercel-optimize` | 上线后基于 Vercel 指标的成本、性能、缓存、Core Web Vitals 审计 |
+| `impeccable` | UI shape / colorize / critique / audit / polish、交互、动效、响应式与设计反模式检查 |
+
+## Installer-managed skill
+
+`impeccable` 由其官方 CLI 直接管理，而非 `scripts/sync-agent-skills.mjs`：
+
+```bash
+npx impeccable install --providers=codex --scope=project
+npx impeccable update
+```
+
+技能落在 `.agents/skills/impeccable/`，Codex hook 落在 `.codex/hooks.json`。临时运行数据在 `.impeccable/` 并按根 `.gitignore` 排除；`PRODUCT.md`、`DESIGN.md` 与 live config 等共享设计上下文继续跟踪。安装/更新后必须确认 Asterism contracts 仍优先于上游规则。
 
 ## 同步流程
 
@@ -38,7 +50,7 @@ node scripts/sync-agent-skills.mjs
 node scripts/sync-agent-skills.mjs --check
 ```
 
-同步脚本只读写仓库内的 vendor 与 `.agents/skills`，不联网，也不写用户级 `~/.agents` 或 `~/.codex`。
+同步脚本只管理 manifest 的 `skills` 数组，不覆盖 `installerManagedSkills`；它不联网，也不写用户级 `~/.agents` 或 `~/.codex`。
 
 ## 安全规则
 

@@ -11,9 +11,9 @@ function Toaster({ ...props }: ToasterProps) {
       className="toaster group"
       style={
         {
-          '--normal-bg': 'var(--popover)',
+          '--normal-bg': 'var(--glass-surface-strong)',
           '--normal-text': 'var(--popover-foreground)',
-          '--normal-border': 'var(--border)',
+          '--normal-border': 'var(--glass-border)',
         } as CSSProperties
       }
       {...props}

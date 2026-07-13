@@ -27,7 +27,7 @@ export function LoginPage() {
   }
 
   return (
-    <main className="grid min-h-svh grid-cols-1 lg:grid-cols-2">
+    <main className="grid min-h-svh grid-cols-1 bg-background lg:grid-cols-2">
       <section className="relative flex flex-col justify-between gap-12 bg-background px-8 py-10 lg:px-16 lg:py-16">
         <div className="flex items-center gap-2.5">
           <BrandLogo className="size-7" title={t('app.name')} />
@@ -53,7 +53,7 @@ export function LoginPage() {
         </ul>
       </section>
 
-      <section className="relative flex flex-col items-center justify-center border-border bg-card px-8 py-12 lg:border-l lg:px-16">
+      <section className="asterism-glass-surface relative flex flex-col items-center justify-center border-border px-8 py-12 lg:border-l lg:px-16">
         <div className="absolute top-4 right-4">
           <ThemeToggle />
         </div>
@@ -67,10 +67,7 @@ export function LoginPage() {
             </p>
           </div>
 
-          <Button
-            className="h-12 w-full gap-2.5 rounded-lg bg-foreground text-[15px] text-background hover:bg-foreground/90"
-            onClick={handleSignIn}
-          >
+          <Button className="h-12 w-full gap-2.5 rounded-lg text-[15px]" onClick={handleSignIn}>
             <GitHubIcon className="size-5" />
             {t('login.continueWithGitHub')}
           </Button>
@@ -83,7 +80,7 @@ export function LoginPage() {
             <span className="h-px flex-1 bg-border" />
           </div>
 
-          <div className="flex flex-col gap-3 rounded-lg bg-background p-4">
+          <div className="flex flex-col gap-3 rounded-lg bg-muted p-4">
             <p className="font-medium text-[13px] text-card-foreground">{t('login.scopesTitle')}</p>
             <ul className="flex flex-col gap-1">
               {SCOPES.map((key) => (

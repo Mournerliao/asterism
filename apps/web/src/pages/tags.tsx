@@ -107,7 +107,7 @@ export function TagsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-7 text-muted-foreground"
+                  className="size-10 text-muted-foreground sm:size-7"
                   aria-label={t('tags.edit')}
                   onClick={() => setEditing(tag)}
                 >
@@ -116,7 +116,7 @@ export function TagsPage() {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="size-7 text-muted-foreground hover:text-destructive"
+                  className="size-10 text-muted-foreground hover:text-destructive sm:size-7"
                   aria-label={t('tags.delete')}
                   onClick={() => setDeleting(tag)}
                 >

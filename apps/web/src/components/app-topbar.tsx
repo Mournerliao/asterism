@@ -17,7 +17,7 @@ export function AppTopbar() {
   const setQuery = useBrowseFilters((state) => state.setQuery);
 
   return (
-    <header className="flex h-14 shrink-0 items-center gap-3 border-b bg-background px-6 py-3">
+    <header className="asterism-glass-surface z-40 flex h-14 shrink-0 items-center gap-3 border-b px-6 py-3">
       <Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
         <SheetTrigger asChild>
           <Button
@@ -38,7 +38,8 @@ export function AppTopbar() {
       <div className="relative w-full max-w-[400px]">
         <SearchIcon className="-translate-y-1/2 absolute top-1/2 left-2.5 size-4 text-muted-foreground" />
         <Input
-          className="h-8 bg-card px-9"
+          className="h-8 px-9"
+          aria-label={t('topbar.searchPlaceholder')}
           placeholder={t('topbar.searchPlaceholder')}
           value={query}
           onChange={(event) => setQuery(event.target.value)}

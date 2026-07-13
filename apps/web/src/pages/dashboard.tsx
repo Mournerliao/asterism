@@ -59,7 +59,7 @@ export function DashboardPage() {
 
       {isLoading ? (
         <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 border-y lg:grid-cols-4 lg:divide-x [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(odd)]:border-r lg:[&>*]:border-r-0 lg:[&>*]:border-b-0">
             {STAT_SKELETON_KEYS.map((key) => (
               <Card key={key} className="h-24 animate-pulse" />
             ))}

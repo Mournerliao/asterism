@@ -103,14 +103,14 @@ export function TagFormDialog({
           <div className="flex flex-col gap-2">
             <Label>{t('tags.colorLabel')}</Label>
             <div className="flex flex-wrap gap-2">
-              {TAG_COLORS.map((swatch) => (
+              {TAG_COLORS.map((swatch, index) => (
                 /* 色板交互不适合原生 button，按用户要求使用 div 承载 role=button */
                 /* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */
                 <div
                   key={swatch}
                   role="button"
                   tabIndex={0}
-                  aria-label={swatch}
+                  aria-label={`${t('tags.colorLabel')} ${index + 1}`}
                   aria-pressed={color === swatch}
                   onClick={() => setColor(swatch)}
                   onKeyDown={(event) => {
@@ -120,7 +120,7 @@ export function TagFormDialog({
                     }
                   }}
                   className={cn(
-                    'size-7 cursor-pointer rounded-full border-2 transition-transform',
+                    'size-11 cursor-pointer rounded-full border-2 transition-transform sm:size-7',
                     color === swatch
                       ? 'scale-110 border-foreground'
                       : 'border-transparent hover:scale-105',

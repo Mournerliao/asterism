@@ -27,7 +27,7 @@ const ALL = '__all__';
 const STAR_THRESHOLDS = [100, 1000, 10000, 50000];
 const PUSHED_WINDOWS = [7, 30, 90, 365];
 const FILTER_TRIGGER_CLASS =
-  'h-7 rounded-lg border-border/50 bg-background/45 text-caption shadow-none hover:bg-background/75 dark:bg-background/20 dark:hover:bg-accent/60';
+  'h-7 rounded-lg border-[var(--glass-border)] text-caption shadow-none hover:bg-accent/70';
 
 export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[] }) {
   const { t, i18n } = useTranslation();

@@ -1,6 +1,6 @@
 # 0005 · 设计 token 定稿为 GitHub Primer 体系
 
-- Status: Accepted
+- Status: Superseded by ADR 0009
 - Date: 2026-06-30
 
 ## Context（背景）

@@ -74,7 +74,7 @@ function DrawerBody({ record }: { record: StarredRepoRecord }) {
 
   return (
     <>
-      <SheetHeader className="flex-row items-center justify-between border-b px-6 py-6">
+      <SheetHeader className="asterism-glass-surface z-10 flex-row items-center justify-between border-b px-6 py-6">
         <SheetTitle className="font-semibold text-drawer-title">{t('drawer.title')}</SheetTitle>
         <SheetClose asChild>
           <Button
@@ -312,7 +312,7 @@ function NotesSection({ repoId }: { repoId: string }) {
             onChange={(event) => setBody(event.target.value)}
             placeholder={t('drawer.notesPlaceholder')}
             rows={4}
-            className="min-h-16 rounded-md bg-background text-[13px] leading-5"
+            className="min-h-16 rounded-md text-[13px] leading-5"
           />
           {dirty ? (
             <div className="flex justify-end gap-2">

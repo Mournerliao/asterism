@@ -22,11 +22,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { languageColor } from '../../lib/language-colors';
 
 const archiveConfig = {
   active: { label: 'Active', color: 'var(--chart-2)' },
-  archived: { label: 'Archived', color: 'var(--chart-4)' },
+  archived: { label: 'Archived', color: 'var(--chart-5)' },
 } satisfies ChartConfig;
 
 const trendConfig = {
@@ -36,6 +35,10 @@ const trendConfig = {
 const topicConfig = {
   count: { label: 'Repos', color: 'var(--chart-3)' },
 } satisfies ChartConfig;
+
+function chartColor(index: number) {
+  return `var(--chart-${(index % 5) + 1})`;
+}
 
 function ChartCard({
   title,
@@ -64,7 +67,7 @@ export function DashboardCharts({ insights }: { insights: DashboardInsights }) {
       entry.name,
       {
         label: entry.name,
-        color: languageColor(entry.name) ?? `var(--chart-${(index % 5) + 1})`,
+        color: chartColor(index),
       },
     ]),
   ) satisfies ChartConfig;
@@ -98,8 +101,8 @@ export function DashboardCharts({ insights }: { insights: DashboardInsights }) {
               />
               <ChartTooltip content={<ChartTooltipContent />} />
               <Bar dataKey="count" radius={4}>
-                {insights.languages.map((entry) => (
-                  <Cell key={entry.name} fill={languageColor(entry.name) ?? 'var(--chart-1)'} />
+                {insights.languages.map((entry, index) => (
+                  <Cell key={entry.name} fill={chartColor(index)} />
                 ))}
               </Bar>
             </BarChart>

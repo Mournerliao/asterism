@@ -80,8 +80,16 @@ export function CollectionsPage() {
           {list.map((collection) => (
             <Card
               key={collection.id}
-              className="flex min-h-[130px] cursor-pointer flex-col gap-3 rounded-lg p-5 py-5 transition-colors hover:bg-accent/50"
+              role="button"
+              tabIndex={0}
+              className="flex min-h-[130px] cursor-pointer flex-col gap-3 rounded-lg p-5 py-5 transition-colors hover:bg-accent/50 focus-visible:border-ring focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
               onClick={() => navigate(`/collections/${collection.id}`)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  navigate(`/collections/${collection.id}`);
+                }
+              }}
             >
               <div className="flex items-start justify-between gap-2">
                 <h2 className="min-w-0 truncate font-semibold text-base text-foreground">
@@ -99,7 +107,7 @@ export function CollectionsPage() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="size-7 text-muted-foreground"
+                        className="size-10 text-muted-foreground sm:size-7"
                         aria-label={t('common.actions')}
                         onClick={(event) => event.stopPropagation()}
                       >

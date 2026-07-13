@@ -14,9 +14,10 @@
   - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + pgvector + Edge Functions + Realtime）
   - `0002-pnpm-over-bun.md`：工具链选 pnpm（而非 Bun）的取舍
   - `0003-commitlint-lefthook.md`：提交规范 + git 钩子方案
-  - `0005-design-tokens-github-primer.md`：设计 token 定稿为 GitHub Primer 体系（配色 / 圆角）
+  - `0005-design-tokens-github-primer.md`：历史 Primer 配色（已被 ADR 0009 supersede；8px 圆角仍保留）
+  - `0009-graphite-glass-visual-system.md`：当前石墨磨砂配色、玻璃边界与动效规则
 - **契约（什么是"对/完成"）**：`knowledge/contracts/*` —— `product` / `architecture` / `data-model` / `conventions` / `ui-ux`。
-- **设计源（Design Source）**：`contracts/ui-ux.md` 的「设计源」小节 —— Ardot 文件 `698428420561751`（`user-ardot` MCP 读取），是界面视觉与 token 的单一来源。
+- **设计源（Design Source）**：`contracts/ui-ux.md` + ADR 0009 是当前视觉与 token 权威；Ardot 文件 `698428420561751` 仅保留为历史布局/间距参考。
 - **路线图**：`knowledge/roadmap.md`（Phase 0–4）。
 - **进度**：`knowledge/state/PROGRESS.md`；**待办**：`knowledge/state/BACKLOG.md`。
 - **入口约定**：根 `AGENTS.md`（声明 `knowledge/` 为单一事实源）。
@@ -33,7 +34,7 @@
 
 ## 待办提醒（便签级）
 
-- **配色 / 圆角 tokens 已定稿并落地**（2026-06-30）：取自 Ardot 设计稿（GitHub Primer 体系），已回填 `contracts/ui-ux.md`（见 `decisions/0005`），且 `packages/ui` 的 `globals.css` 已同步为 Primer hex token（light/dark 两套 + `--link` / `--brand-*` + `@theme inline` 映射，`--radius: 0.5rem`），对比度达 WCAG 2.1 AA（见 `logs/2026-06-30-globals-css-primer-sync.md`）。**字体 / 间距仍为 TBD**，待外部设计工具产出后回填契约并同步 `globals.css`。
+- **当前设计系统**（2026-07-10）：配色已从 Primer 改为 Graphite Glass（ADR 0009）；8px 圆角、Geist 字体与 4px 间距栅格不变。玻璃只用于交互层，背景无噪点，Logo 为单色电光蓝。
 - **工作区根目录未迁移**：本次初始化**未执行 `move_agent_to_root`**，当前会话仍以原工作区根为准，仓库位于 `/Users/asherliao/Projects/asterism`。后续若需以该仓库为工作区根，再单独切换。
 - **Edge Function 部署是「每环境手工一次」**（2026-06-30）：`sync-stars` 之前没部署导致 Sync 报 404，已 `supabase functions deploy sync-stars`（项目 `hqtrmulypxwdqvzlkhke`，现 `ACTIVE v1`）。换项目 / 新部署者必须重跑该命令，否则同步必报错。`supabase functions list/deploy --project-ref` 会生成 `supabase/.temp/`（已 gitignore）。`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` 由平台自动注入，无需手配 secret。
-- **已安装 impeccable skill + 完成 init**（2026-07-06）：仓库内可提交 `.github/skills/impeccable/`（Copilot / 团队共享）；**`.cursor/` 不入库**（已加入 `.gitignore`），Cursor 用户在本机执行 `npx impeccable skills install --providers=.cursor -y` 后重载窗口即可用 `/impeccable`。`apps/web` 是 monorepo 下 impeccable 的主 target。写了 `apps/web/PRODUCT.md` 与 `apps/web/DESIGN.md`——两者都是**对齐层 / 指针文件**，内容摘自 `contracts/product.md` 与 `contracts/ui-ux.md`，明确声明知识库仍是权威源；`ui-ux.md` 变更后需手动回填这两个文件保持同步。同时写了 `apps/web/.impeccable/live/config.json`（Vite SPA，`files: ["index.html"]`），CSP 检测为 `null`（无需 patch）。
+- **Impeccable v3.9.1 项目级安装**（2026-07-10）：Codex skill 位于 `.agents/skills/impeccable/`，设计检测 hook 位于 `.codex/hooks.json`；由官方 CLI 管理。`apps/web/PRODUCT.md` / `DESIGN.md` 是对齐层，`knowledge/contracts/*` 仍为权威。

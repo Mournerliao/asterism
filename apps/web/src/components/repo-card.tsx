@@ -40,7 +40,7 @@ export const RepoCard = memo(function RepoCard({
       onClick={handleOpen}
       onKeyDown={handleOpen ? handleKeyDown : undefined}
       className={cn(
-        'flex h-full flex-col gap-3 rounded-lg p-4 py-4 transition-colors hover:border-ring/60',
+        'flex h-full flex-col gap-3 rounded-lg p-4 py-4 transition-[border-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] dark:hover:shadow-none',
         handleOpen && 'cursor-pointer focus-visible:border-ring focus-visible:outline-none',
       )}
     >

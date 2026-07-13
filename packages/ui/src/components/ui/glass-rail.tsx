@@ -11,9 +11,9 @@ const GlassRail = React.forwardRef<
     ref={ref}
     data-slot="glass-rail"
     className={cn(
-      'w-fit max-w-full rounded-xl border p-1 shadow-none',
+      'w-fit max-w-full rounded-xl border p-1',
       variant === 'glass' &&
-        'border-[var(--glass-rail-border)] bg-[var(--glass-rail-bg)] backdrop-blur-[4px]',
+        'asterism-glass-surface border-[var(--glass-rail-border)] bg-[var(--glass-rail-bg)] backdrop-blur-[8px]',
       variant === 'solid' &&
         'border-[var(--glass-rail-solid-border)] bg-[var(--glass-rail-solid-bg)]',
       className,

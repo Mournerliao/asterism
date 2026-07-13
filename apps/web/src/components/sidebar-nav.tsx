@@ -41,10 +41,10 @@ export function SidebarNav({ onNavigate }: { onNavigate?: () => void }) {
             onClick={onNavigate}
             className={({ isActive }) =>
               cn(
-                'flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] transition-colors',
+                'flex h-9 items-center gap-2.5 rounded-md px-3 text-[13px] outline-none transition-[color,background-color,transform] duration-150 [transition-timing-function:var(--ease-out-quart)] active:translate-y-px motion-reduce:transform-none focus-visible:ring-2 focus-visible:ring-sidebar-ring/50',
                 isActive
-                  ? 'bg-accent font-medium text-accent-foreground'
-                  : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                  ? 'bg-sidebar-accent font-medium text-sidebar-accent-foreground [&_svg]:text-sidebar-primary'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
               )
             }
           >

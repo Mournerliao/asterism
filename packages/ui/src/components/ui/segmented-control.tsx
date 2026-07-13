@@ -175,7 +175,7 @@ function SegmentedControl<T extends string>({
       <span
         aria-hidden="true"
         className={cn(
-          'absolute top-1 bottom-1 left-1 rounded-lg shadow-[var(--glass-indicator-shadow)] [background:var(--glass-indicator-bg)] [transition:transform_240ms_cubic-bezier(0.2,0.9,0.2,1),width_240ms_cubic-bezier(0.2,0.9,0.2,1)] motion-reduce:transition-none dark:border dark:border-[var(--glass-indicator-border)]',
+          'absolute top-1 bottom-1 left-1 rounded-lg border border-[var(--glass-indicator-border)] shadow-[var(--glass-indicator-shadow)] [background:var(--glass-indicator-bg)] [transition:transform_240ms_var(--ease-out-quart),width_240ms_var(--ease-out-quart)] motion-reduce:transition-none',
           !indicator.ready && 'opacity-0',
         )}
         style={
@@ -208,7 +208,7 @@ function SegmentedControl<T extends string>({
             tabIndex={selected ? 0 : -1}
             onClick={() => activateValue(option.value)}
             className={cn(
-              'relative z-10 inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] font-normal outline-none [transition:color_0.2s_ease,transform_120ms_ease,filter_120ms_ease] disabled:pointer-events-none disabled:opacity-45 active:[filter:brightness(0.95)] active:[transform:translateY(1px)_scale(0.98)] [&_svg]:size-[14px] [&_svg]:shrink-0 [&_svg]:[transition:opacity_0.2s_ease,transform_0.2s_ease]',
+              'relative z-10 inline-flex shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] font-normal outline-none [transition:color_180ms_var(--ease-out-quart),transform_120ms_var(--ease-out-quart),filter_120ms_ease] disabled:pointer-events-none disabled:opacity-45 active:[filter:brightness(0.95)] active:[transform:translateY(1px)_scale(0.98)] motion-reduce:transform-none [&_svg]:size-[14px] [&_svg]:shrink-0 [&_svg]:[transition:opacity_180ms_var(--ease-out-quart),transform_180ms_var(--ease-out-quart)]',
               iconOnly ? iconOnlySizeClasses[size] : sizeClasses[size],
               selected
                 ? 'font-medium text-[var(--glass-tab-active-text)] [&_svg]:[transform:scale(1)] [&_svg]:opacity-100'

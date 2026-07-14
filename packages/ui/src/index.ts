@@ -60,6 +60,12 @@ export { GlassControlRow } from './components/ui/glass-control-row';
 export { GlassRail } from './components/ui/glass-rail';
 export { Input } from './components/ui/input';
 export { Label } from './components/ui/label';
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverTrigger,
+} from './components/ui/popover';
 export type {
   SegmentedControlDisplay,
   SegmentedControlOption,

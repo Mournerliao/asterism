@@ -20,7 +20,7 @@ export {
   listCollections,
   updateCollection,
 } from './queries/collections';
-export { getNote, listNotes, saveNote } from './queries/notes';
+export { getNote, listNoteRepoIds, listNotes, saveNote } from './queries/notes';
 export type { RepoTagLink } from './queries/repo-tags';
 export { addRepoTag, listRepoTags, removeRepoTag } from './queries/repo-tags';
 export type { StarredRepoRecord } from './queries/repos';

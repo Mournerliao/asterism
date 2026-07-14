@@ -4,6 +4,8 @@ import {
   AlertTriangleIcon,
   FolderIcon,
   LanguagesIcon,
+  LoaderCircleIcon,
+  LogInIcon,
   RefreshCwIcon,
   StarIcon,
   TagIcon,
@@ -33,6 +35,7 @@ export function DashboardPage() {
   const { data: collections } = useCollections();
   const { data: repoTags } = useRepoTags();
   const sync = useSyncStars();
+  const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
 
   const records = useMemo(() => starredRepos ?? [], [starredRepos]);
 
@@ -87,12 +90,26 @@ export function DashboardPage() {
           title={t('dashboard.emptyTitle')}
           description={t('dashboard.emptyDescription')}
           action={
-            sync.requiresReconnect ? undefined : (
-              <Button onClick={sync.sync} disabled={sync.isPending}>
-                <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
-                {t('browse.syncAction')}
-              </Button>
-            )
+            <Button onClick={sync.sync} disabled={syncPending}>
+              {sync.requiresReconnect ? (
+                sync.reconnectPending ? (
+                  <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
+                ) : (
+                  <LogInIcon className="size-4" />
+                )
+              ) : (
+                <RefreshCwIcon
+                  className={
+                    sync.isPending ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'
+                  }
+                />
+              )}
+              {sync.requiresReconnect
+                ? sync.reconnectPending
+                  ? t('sync.reconnecting')
+                  : t('sync.reconnectAction')
+                : t('browse.syncAction')}
+            </Button>
           }
         />
       ) : (

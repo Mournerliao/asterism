@@ -158,11 +158,20 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
 
 玻璃是**交互材质**，不是默认内容容器。适用范围：Topbar、搜索 / 筛选 / 切换器、吸顶控制行、Dropdown / Select / Tooltip / Toast、Dialog / Drawer 等浮层；Repo Card、Dashboard 图表主体、Settings 内容块保持实体 `card` 表面。背景保持纯净石墨，不使用噪点、星尘、彩色光晕或渐变文字。
 
+### Session Recovery Pattern · 会话恢复模式
+
+GitHub provider token 缺失只影响同步能力，不属于全局应用故障。不得使用横跨 App Shell、推挤页面内容的持久 banner；恢复状态由原 Sync 入口就地承载，页面高度保持稳定。
+
+- Topbar：正常显示 Sync；需要恢复时原位切换为 warning 风格的 Reconnect GitHub，移动端保留图标、tooltip 与 aria-label，pending 原位显示 Connecting。
+- User Menu：以简短标题和说明解释 GitHub 连接已过期，并提供同一恢复动作作为备用入口；技术性的 provider token / authorization 描述不得暴露给普通用户。
+- Browse / Dashboard 空状态：需要恢复时直接显示 Reconnect GitHub，不隐藏唯一主操作。
+- Toast 只报告恢复启动失败，不承担持久状态提示；恢复状态不得通过 modal 阻断浏览已有仓库。
+
 实现保留 `GlassControlRow` + `GlassRail` + `SegmentedControl` API，以及 4px rail padding、12px rail radius、4px indicator inset、8px/14px tab padding、10px tab radius、14px icon 与 240ms indicator 滑动。控制条 blur 为 8px；浮层与吸顶背景为 12px。动效使用 `--ease-out-quart`，交互反馈 120–240ms，并支持 `prefers-reduced-motion`。
 
 **`variant: 'glass' | 'solid'`**（`GlassRail` / `SegmentedControl`，默认 `'glass'`）：
 
-- `glass`：半透明背景 + hairline border + 8px blur，用于 Browse 视图切换、筛选栏等吸顶 / 悬浮控制条。
+- `glass`：半透明背景 + hairline border + 8px blur，用于 Browse 视图切换等具有共享轨道语义的吸顶 / 悬浮控制条。
 - `solid`：不透明背景、无 blur、无 sticky 语义，对应 Lumno 内联小控件（如 Settings 主题切换）；**不要**用 `GlassControlRow` 包裹 `solid` 控件——`GlassControlRow` 自带 `position: sticky`，只服务于真正需要吸顶的磨砂控制条。
 
 **`--glass-*` 专属 token**：
@@ -182,6 +191,29 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
 
 **`stuck` 判定**：由调用方传入 `stuck: boolean`；监听列表 `scrollTop` 时只订阅 `> 0` 的派生布尔值，避免逐像素 re-render。吸顶仅做背景淡入与 hairline 生长，不恢复噪点层。
 
+### Repo Card Pattern · 仓库卡片模式
+
+Browse 卡片采用舒展但高效的固定节奏：桌面 / 平板目标高度 208px，窄屏允许按内容安全增高；加载骨架与实体卡片使用相同分区，虚拟化行高以实测结果校准。信息层级固定为仓库身份 → 两行描述 → 单行整理上下文 → 单基线 Footer，不因字段缺失插入占位文案。卡片内部以 12px 为主要垂直节奏，让内容、整理信息与辅助元数据形成清晰分区。
+
+- 仓库身份：弱化 owner、强调 repo name；语言色点只作为小面积编码，Archived 使用既有 outline badge。
+- 描述：固定最多两行；仅当文本真实溢出时，hover 展示完整描述 tooltip，未溢出时不创建冗余浮层。完整文本保留在 DOM 中供辅助技术读取。
+- 整理上下文：用户自定义标签优先，GitHub topics 仅补充剩余空间；同名项按大小写不敏感去重，溢出统一折叠为 `+n` 并通过 tooltip 展示。集合数量与笔记存在状态位于该行右侧，集合名称与笔记正文仍留在详情抽屉。
+- 单基线 Footer：Stars / Forks 位于左侧，Updated / Starred 组成右侧不可换行的紧凑时间组（如 `Updated 2w · Starred 4w`）；完整相对时间通过 tooltip 与无障碍标签提供。仅极窄单列允许两个信息组整体上下排列，不允许时间字段自行散落换行。
+- 交互语义：整卡详情触发器与 GitHub 外链必须是并列交互，不得把链接嵌套在 `role=button` 容器内；两条路径均需键盘可达并有可见焦点。
+
+### Browse Filter Pattern · 浏览筛选模式
+
+Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等权重：主栏只直出语言、Topic、用户标签、更多筛选与排序；Star 阈值、更新时间和仓库状态收进“更多筛选”，触发器显示已启用的次级筛选数量。排序保持独立可见，不计入“清除筛选”的 active 状态。
+
+- 语言与 Topic 使用固定高度的可搜索 facet picker；初次打开最多渲染 20 个选项，搜索从完整集合中匹配并最多渲染 50 个结果，禁止在弹层首开时挂载全部高基数 facets。
+- 搜索输入的放大镜统一使用 `black/60`，并置于 Input 表面之上，避免被半透明 Glass 背景覆盖洗白。
+- Topic 默认沿用出现频率排序，语言沿用字母排序；当前选中项即使不在首屏窗口内也必须保持可见。
+- 筛选栏采用无外框的开放式工具栏：语言、Topic、标签、更多筛选与清除组成左侧筛选组，排序作为独立右侧组；使用空间而非额外容器边框表达分组。所有 trigger 统一使用现有 `size="sm"` 高度，不得额外覆盖造成 Select 与 Button 尺寸不一致。空间不足时组级换行，单个 trigger 不横向溢出。
+- 未选择的 facet trigger 使用简短类别名（Language / Topic），菜单内仍保留“全部”选项；已启用的筛选以既有 primary token 的轻量边框和背景表达 active 状态。GlassRail 仅用于具有共享轨道语义的 Segmented Control，不包裹独立下拉控件。
+- 弹层使用既有 Graphite Glass token、可见焦点与 reduced-motion 规则。
+- “更多筛选”内的 Select 属于子浮层：点击父 Popover 表面只关闭当前子 Select，父层保持打开；点击父子浮层之外才关闭两层。父层必须在 Radix Select 的 modal pointer-event 隔离期间保持可交互。
+- 所有搜索提示、空结果、active count 与清除动作必须外部化到 en / zh-CN；键盘可完成打开、搜索、选择、组合次级筛选与清除。
+
 ## Dark Mode · 明暗模式
 
 - **默认跟随系统 + 可切换**：首次进入跟随操作系统偏好（system），并提供显式切换（light / dark）。
@@ -191,7 +223,8 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
 ## Accessibility · 可访问性
 
 - **目标：WCAG 2.1 AA**（作为目标 / goal）。
-- 关注点：颜色对比度达 AA、可键盘操作、焦点可见（`--ring`）、合理的语义化标签与 ARIA、虚拟滚动列表的可访问性。
+- 关注点：颜色对比度达 AA、可键盘操作、焦点可见、合理的语义化标签与 ARIA、虚拟滚动列表的可访问性。
+- `Input`、`Textarea`、`SelectTrigger` 等表单控件以 `foreground/60` 中性边框变化表达 `focus-visible`，不使用外扩蓝色焦点环；错误态 destructive 边框优先。Button、Tabs、Toggle 与其他独立交互仍使用 `--ring`，不得完全移除键盘焦点反馈。
 - 验收时把 a11y 检查纳入 UI 生成循环（见下）。
 
 ## Brand Tone · 品牌语气

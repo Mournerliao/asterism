@@ -10,12 +10,16 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   view,
   records,
   tagsByRepo,
+  collectionCountByRepo,
+  noteRepoIds,
   onSelect,
   scrollElement,
 }: {
   view: RepoViewMode;
   records: StarredRepoRecord[];
   tagsByRepo?: Map<string, Tag[]>;
+  collectionCountByRepo?: Map<string, number>;
+  noteRepoIds?: Set<string>;
   onSelect?: (record: StarredRepoRecord) => void;
   scrollElement?: HTMLElement | null;
 }) {
@@ -37,6 +41,8 @@ export const BrowseRepoList = memo(function BrowseRepoList({
               records={records}
               view={mode}
               tagsByRepo={tagsByRepo}
+              collectionCountByRepo={collectionCountByRepo}
+              noteRepoIds={noteRepoIds}
               onSelect={onSelect}
               scrollElement={mode === view ? scrollElement : null}
             />

@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { EmptyState } from '../components/empty-state';
 import { PageHeader } from '../components/page-header';
+import { SearchInputIcon } from '../components/search-input-icon';
 import { TagFormDialog } from '../components/tag-form-dialog';
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '../data/use-tags';
 
@@ -52,7 +53,7 @@ export function TagsPage() {
 
       {list.length > 0 ? (
         <div className="relative max-w-md">
-          <SearchIcon className="-translate-y-1/2 absolute top-1/2 left-3 size-4 text-muted-foreground" />
+          <SearchInputIcon className="left-3" />
           <Input
             className="px-9"
             placeholder={t('tags.searchPlaceholder')}

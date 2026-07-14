@@ -13,7 +13,7 @@ const NO_PROVIDER_TOKEN = 'NO_PROVIDER_TOKEN';
 export function useSyncStars() {
   const { t } = useTranslation();
   const { session } = useSession();
-  const { reconnect, requiresReconnect } = useGitHubReconnect();
+  const { reconnect, reconnectPending, requiresReconnect } = useGitHubReconnect();
   const queryClient = useQueryClient();
   const userId = session?.user.id;
 
@@ -45,6 +45,7 @@ export function useSyncStars() {
     ...mutation,
     requiresReconnect,
     reconnect,
+    reconnectPending,
     sync: () => {
       if (requiresReconnect) {
         void reconnect();

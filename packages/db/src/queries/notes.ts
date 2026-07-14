@@ -16,6 +16,21 @@ export async function listNotes(
     .map((row) => ({ repoId: row.repo_id, body: row.body as string }));
 }
 
+/** 读取当前用户所有非空笔记对应的仓库 ID，供列表状态展示。 */
+export async function listNoteRepoIds(client: SupabaseClient, userId: string): Promise<string[]> {
+  const { data, error } = await client
+    .from('notes')
+    .select('repo_id')
+    .eq('user_id', userId)
+    .neq('body', '');
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => row.repo_id);
+}
+
 /** 读取某仓库的笔记正文；无记录返回空串。 */
 export async function getNote(
   client: SupabaseClient,

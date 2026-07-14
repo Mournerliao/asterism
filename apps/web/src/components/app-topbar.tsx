@@ -1,10 +1,22 @@
-import { Button, cn, Input, Sheet, SheetContent, SheetTitle, SheetTrigger } from '@asterism/ui';
-import { MenuIcon, RefreshCwIcon, SearchIcon, XIcon } from 'lucide-react';
+import {
+  Button,
+  cn,
+  Input,
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  SheetTrigger,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@asterism/ui';
+import { LoaderCircleIcon, MenuIcon, RefreshCwIcon, UnplugIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useBrowseFilters } from '../stores/browse-filters';
 import { LanguageToggle } from './language-toggle';
+import { SearchInputIcon } from './search-input-icon';
 import { SidebarNav } from './sidebar-nav';
 import { ThemeToggle } from './theme-toggle';
 import { UserMenu } from './user-menu';
@@ -15,6 +27,14 @@ export function AppTopbar() {
   const sync = useSyncStars();
   const query = useBrowseFilters((state) => state.query);
   const setQuery = useBrowseFilters((state) => state.setQuery);
+  const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
+  const syncLabel = sync.requiresReconnect
+    ? sync.reconnectPending
+      ? t('sync.reconnecting')
+      : t('sync.reconnectAction')
+    : sync.isPending
+      ? t('sync.syncing')
+      : t('topbar.sync');
 
   return (
     <header className="asterism-glass-surface z-40 flex h-14 shrink-0 items-center gap-3 border-b px-6 py-3">
@@ -36,7 +56,7 @@ export function AppTopbar() {
       </Sheet>
 
       <div className="relative w-full max-w-[400px]">
-        <SearchIcon className="-translate-y-1/2 absolute top-1/2 left-2.5 size-4 text-muted-foreground" />
+        <SearchInputIcon className="left-2.5" />
         <Input
           className="h-8 px-9"
           aria-label={t('topbar.searchPlaceholder')}
@@ -63,20 +83,41 @@ export function AppTopbar() {
       </div>
 
       <div className="ml-auto flex items-center gap-3">
-        {sync.requiresReconnect ? null : (
-          <Button
-            variant="outline"
-            size="xs"
-            className="h-8 gap-1.5 px-3 text-[13px]"
-            disabled={sync.isPending}
-            onClick={sync.sync}
-          >
-            <RefreshCwIcon className={cn('size-3.5', sync.isPending && 'animate-spin')} />
-            <span className="hidden sm:inline">
-              {sync.isPending ? t('sync.syncing') : t('topbar.sync')}
-            </span>
-          </Button>
-        )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="xs"
+              className={cn(
+                'h-8 gap-1.5 px-3 text-[13px]',
+                sync.requiresReconnect &&
+                  'border-warning/35 bg-warning/5 hover:border-warning/50 hover:bg-warning/10',
+              )}
+              aria-label={syncLabel}
+              disabled={syncPending}
+              onClick={sync.sync}
+            >
+              {sync.requiresReconnect ? (
+                sync.reconnectPending ? (
+                  <LoaderCircleIcon className="size-3.5 animate-spin text-warning motion-reduce:animate-none" />
+                ) : (
+                  <UnplugIcon className="size-3.5 text-warning" />
+                )
+              ) : (
+                <RefreshCwIcon
+                  className={cn(
+                    'size-3.5',
+                    sync.isPending && 'animate-spin motion-reduce:animate-none',
+                  )}
+                />
+              )}
+              <span className="hidden sm:inline">{syncLabel}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent sideOffset={6} className="max-w-none whitespace-nowrap">
+            {sync.requiresReconnect ? t('sync.reconnectDescription') : syncLabel}
+          </TooltipContent>
+        </Tooltip>
         <LanguageToggle />
         <ThemeToggle />
         <UserMenu />

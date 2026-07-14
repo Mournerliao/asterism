@@ -13,6 +13,8 @@ const MAX_COLUMNS = 3;
 type RepoCollectionProps = {
   records: StarredRepoRecord[];
   tagsByRepo?: Map<string, Tag[]>;
+  collectionCountByRepo?: Map<string, number>;
+  noteRepoIds?: Set<string>;
   onSelect?: (record: StarredRepoRecord) => void;
   scrollElement?: HTMLElement | null;
 };
@@ -41,6 +43,8 @@ function useColumns(ref: React.RefObject<HTMLElement | null>): number {
 const RepoGridView = memo(function RepoGridView({
   records,
   tagsByRepo,
+  collectionCountByRepo,
+  noteRepoIds,
   onSelect,
   scrollElement,
 }: RepoCollectionProps) {
@@ -52,7 +56,7 @@ const RepoGridView = memo(function RepoGridView({
   const virtualizer = useVirtualizer({
     count: rowCount,
     getScrollElement: () => scrollElement ?? null,
-    estimateSize: () => 210,
+    estimateSize: () => 224,
     overscan: 6,
     scrollMargin,
   });
@@ -85,6 +89,8 @@ const RepoGridView = memo(function RepoGridView({
                     key={record.repo.githubId}
                     record={record}
                     tags={tagsByRepo?.get(record.repoId)}
+                    collectionCount={collectionCountByRepo?.get(record.repoId)}
+                    hasNote={noteRepoIds?.has(record.repoId)}
                     onSelect={onSelect}
                   />
                 ))}
@@ -119,6 +125,8 @@ export const RepoCollection = memo(function RepoCollection({
   records,
   view,
   tagsByRepo,
+  collectionCountByRepo,
+  noteRepoIds,
   onSelect,
   scrollElement,
 }: RepoCollectionProps & { view: RepoViewMode }) {
@@ -137,6 +145,8 @@ export const RepoCollection = memo(function RepoCollection({
     <RepoGridView
       records={records}
       tagsByRepo={tagsByRepo}
+      collectionCountByRepo={collectionCountByRepo}
+      noteRepoIds={noteRepoIds}
       onSelect={onSelect}
       scrollElement={scrollElement}
     />

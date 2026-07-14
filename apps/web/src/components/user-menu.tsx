@@ -4,6 +4,7 @@ import {
   AvatarFallback,
   AvatarImage,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@asterism/ui';
-import { LoaderCircleIcon, LogInIcon, LogOutIcon } from 'lucide-react';
+import { CircleAlertIcon, LoaderCircleIcon, LogInIcon, LogOutIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { useSession } from '../auth/use-session';
@@ -45,18 +46,34 @@ export function UserMenu() {
           </Avatar>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-48">
+      <DropdownMenuContent align="end" className={cn(requiresReconnect ? 'w-64' : 'w-48')}>
         <DropdownMenuLabel className="truncate">{name}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {requiresReconnect ? (
-          <DropdownMenuItem disabled={reconnectPending} onClick={() => void reconnect()}>
-            {reconnectPending ? (
-              <LoaderCircleIcon className="size-4 animate-spin" />
-            ) : (
-              <LogInIcon className="size-4" />
-            )}
-            {reconnectPending ? t('sync.reconnecting') : t('sync.reconnectAction')}
-          </DropdownMenuItem>
+          <>
+            <div className="px-2 py-2">
+              <div className="flex items-center gap-2 font-medium text-[13px]">
+                <CircleAlertIcon className="size-4 shrink-0 text-warning" />
+                <span>{t('sync.reconnectTitle')}</span>
+              </div>
+              <p className="mt-1 pl-6 text-muted-foreground text-xs leading-4">
+                {t('sync.reconnectDescription')}
+              </p>
+            </div>
+            <DropdownMenuItem
+              className="text-foreground focus:bg-warning/10"
+              disabled={reconnectPending}
+              onClick={() => void reconnect()}
+            >
+              {reconnectPending ? (
+                <LoaderCircleIcon className="size-4 animate-spin text-warning motion-reduce:animate-none" />
+              ) : (
+                <LogInIcon className="size-4 text-warning" />
+              )}
+              {reconnectPending ? t('sync.reconnecting') : t('sync.reconnectAction')}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+          </>
         ) : null}
         <DropdownMenuItem variant="destructive" onClick={() => void signOut(supabase)}>
           <LogOutIcon className="size-4" />

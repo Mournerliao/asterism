@@ -23,7 +23,7 @@
 - [ ] **同步进度必须来自真实状态**：Browse 当前用已有记录数推算同步进度，违反状态透明契约。后续需让 Edge Function / client 暴露真实 processed/total；若无法提供则改成 indeterminate，不显示伪精确计数。
 - [ ] **Topbar Search 作用域需收敛**：Search 在全部路由显示但只写 Browse filter store。后续需裁决为 Browse/collection scoped search，或升级为真正的全局搜索/command surface，避免跨页隐藏筛选状态。
 - [ ] **写操作失败恢复需统一**：标签、集合与笔记 mutations 的 pending、错误、重试、草稿保留和 optimistic rollback 尚未形成一致契约；后续需统一交互与数据恢复策略，并验证错误通告后的焦点路径。
-- [ ] **Browse 筛选层级需精简**：当前筛选条有 7 个同级决策点。后续应基于使用频率保留核心筛选直出，其余收进“更多筛选”并展示 active count；该变更涉及信息架构与 en/zh-CN 文案，需独立设计与验收。
+- [x] **Browse 筛选层级精简**（2026-07-14）：主栏保留语言 / Topic / 标签 / 更多筛选 / 排序，Star 阈值、更新时间与状态收进带 active count 的次级弹层；高基数 facets 使用固定结果窗口与搜索，见 `logs/2026-07-14-browse-filter-hierarchy-and-facet-performance.md`。
 - [ ] **重度用户批量整理路径**：上千 stars 仍以单仓库 Drawer 操作为主；Phase 2/后续需设计 bulk select + 批量 tags/collections，并考虑保存筛选与 recent query。
 - [x] **DB 强类型查询**（2026-06-30，Slice 3）：`packages/db` 已收紧为 `SupabaseClient<Database>`，新增 `listStarredRepos`/`getLatestStarredAt` 强类型读查询。当前 `database.types.ts` 为**手写**（7 表 Row/Insert/Update + 关系）作为过渡；待 Supabase CLI 流程统一后用 `supabase gen types typescript` 生成版替换（保留此指针）。见 `logs/2026-06-30-phase1-slice3-stars-sync.md`。
 - [ ] **迁移版本管理**：迁移文件用时间戳前缀（兼容 `supabase db push`）。若团队统一改用 Supabase CLI 流程，需在 ADR 固化「迁移即源、禁止手改线上」纪律。

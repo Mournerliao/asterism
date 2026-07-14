@@ -26,5 +26,6 @@ export const collectionRepoKeys = {
 export const noteKeys = {
   all: ['note'] as const,
   list: (userId: string) => ['note', userId, 'list'] as const,
+  repoIds: (userId: string) => ['note', userId, 'repo-ids'] as const,
   detail: (userId: string, repoId: string) => ['note', userId, repoId] as const,
 };

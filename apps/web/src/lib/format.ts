@@ -34,3 +34,42 @@ export function formatRelativeTime(iso: string | null, locale: string): string |
   }
   return formatter.format(Math.round(diff / 1000), 'second');
 }
+
+const COMPACT_RELATIVE_UNITS: { en: string; zh: string; ms: number }[] = [
+  { en: 'y', zh: '年', ms: 365 * 24 * 60 * 60 * 1000 },
+  { en: 'mo', zh: '个月', ms: 30 * 24 * 60 * 60 * 1000 },
+  { en: 'w', zh: '周', ms: 7 * 24 * 60 * 60 * 1000 },
+  { en: 'd', zh: '天', ms: 24 * 60 * 60 * 1000 },
+  { en: 'h', zh: '小时', ms: 60 * 60 * 1000 },
+  { en: 'm', zh: '分钟', ms: 60 * 1000 },
+];
+
+/** 卡片时间轴使用的紧凑相对时间，如 "2w" / "2周前"；无效输入返回 null。 */
+export function formatCompactRelativeTime(
+  iso: string | null,
+  locale: string,
+  now = Date.now(),
+): string | null {
+  if (!iso) {
+    return null;
+  }
+  const time = Date.parse(iso);
+  if (!Number.isFinite(time)) {
+    return null;
+  }
+
+  const diff = time - now;
+  const abs = Math.abs(diff);
+  const isChinese = locale.toLowerCase().startsWith('zh');
+  for (const unit of COMPACT_RELATIVE_UNITS) {
+    if (abs >= unit.ms) {
+      const value = Math.max(1, Math.round(abs / unit.ms));
+      if (isChinese) {
+        return `${value}${unit.zh}${diff > 0 ? '后' : '前'}`;
+      }
+      return diff > 0 ? `in ${value}${unit.en}` : `${value}${unit.en}`;
+    }
+  }
+
+  return isChinese ? '刚刚' : 'now';
+}

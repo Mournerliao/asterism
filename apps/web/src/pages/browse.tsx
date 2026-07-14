@@ -1,6 +1,13 @@
 import { deriveRepoFacets, filterStarredRepos, sortStarredRepos, type Tag } from '@asterism/core';
 import { Button, GlassControlRow } from '@asterism/ui';
-import { AlertTriangleIcon, RefreshCwIcon, SearchXIcon, StarIcon } from 'lucide-react';
+import {
+  AlertTriangleIcon,
+  LoaderCircleIcon,
+  LogInIcon,
+  RefreshCwIcon,
+  SearchXIcon,
+  StarIcon,
+} from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
@@ -10,11 +17,14 @@ import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoCardSkeleton, RepoListRowSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
+import { useCollectionRepos } from '../data/use-collection-repos';
+import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
 import { useBrowseView } from '../hooks/use-browse-view';
+import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useRepoDrawer } from '../stores/repo-drawer';
@@ -52,7 +62,10 @@ export function BrowsePage() {
   const { data, isLoading, isError, refetch, isFetching } = useStarredRepos();
   const { data: tags } = useTags();
   const { data: repoTags } = useRepoTags();
+  const { data: collectionRepos } = useCollectionRepos();
+  const { data: noteRepoIds } = useNoteRepoIds();
   const sync = useSyncStars();
+  const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
   const [stuck, setStuck] = useState(false);
 
@@ -115,6 +128,11 @@ export function BrowsePage() {
     }
     return map;
   }, [tags, repoTags]);
+  const collectionCountByRepo = useMemo(
+    () => countCollectionsByRepo(collectionRepos ?? []),
+    [collectionRepos],
+  );
+  const noteRepoIdSet = useMemo(() => toRepoIdSet(noteRepoIds ?? []), [noteRepoIds]);
 
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
@@ -139,12 +157,26 @@ export function BrowsePage() {
       title={t('browse.emptyTitle')}
       description={t('browse.emptyDescription')}
       action={
-        sync.requiresReconnect ? undefined : (
-          <Button className="h-10" onClick={sync.sync} disabled={sync.isPending}>
-            <RefreshCwIcon className={sync.isPending ? 'size-4 animate-spin' : 'size-4'} />
-            {t('browse.syncAction')}
-          </Button>
-        )
+        <Button className="h-10" onClick={sync.sync} disabled={syncPending}>
+          {sync.requiresReconnect ? (
+            sync.reconnectPending ? (
+              <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
+            ) : (
+              <LogInIcon className="size-4" />
+            )
+          ) : (
+            <RefreshCwIcon
+              className={
+                sync.isPending ? 'size-4 animate-spin motion-reduce:animate-none' : 'size-4'
+              }
+            />
+          )}
+          {sync.requiresReconnect
+            ? sync.reconnectPending
+              ? t('sync.reconnecting')
+              : t('sync.reconnectAction')
+            : t('browse.syncAction')}
+        </Button>
       }
     />
   ) : visible.length === 0 ? (
@@ -163,6 +195,8 @@ export function BrowsePage() {
       view={view}
       records={visible}
       tagsByRepo={tagsByRepo}
+      collectionCountByRepo={collectionCountByRepo}
+      noteRepoIds={noteRepoIdSet}
       onSelect={openDrawer}
       scrollElement={repoScrollElement}
     />

@@ -50,6 +50,7 @@ export function OverflowChipRow<T>({
   getItemLabel,
   renderChip,
   renderOverflowChip,
+  renderTooltipItem,
   overflowLabel,
   className,
 }: {
@@ -58,6 +59,7 @@ export function OverflowChipRow<T>({
   getItemLabel: (item: T) => string;
   renderChip: (item: T) => ReactNode;
   renderOverflowChip: (overflowCount: number) => ReactNode;
+  renderTooltipItem?: (item: T) => ReactNode;
   overflowLabel: (overflowCount: number) => string;
   className?: string;
 }) {
@@ -142,11 +144,14 @@ export function OverflowChipRow<T>({
               <TooltipContent sideOffset={6} className="max-w-64 text-left">
                 <div className="flex max-w-64 flex-wrap gap-1.5">
                   {overflowItems.map((item) => (
-                    <span
-                      key={getKey(item)}
-                      className="rounded-sm bg-secondary px-2 py-0.5 text-caption text-secondary-foreground"
-                    >
-                      {getItemLabel(item)}
+                    <span key={getKey(item)}>
+                      {renderTooltipItem ? (
+                        renderTooltipItem(item)
+                      ) : (
+                        <span className="rounded-sm bg-secondary px-2 py-0.5 text-caption text-secondary-foreground">
+                          {getItemLabel(item)}
+                        </span>
+                      )}
                     </span>
                   ))}
                 </div>

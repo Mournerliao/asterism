@@ -1,6 +1,5 @@
 import { Outlet } from 'react-router-dom';
 import { AppTopbar } from '../components/app-topbar';
-import { GitHubSessionBanner } from '../components/github-session-banner';
 import { RepoDetailDrawer } from '../components/repo-detail-drawer';
 import { SidebarNav } from '../components/sidebar-nav';
 
@@ -12,7 +11,6 @@ export function AppLayout() {
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
         <AppTopbar />
-        <GitHubSessionBanner />
         <main className="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
           <Outlet />
         </main>

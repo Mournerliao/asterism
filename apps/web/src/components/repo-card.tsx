@@ -1,131 +1,208 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { Badge, Card, cn } from '@asterism/ui';
-import { ArchiveIcon, GitForkIcon, StarIcon } from 'lucide-react';
-import type { KeyboardEvent } from 'react';
-import { memo } from 'react';
+import { Badge, Card, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
+import { ArchiveIcon, FolderIcon, GitForkIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatCompactNumber, formatRelativeTime } from '../lib/format';
+import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { OverflowChipRow } from './overflow-chip-row';
+import { buildRepoContextItems, type RepoContextItem } from './repo-card-context';
 import { TagBadge } from './tag-badge';
+import { TruncatedDescription } from './truncated-description';
+
+function StatusIndicator({
+  label,
+  onSelect,
+  children,
+}: {
+  label: string;
+  onSelect?: () => void;
+  children: ReactNode;
+}) {
+  const className =
+    'pointer-events-auto inline-flex h-6 items-center gap-1 rounded-sm px-1 text-caption text-muted-foreground transition-colors duration-150 [transition-timing-function:var(--ease-out-quart)] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        {onSelect ? (
+          <button type="button" aria-label={label} onClick={onSelect} className={className}>
+            {children}
+          </button>
+        ) : (
+          <span role="img" aria-label={label} className={className}>
+            {children}
+          </span>
+        )}
+      </TooltipTrigger>
+      <TooltipContent sideOffset={6}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ContextChip({ item }: { item: RepoContextItem }) {
+  if (item.kind === 'tag') {
+    return <TagBadge name={item.label} color={item.color} className="h-[22px]" />;
+  }
+
+  return (
+    <Badge variant="secondary" className="h-[22px] font-normal">
+      {item.label}
+    </Badge>
+  );
+}
 
 export const RepoCard = memo(function RepoCard({
   record,
   tags,
+  collectionCount = 0,
+  hasNote = false,
   onSelect,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
+  collectionCount?: number;
+  hasNote?: boolean;
   onSelect?: (record: StarredRepoRecord) => void;
 }) {
   const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const updated = formatRelativeTime(repo.pushedAt, locale);
+  const compactUpdated = formatCompactRelativeTime(repo.pushedAt, locale);
+  const starred = formatRelativeTime(starredAt, locale);
+  const compactStarred = formatCompactRelativeTime(starredAt, locale);
   const dotColor = languageColor(repo.language);
+  const contextItems = useMemo(
+    () => buildRepoContextItems(tags ?? [], repo.topics),
+    [repo.topics, tags],
+  );
   const handleOpen = onSelect ? () => onSelect(record) : undefined;
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      handleOpen?.();
-    }
-  };
+  const collectionLabel = t('browse.inCollections', { count: collectionCount });
+  const noteLabel = t('browse.hasNote');
 
   return (
-    <Card
-      role={handleOpen ? 'button' : undefined}
-      tabIndex={handleOpen ? 0 : undefined}
-      onClick={handleOpen}
-      onKeyDown={handleOpen ? handleKeyDown : undefined}
-      className={cn(
-        'flex h-full flex-col gap-3 rounded-lg p-4 py-4 transition-[border-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] dark:hover:shadow-none',
-        handleOpen && 'cursor-pointer focus-visible:border-ring focus-visible:outline-none',
-      )}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <a
-          href={`https://github.com/${repo.fullName}`}
-          target="_blank"
-          rel="noreferrer noopener"
-          onClick={(event) => event.stopPropagation()}
-          className="flex min-w-0 items-center gap-2 font-semibold text-link text-[13px] hover:underline"
-        >
-          <span
-            aria-hidden="true"
-            className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
-            style={dotColor ? { backgroundColor: dotColor } : undefined}
-          />
-          <span className="truncate">
-            {repo.owner} / {repo.name}
-          </span>
-        </a>
-        {repo.archived ? (
-          <Badge variant="outline" className="shrink-0 gap-1 text-muted-foreground">
-            <ArchiveIcon className="size-3" aria-hidden="true" />
-            {t('browse.archived')}
-          </Badge>
-        ) : null}
-      </div>
-
-      {repo.description ? (
-        <p className="line-clamp-2 text-[13px] text-muted-foreground leading-5">
-          {repo.description}
-        </p>
-      ) : null}
-
-      {repo.topics.length > 0 ? (
-        <OverflowChipRow
-          items={repo.topics}
-          getKey={(topic) => topic}
-          getItemLabel={(topic) => topic}
-          overflowLabel={(count) => t('browse.moreTopicsLabel', { count })}
-          renderChip={(topic) => (
-            <Badge variant="secondary" className="h-[22px] font-normal">
-              {topic}
-            </Badge>
-          )}
-          renderOverflowChip={(count) => (
-            <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
-              +{count}
-            </Badge>
-          )}
+    <Card className="group relative flex h-auto min-h-[208px] flex-col gap-3 rounded-lg p-4 transition-[border-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] sm:h-[208px] dark:hover:shadow-none">
+      {handleOpen ? (
+        <button
+          type="button"
+          aria-label={t('browse.openDetails', { repo: repo.fullName })}
+          onClick={handleOpen}
+          className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         />
       ) : null}
 
-      {tags && tags.length > 0 ? (
-        <OverflowChipRow
-          items={tags}
-          getKey={(tag) => tag.id}
-          getItemLabel={(tag) => tag.name}
-          overflowLabel={(count) => t('browse.moreTagsLabel', { count })}
-          renderChip={(tag) => <TagBadge name={tag.name} color={tag.color} />}
-          renderOverflowChip={(count) => (
-            <span className="inline-flex h-6 items-center rounded-sm bg-secondary px-2 text-caption text-muted-foreground">
-              +{count}
+      <div
+        className={cn(
+          'relative z-10 flex min-h-0 flex-1 flex-col gap-3',
+          handleOpen && 'pointer-events-none',
+        )}
+      >
+        <div className="flex h-5 min-w-0 items-start justify-between gap-2">
+          <a
+            href={`https://github.com/${repo.fullName}`}
+            target="_blank"
+            rel="noreferrer noopener"
+            className="group/link pointer-events-auto flex min-w-0 items-center gap-2 rounded-sm text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
+            <span
+              aria-hidden="true"
+              className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
+              style={dotColor ? { backgroundColor: dotColor } : undefined}
+            />
+            <span className="min-w-0 truncate">
+              <span className="font-medium text-muted-foreground">{repo.owner}</span>
+              <span className="text-muted-foreground"> / </span>
+              <span className="font-semibold text-link group-hover/link:underline">
+                {repo.name}
+              </span>
             </span>
-          )}
-        />
-      ) : null}
+          </a>
+          {repo.archived ? (
+            <Badge variant="outline" className="h-5 shrink-0 gap-1 text-muted-foreground">
+              <ArchiveIcon className="size-3" aria-hidden="true" />
+              {t('browse.archived')}
+            </Badge>
+          ) : null}
+        </div>
 
-      <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-muted-foreground">
-        <span className="flex items-center gap-1" title={t('browse.stars')}>
-          <StarIcon className="size-3.5" aria-hidden="true" />
-          {formatCompactNumber(repo.stargazers, locale)}
-        </span>
-        {repo.forks != null ? (
-          <span className="flex items-center gap-1" title={t('browse.forks')}>
-            <GitForkIcon className="size-3.5" aria-hidden="true" />
-            {formatCompactNumber(repo.forks, locale)}
+        <div className="min-h-10">
+          {repo.description ? (
+            <TruncatedDescription onSelect={handleOpen}>{repo.description}</TruncatedDescription>
+          ) : null}
+        </div>
+
+        <div className="flex min-h-6 min-w-0 items-center gap-2">
+          <div className="min-w-0 flex-1">
+            {contextItems.length > 0 ? (
+              <OverflowChipRow
+                items={contextItems}
+                getKey={(item) => item.key}
+                getItemLabel={(item) => item.label}
+                overflowLabel={(count) => t('browse.moreContextLabel', { count })}
+                renderChip={(item) => <ContextChip item={item} />}
+                renderOverflowChip={(count) => (
+                  <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
+                    +{count}
+                  </Badge>
+                )}
+                renderTooltipItem={(item) => <ContextChip item={item} />}
+                className="pointer-events-auto"
+              />
+            ) : null}
+          </div>
+          <span className="flex shrink-0 items-center gap-1">
+            {collectionCount > 0 ? (
+              <StatusIndicator label={collectionLabel} onSelect={handleOpen}>
+                <FolderIcon className="size-3.5" aria-hidden="true" />
+                {collectionCount}
+              </StatusIndicator>
+            ) : null}
+            {hasNote ? (
+              <StatusIndicator label={noteLabel} onSelect={handleOpen}>
+                <NotebookPenIcon className="size-3.5" aria-hidden="true" />
+              </StatusIndicator>
+            ) : null}
           </span>
-        ) : null}
-        {updated ? <span>{t('browse.updated', { time: updated })}</span> : null}
-        {starredAt ? (
-          <span className="hidden sm:inline">
-            {t('browse.starred', { time: formatRelativeTime(starredAt, locale) ?? '' })}
+        </div>
+
+        <div className="mt-auto flex min-w-0 flex-col items-start gap-1 text-caption text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+          <span className="flex shrink-0 items-center gap-3">
+            <span className="flex items-center gap-1" title={t('browse.stars')}>
+              <StarIcon className="size-3.5" aria-hidden="true" />
+              {formatCompactNumber(repo.stargazers, locale)}
+            </span>
+            {repo.forks != null ? (
+              <span className="flex items-center gap-1" title={t('browse.forks')}>
+                <GitForkIcon className="size-3.5" aria-hidden="true" />
+                {formatCompactNumber(repo.forks, locale)}
+              </span>
+            ) : null}
           </span>
-        ) : null}
+          <span className="flex min-w-0 items-center gap-2 whitespace-nowrap sm:justify-end">
+            {updated && compactUpdated ? (
+              <span title={t('browse.updated', { time: updated })}>
+                <span aria-hidden="true">
+                  {t('browse.updatedCompact', { time: compactUpdated })}
+                </span>
+                <span className="sr-only">{t('browse.updated', { time: updated })}</span>
+              </span>
+            ) : null}
+            {updated && compactUpdated && starred && compactStarred ? (
+              <span aria-hidden="true">·</span>
+            ) : null}
+            {starred && compactStarred ? (
+              <span title={t('browse.starred', { time: starred })}>
+                <span aria-hidden="true">
+                  {t('browse.starredCompact', { time: compactStarred })}
+                </span>
+                <span className="sr-only">{t('browse.starred', { time: starred })}</span>
+              </span>
+            ) : null}
+          </span>
+        </div>
       </div>
     </Card>
   );

@@ -194,6 +194,7 @@ function SegmentedControl<T extends string>({
         return (
           <button
             key={option.value}
+            data-slot="segmented-control-item"
             ref={(element) => {
               if (element) {
                 itemRefs.current.set(option.value, element);

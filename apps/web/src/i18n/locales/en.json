@@ -109,7 +109,9 @@
     "viewGrid": "Grid view",
     "viewList": "List view",
     "openDetails": "Open details for {{repo}}",
+    "openOnGitHub": "Open {{repo}} on GitHub",
     "moreContextLabel": "{{count}} more labels or topics",
+    "moreTagsLabel": "{{count}} more tags",
     "inCollections_one": "In {{count}} collection",
     "inCollections_other": "In {{count}} collections",
     "hasNote": "Has note",
@@ -129,11 +131,11 @@
     "noResultsTitle": "No matching repositories",
     "noResultsDescription": "Try adjusting your filters or search keywords.",
     "table": {
+      "label": "Repository list",
       "repository": "Repository",
       "language": "Language",
       "stars": "Stars",
-      "tags": "Tags",
-      "starred": "Starred"
+      "activity": "Activity"
     }
   },
   "drawer": {

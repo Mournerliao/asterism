@@ -201,6 +201,17 @@ Browse 卡片采用舒展但高效的固定节奏：桌面 / 平板目标高度 
 - 单基线 Footer：Stars / Forks 位于左侧，Updated / Starred 组成右侧不可换行的紧凑时间组（如 `Updated 2w · Starred 4w`）；完整相对时间通过 tooltip 与无障碍标签提供。仅极窄单列允许两个信息组整体上下排列，不允许时间字段自行散落换行。
 - 交互语义：整卡详情触发器与 GitHub 外链必须是并列交互，不得把链接嵌套在 `role=button` 容器内；两条路径均需键盘可达并有可见焦点。
 
+### Repo List Pattern · 仓库列表模式
+
+Browse 列表是紧凑生产力视图，不是 GitHub 元数据表格的复刻。每行必须优先回答仓库身份、技术属性与近期 activity；个人整理信息只在真实存在时作为 Repository 的次级上下文出现，不得以空状态占用独立列。桌面目标行高为 64px，移动端按内容安全增高并使用实测高度驱动虚拟滚动。
+
+- 仓库身份与点击语义：整行是打开 Asterism 详情抽屉的主操作，支持 pointer click 与聚焦后的 Enter / Space；仓库名称不再创建重复的独立详情按钮。GitHub 使用唯一的 external-link 控件，并阻止事件冒泡，点击或键盘激活该控件只打开 GitHub。行继续保持原生 `row` 语义，不改写为 `role=button`；Archived 使用既有 outline badge，描述保持单行截断。
+- 整理上下文：用户自定义标签、集合数量与笔记存在状态收进 Repository 次级信息，不混入 GitHub topics；标签按真实可用宽度折叠为 `+n`。三者都不存在时不渲染占位文案，不设置 Organization 独立列。
+- Activity：Updated 与 Starred 同时可见，完整相对时间通过 tooltip 与无障碍文本提供；按更新时间排序时，Updated 不得被响应式布局隐藏。
+- 表面与对齐：列表容器使用与 Repo Card 一致的 `--card` 内容表面，圆角必须裁切表头、行 hover 与虚拟占位内容；表头和 cell 必须复用同一列模板与水平内边距，并统一左对齐。表头使用独立的 muted surface、caption 字号与 semibold 字重，必须与正文形成可辨识层级。
+- 响应式列：`≥1024px` 显示 Repository / Language / Stars / Activity；`640–1023px` 视觉隐藏 Language、保留其表头与 cell 语义；`<640px` 视觉隐藏表头，单行重排为身份、描述/整理上下文、Language / Stars / Activity，不产生横向滚动。
+- 可访问性：语义表格提供总行数与虚拟行索引；隐藏列必须在辅助技术树中保留正确的四列表头关联。名称、外链、标签溢出等交互各自键盘可达并使用 `--ring`；触控设备上的 segmented control 与紧凑入口命中区域不小于 44px。
+
 ### Browse Filter Pattern · 浏览筛选模式
 
 Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等权重：主栏只直出语言、Topic、用户标签、更多筛选与排序；Star 阈值、更新时间和仓库状态收进“更多筛选”，触发器显示已启用的次级筛选数量。排序保持独立可见，不计入“清除筛选”的 active 状态。

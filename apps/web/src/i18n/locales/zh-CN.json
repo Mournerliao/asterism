@@ -109,7 +109,9 @@
     "viewGrid": "卡片视图",
     "viewList": "列表视图",
     "openDetails": "打开 {{repo}} 的详情",
+    "openOnGitHub": "在 GitHub 打开 {{repo}}",
     "moreContextLabel": "还有 {{count}} 个标签或 Topic",
+    "moreTagsLabel": "还有 {{count}} 个标签",
     "inCollections_one": "已加入 {{count}} 个集合",
     "inCollections_other": "已加入 {{count}} 个集合",
     "hasNote": "已有笔记",
@@ -129,11 +131,11 @@
     "noResultsTitle": "没有匹配的仓库",
     "noResultsDescription": "试试调整筛选条件或搜索关键词。",
     "table": {
+      "label": "仓库列表",
       "repository": "仓库",
       "language": "语言",
       "stars": "Star 数",
-      "tags": "标签",
-      "starred": "收藏时间"
+      "activity": "动态"
     }
   },
   "drawer": {

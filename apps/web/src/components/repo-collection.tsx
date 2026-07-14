@@ -106,6 +106,8 @@ const RepoGridView = memo(function RepoGridView({
 const RepoListView = memo(function RepoListView({
   records,
   tagsByRepo,
+  collectionCountByRepo,
+  noteRepoIds,
   onSelect,
   scrollElement,
 }: RepoCollectionProps) {
@@ -113,6 +115,8 @@ const RepoListView = memo(function RepoListView({
     <RepoTable
       records={records}
       tagsByRepo={tagsByRepo}
+      collectionCountByRepo={collectionCountByRepo}
+      noteRepoIds={noteRepoIds}
       onSelect={onSelect}
       scrollElement={scrollElement}
     />
@@ -135,6 +139,8 @@ export const RepoCollection = memo(function RepoCollection({
       <RepoListView
         records={records}
         tagsByRepo={tagsByRepo}
+        collectionCountByRepo={collectionCountByRepo}
+        noteRepoIds={noteRepoIds}
         onSelect={onSelect}
         scrollElement={scrollElement}
       />

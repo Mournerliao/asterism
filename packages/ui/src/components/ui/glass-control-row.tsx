@@ -13,7 +13,6 @@ const GlassControlRow = React.forwardRef<
     {...props}
   >
     {children}
-    <span aria-hidden="true" className="asterism-glass-sticky-line" />
   </div>
 ));
 

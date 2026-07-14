@@ -1,124 +1,301 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { cn, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@asterism/ui';
+import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import type { KeyboardEvent } from 'react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { ArchiveIcon, ExternalLinkIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
+import { type KeyboardEvent, type MouseEvent, memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { formatCompactNumber } from '../lib/format';
+import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
+import { OverflowChipRow } from './overflow-chip-row';
 import { TagPill } from './tag-badge';
 
-const MAX_TAGS = 3;
-const ROW_HEIGHT = 56;
+const DESKTOP_ROW_HEIGHT = 64;
+const TABLE_GRID_CLASS =
+  'grid grid-cols-[auto_auto_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_5rem_9rem] lg:grid-cols-[minmax(0,1fr)_9rem_5rem_8rem]';
+const RESPONSIVE_LANGUAGE_CLASS =
+  'sm:absolute sm:h-px sm:w-px sm:overflow-hidden sm:whitespace-nowrap sm:[clip-path:inset(50%)] lg:static lg:h-auto lg:w-auto lg:overflow-visible lg:whitespace-normal lg:[clip-path:none]';
 
-function formatStarredDate(iso: string | null | undefined): string {
-  if (!iso) {
-    return '—';
+function ActivityValue({
+  compact,
+  full,
+  label,
+}: {
+  compact: string | null;
+  full: string | null;
+  label: (time: string) => string;
+}) {
+  if (!compact || !full) {
+    return null;
   }
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) {
-    return '—';
+
+  return (
+    <span title={label(full)}>
+      <span aria-hidden="true">{label(compact)}</span>
+      <span className="sr-only">{label(full)}</span>
+    </span>
+  );
+}
+
+function RepoContext({
+  tags,
+  collectionCount,
+  hasNote,
+}: {
+  tags: readonly Tag[];
+  collectionCount: number;
+  hasNote: boolean;
+}) {
+  const { t } = useTranslation();
+  const hasContext = tags.length > 0 || collectionCount > 0 || hasNote;
+
+  if (!hasContext) {
+    return null;
   }
-  return date.toISOString().slice(0, 10);
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <div className="min-w-0 flex-1">
+        {tags.length > 0 ? (
+          <OverflowChipRow
+            items={tags}
+            getKey={(tag) => tag.id}
+            getItemLabel={(tag) => tag.name}
+            overflowLabel={(count) => t('browse.moreTagsLabel', { count })}
+            renderChip={(tag) => <TagPill tag={tag} />}
+            renderOverflowChip={(count) => (
+              <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
+                +{count}
+              </Badge>
+            )}
+            renderTooltipItem={(tag) => <TagPill tag={tag} />}
+          />
+        ) : null}
+      </div>
+      <span className="flex shrink-0 items-center gap-2 text-caption text-muted-foreground">
+        {collectionCount > 0 ? (
+          <span
+            role="img"
+            className="inline-flex items-center gap-1"
+            aria-label={t('browse.inCollections', { count: collectionCount })}
+            title={t('browse.inCollections', { count: collectionCount })}
+          >
+            <FolderIcon className="size-3.5" aria-hidden="true" />
+            <span aria-hidden="true">{collectionCount}</span>
+          </span>
+        ) : null}
+        {hasNote ? (
+          <span role="img" aria-label={t('browse.hasNote')} title={t('browse.hasNote')}>
+            <NotebookPenIcon className="size-3.5" aria-hidden="true" />
+          </span>
+        ) : null}
+      </span>
+    </div>
+  );
 }
 
 export const RepoTableRow = memo(function RepoTableRow({
   record,
-  tags,
+  tags = [],
+  collectionCount = 0,
+  hasNote = false,
   onSelect,
+  rowIndex,
+  measureElement,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
+  collectionCount?: number;
+  hasNote?: boolean;
   onSelect?: (record: StarredRepoRecord) => void;
+  rowIndex: number;
+  measureElement: (element: HTMLTableRowElement | null) => void;
 }) {
   const { repo, starredAt } = record;
-  const { i18n } = useTranslation();
+  const { t, i18n } = useTranslation();
   const locale = i18n.language;
   const dotColor = languageColor(repo.language);
-  const visibleTags = tags?.slice(0, MAX_TAGS) ?? [];
-
+  const updated = formatRelativeTime(repo.pushedAt, locale);
+  const compactUpdated = formatCompactRelativeTime(repo.pushedAt, locale);
+  const starred = formatRelativeTime(starredAt, locale);
+  const compactStarred = formatCompactRelativeTime(starredAt, locale);
   const handleOpen = onSelect ? () => onSelect(record) : undefined;
-
-  const handleKeyDown = (event: KeyboardEvent<HTMLTableRowElement>) => {
-    if (handleOpen && (event.key === 'Enter' || event.key === ' ')) {
-      event.preventDefault();
-      handleOpen();
-    }
-  };
+  const handleRowClick = handleOpen
+    ? (event: MouseEvent<HTMLTableRowElement>) => {
+        const target = event.target as Element;
+        if (target.closest('a, button, [role="button"]')) {
+          return;
+        }
+        handleOpen();
+      }
+    : undefined;
+  const handleRowKeyDown = handleOpen
+    ? (event: KeyboardEvent<HTMLTableRowElement>) => {
+        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
+          return;
+        }
+        event.preventDefault();
+        handleOpen();
+      }
+    : undefined;
 
   return (
-    <TableRow
-      role={handleOpen ? 'button' : undefined}
+    <tr
+      ref={measureElement}
+      data-index={rowIndex - 2}
+      aria-rowindex={rowIndex}
+      aria-label={handleOpen ? t('browse.openDetails', { repo: repo.fullName }) : undefined}
       tabIndex={handleOpen ? 0 : undefined}
-      onClick={handleOpen}
-      onKeyDown={handleOpen ? handleKeyDown : undefined}
+      onClick={handleRowClick}
+      onKeyDown={handleRowKeyDown}
       className={cn(
-        'h-14 border-border/50 border-b transition-colors hover:bg-accent/30',
-        handleOpen && 'cursor-pointer focus-visible:bg-accent/40 focus-visible:outline-none',
+        TABLE_GRID_CLASS,
+        'group min-h-[104px] gap-x-3 gap-y-2 border-border/50 border-b px-3 py-3 transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:h-16 sm:min-h-16 sm:gap-0 sm:px-0 sm:py-0',
+        handleOpen && 'cursor-pointer',
       )}
     >
-      <TableCell className="px-4 py-0 align-middle">
-        <div className="flex min-w-0 max-w-[340px] flex-col gap-0.5">
-          <a
-            href={`https://github.com/${repo.fullName}`}
-            target="_blank"
-            rel="noreferrer noopener"
-            onClick={(event) => event.stopPropagation()}
-            className="truncate font-semibold text-link text-[13px] hover:underline"
-          >
-            {repo.owner} / {repo.name}
-          </a>
-          {repo.description ? (
-            <p className="truncate text-[13px] text-muted-foreground">{repo.description}</p>
+      <td className="col-span-3 flex min-w-0 flex-col justify-center gap-0.5 sm:col-span-1 sm:px-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate text-[13px]">
+            <span className="font-medium text-muted-foreground">{repo.owner}</span>
+            <span className="text-muted-foreground"> / </span>
+            <span
+              className={cn(
+                'font-semibold',
+                handleOpen ? 'text-link group-hover:underline' : 'text-foreground',
+              )}
+            >
+              {repo.name}
+            </span>
+          </span>
+          {repo.archived ? (
+            <Badge
+              variant="outline"
+              className="h-5 shrink-0 gap-1 px-1.5 text-[11px] text-muted-foreground"
+            >
+              <ArchiveIcon className="size-3" aria-hidden="true" />
+              {t('browse.archived')}
+            </Badge>
           ) : null}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <a
+                href={`https://github.com/${repo.fullName}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                data-slot="repo-external-link"
+                aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
+                onClick={(event) => event.stopPropagation()}
+                className="inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <ExternalLinkIcon className="size-3.5" aria-hidden="true" />
+              </a>
+            </TooltipTrigger>
+            <TooltipContent sideOffset={6}>
+              {t('browse.openOnGitHub', { repo: repo.fullName })}
+            </TooltipContent>
+          </Tooltip>
         </div>
-      </TableCell>
-      <TableCell className="hidden w-[100px] px-4 align-middle md:table-cell">
+        <div className="flex min-w-0 items-center gap-3">
+          {repo.description ? (
+            <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
+              {repo.description}
+            </p>
+          ) : null}
+          <div className="hidden min-w-0 max-w-[45%] flex-[0_1_18rem] sm:block">
+            <RepoContext tags={tags} collectionCount={collectionCount} hasNote={hasNote} />
+          </div>
+        </div>
+        <div className="mt-1 min-w-0 sm:hidden">
+          <RepoContext tags={tags} collectionCount={collectionCount} hasNote={hasNote} />
+        </div>
+      </td>
+
+      <td
+        className={`${RESPONSIVE_LANGUAGE_CLASS} flex min-w-0 items-center text-caption text-foreground lg:px-3`}
+      >
         {repo.language ? (
-          <span className="flex items-center gap-1.5 text-caption text-foreground">
+          <span className="flex min-w-0 items-center gap-1.5">
             <span
               aria-hidden="true"
-              className={cn('size-2.5 rounded-full', !dotColor && 'bg-muted-foreground')}
+              className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
               style={dotColor ? { backgroundColor: dotColor } : undefined}
             />
-            {repo.language}
+            <span className="truncate">{repo.language}</span>
           </span>
         ) : (
-          <span className="text-caption text-muted-foreground">—</span>
+          <span className="text-muted-foreground">—</span>
         )}
-      </TableCell>
-      <TableCell className="w-20 px-4 align-middle font-mono text-caption text-foreground">
+      </td>
+
+      <td className="flex items-center gap-1 self-center font-mono text-caption text-foreground sm:px-3">
+        <StarIcon className="size-3.5 sm:hidden" aria-hidden="true" />
         {formatCompactNumber(repo.stargazers, locale)}
-      </TableCell>
-      <TableCell className="hidden w-[200px] px-4 align-middle lg:table-cell">
-        <div className="flex flex-wrap gap-1">
-          {visibleTags.map((tag) => (
-            <TagPill key={tag.id} tag={tag} />
-          ))}
-        </div>
-      </TableCell>
-      <TableCell className="hidden w-[100px] px-4 align-middle font-mono text-caption text-muted-foreground sm:table-cell">
-        {formatStarredDate(starredAt)}
-      </TableCell>
-    </TableRow>
+      </td>
+
+      <td className="flex min-w-0 flex-col items-end justify-center self-center whitespace-nowrap text-caption text-muted-foreground sm:items-start sm:px-3">
+        <ActivityValue
+          compact={compactUpdated}
+          full={updated}
+          label={(time) => t('browse.updated', { time })}
+        />
+        <ActivityValue
+          compact={compactStarred}
+          full={starred}
+          label={(time) => t('browse.starred', { time })}
+        />
+        {!compactUpdated && !compactStarred ? <span>—</span> : null}
+      </td>
+    </tr>
   );
 });
+
+function TableHeader() {
+  const { t } = useTranslation();
+  const className = 'px-3 text-left font-semibold text-caption text-foreground/75';
+  return (
+    <thead className="sr-only sm:not-sr-only sm:block">
+      <tr
+        className={cn(
+          TABLE_GRID_CLASS,
+          'sticky top-0 z-10 h-10 items-center border-border border-b bg-muted/55',
+        )}
+      >
+        <th scope="col" className={className}>
+          {t('browse.table.repository')}
+        </th>
+        <th scope="col" className={`${RESPONSIVE_LANGUAGE_CLASS} ${className}`}>
+          {t('browse.table.language')}
+        </th>
+        <th scope="col" className={className}>
+          {t('browse.table.stars')}
+        </th>
+        <th scope="col" className={className}>
+          {t('browse.table.activity')}
+        </th>
+      </tr>
+    </thead>
+  );
+}
 
 export const RepoTable = memo(function RepoTable({
   records,
   tagsByRepo,
+  collectionCountByRepo,
+  noteRepoIds,
   onSelect,
   scrollElement,
 }: {
   records: StarredRepoRecord[];
   tagsByRepo?: Map<string, Tag[]>;
+  collectionCountByRepo?: Map<string, number>;
+  noteRepoIds?: Set<string>;
   onSelect?: (record: StarredRepoRecord) => void;
   scrollElement?: HTMLElement | null;
 }) {
   const { t } = useTranslation();
-  const tableRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
   const [resolvedScroll, setResolvedScroll] = useState<HTMLElement | null>(scrollElement ?? null);
   const scrollMargin = useScrollMargin(tableRef, resolvedScroll);
 
@@ -133,7 +310,7 @@ export const RepoTable = memo(function RepoTable({
   const virtualizer = useVirtualizer({
     count: records.length,
     getScrollElement: () => resolvedScroll,
-    estimateSize: () => ROW_HEIGHT,
+    estimateSize: () => DESKTOP_ROW_HEIGHT,
     overscan: 10,
     scrollMargin,
   });
@@ -145,54 +322,54 @@ export const RepoTable = memo(function RepoTable({
   const paddingBottom = lastItem ? virtualizer.getTotalSize() - (lastItem.end - scrollMargin) : 0;
 
   return (
-    <div ref={tableRef} className="w-full rounded-lg border">
-      <Table className="min-w-[640px] border-collapse text-left">
-        <TableHeader>
-          <TableRow className="sticky top-0 z-10 h-9 border-border border-b bg-background">
-            <TableHead className="px-4 font-medium text-[11px] text-muted-foreground">
-              {t('browse.table.repository')}
-            </TableHead>
-            <TableHead className="hidden px-4 font-medium text-[11px] text-muted-foreground md:table-cell">
-              {t('browse.table.language')}
-            </TableHead>
-            <TableHead className="px-4 font-medium text-[11px] text-muted-foreground">
-              {t('browse.table.stars')}
-            </TableHead>
-            <TableHead className="hidden px-4 font-medium text-[11px] text-muted-foreground lg:table-cell">
-              {t('browse.table.tags')}
-            </TableHead>
-            <TableHead className="hidden px-4 font-medium text-[11px] text-muted-foreground sm:table-cell">
-              {t('browse.table.starred')}
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {paddingTop > 0 ? (
-            <tr>
-              <TableCell colSpan={5} style={{ height: paddingTop, padding: 0, border: 0 }} />
-            </tr>
-          ) : null}
-          {virtualItems.map((virtualRow) => {
-            const record = records[virtualRow.index];
-            if (!record) {
-              return null;
-            }
-            return (
-              <RepoTableRow
-                key={record.repo.githubId}
-                record={record}
-                tags={tagsByRepo?.get(record.repoId)}
-                onSelect={onSelect}
-              />
-            );
-          })}
-          {paddingBottom > 0 ? (
-            <tr>
-              <TableCell colSpan={5} style={{ height: paddingBottom, padding: 0, border: 0 }} />
-            </tr>
-          ) : null}
-        </TableBody>
-      </Table>
-    </div>
+    <table
+      ref={tableRef}
+      aria-label={t('browse.table.label')}
+      aria-colcount={4}
+      aria-rowcount={records.length + 1}
+      className="block w-full overflow-clip rounded-lg border bg-card text-card-foreground"
+    >
+      <TableHeader />
+      <tbody className="block">
+        {paddingTop > 0 ? (
+          <tr className="block">
+            <td
+              aria-hidden="true"
+              colSpan={4}
+              className="block p-0"
+              style={{ height: paddingTop }}
+            />
+          </tr>
+        ) : null}
+        {virtualItems.map((virtualRow) => {
+          const record = records[virtualRow.index];
+          if (!record) {
+            return null;
+          }
+          return (
+            <RepoTableRow
+              key={record.repo.githubId}
+              record={record}
+              tags={tagsByRepo?.get(record.repoId)}
+              collectionCount={collectionCountByRepo?.get(record.repoId)}
+              hasNote={noteRepoIds?.has(record.repoId)}
+              onSelect={onSelect}
+              rowIndex={virtualRow.index + 2}
+              measureElement={virtualizer.measureElement}
+            />
+          );
+        })}
+        {paddingBottom > 0 ? (
+          <tr className="block">
+            <td
+              aria-hidden="true"
+              colSpan={4}
+              className="block p-0"
+              style={{ height: paddingBottom }}
+            />
+          </tr>
+        ) : null}
+      </tbody>
+    </table>
   );
 });

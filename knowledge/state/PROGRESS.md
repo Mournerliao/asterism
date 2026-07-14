@@ -8,6 +8,14 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> 优化（2026-07-14，见 `logs/2026-07-14-browse-list-organization-responsive.md`、`logs/2026-07-14-browse-list-information-hierarchy-correction.md`、`logs/2026-07-14-browse-list-row-interaction.md`）：Browse 列表从固定 640px GitHub 元数据表格重构为响应式语义表格：整行打开详情、独立外链打开 GitHub，新增 Archived 与 Updated + Starred activity；最终桌面列收敛为 Repository / Language / Stars / Activity，标签 / 集合 / 笔记仅在存在时作为 Repository 次级上下文出现，不再用 Organization 独立列或“未整理”占位。桌面 64px、移动端堆叠且无横向滚动，虚拟行按实测高度校准并补 `aria-rowcount` / `aria-rowindex`。
+
+> 视觉修复（2026-07-14，见 `logs/2026-07-14-browse-list-surface-alignment-polish.md`）：Browse 列表表面改用与 Repo Card 一致的 `--card`，以 `overflow: clip` 完整裁切圆角且不引入新的滚动容器；表头统一左对齐并与 cell 共用列模板和内边距。吸顶控制区移除贯穿视口的底部分隔线，改为无硬边界的 10px 渐隐背景。
+
+> 信息层级修正（2026-07-14，见 `logs/2026-07-14-browse-list-information-hierarchy-correction.md`）：移除低信息密度的 Organization 列及重复“未整理”状态，为 Language 恢复 9rem 固定空间；表头改用 40px muted band、12px semibold 与更高对比度，和 12px regular metadata 形成稳定层级。
+
+> 交互修正（2026-07-14，见 `logs/2026-07-14-browse-list-row-interaction.md`）：Browse 列表由名称按钮改为整行打开详情；行支持 click、Enter 与 Space，并提供整行 hover / focus 状态。GitHub external-link 是唯一离站入口，显式隔离 click 与 keyboard 冒泡。
+
 > 优化（2026-07-14，见 `logs/2026-07-14-contextual-github-reconnect.md`）：GitHub 授权恢复从横跨 App Shell 的持久 banner 重构为上下文化状态：Topbar Sync 原位切换为 warning Reconnect，User Menu 提供简短状态说明和备用入口，Browse / Dashboard 空状态直接恢复；页面不再被局部同步问题推挤或阻断，短说明 tooltip 按内容宽度紧凑呈现。
 
 > 优化（2026-07-14，见 `logs/2026-07-14-open-filter-toolbar.md`）：Browse 筛选栏移除包裹独立控件的冗余 GlassRail，改为筛选靠左、排序靠右的开放式工具栏；默认 facet 文案缩短为 Language / Topic，active 筛选使用克制的 primary 边框与背景，窄屏按组安全换行。

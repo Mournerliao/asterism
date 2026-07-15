@@ -1,8 +1,8 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { Badge, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
+import { Badge, cn } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArchiveIcon, ExternalLinkIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
+import { ArchiveIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
 import { type KeyboardEvent, type MouseEvent, memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
@@ -157,18 +157,17 @@ export const RepoTableRow = memo(function RepoTableRow({
     >
       <td className="col-span-3 flex min-w-0 flex-col justify-center gap-0.5 sm:col-span-1 sm:px-3">
         <div className="flex min-w-0 items-center gap-1.5">
-          <span className="min-w-0 truncate text-[13px]">
+          <a
+            href={`https://github.com/${repo.fullName}`}
+            target="_blank"
+            rel="noreferrer noopener"
+            aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
+            className="group/link min-w-0 truncate rounded-sm text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          >
             <span className="font-medium text-muted-foreground">{repo.owner}</span>
             <span className="text-muted-foreground"> / </span>
-            <span
-              className={cn(
-                'font-semibold',
-                handleOpen ? 'text-link group-hover:underline' : 'text-foreground',
-              )}
-            >
-              {repo.name}
-            </span>
-          </span>
+            <span className="font-semibold text-link group-hover/link:underline">{repo.name}</span>
+          </a>
           {repo.archived ? (
             <Badge
               variant="outline"
@@ -178,24 +177,6 @@ export const RepoTableRow = memo(function RepoTableRow({
               {t('browse.archived')}
             </Badge>
           ) : null}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <a
-                href={`https://github.com/${repo.fullName}`}
-                target="_blank"
-                rel="noreferrer noopener"
-                data-slot="repo-external-link"
-                aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
-                onClick={(event) => event.stopPropagation()}
-                className="inline-flex size-7 shrink-0 items-center justify-center rounded-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              >
-                <ExternalLinkIcon className="size-3.5" aria-hidden="true" />
-              </a>
-            </TooltipTrigger>
-            <TooltipContent sideOffset={6}>
-              {t('browse.openOnGitHub', { repo: repo.fullName })}
-            </TooltipContent>
-          </Tooltip>
         </div>
         <div className="flex min-w-0 items-center gap-3">
           {repo.description ? (

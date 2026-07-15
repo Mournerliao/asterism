@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { EmptyState } from '../components/empty-state';
+import { CollectionDetailRouteLoading } from '../components/page-loading-states';
 import { RepoCollection } from '../components/repo-collection';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
@@ -21,8 +22,8 @@ export function CollectionDetailPage() {
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: starredRepos, isLoading: reposLoading } = useStarredRepos();
   const { data: collectionRepos, isLoading: linksLoading } = useCollectionRepos();
-  const { data: tags } = useTags();
-  const { data: repoTags } = useRepoTags();
+  const { data: tags, isLoading: tagsLoading } = useTags();
+  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
 
   const collection = useMemo(
     () => (collections ?? []).find((item) => item.id === id),
@@ -59,11 +60,16 @@ export function CollectionDetailPage() {
     return map;
   }, [tags, repoTags]);
 
-  const isLoading = collectionsLoading || reposLoading || linksLoading;
+  const isLoading =
+    collectionsLoading || reposLoading || linksLoading || tagsLoading || repoTagsLoading;
   const count = new Intl.NumberFormat(i18n.language).format(memberRecords.length);
   const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
-  if (!isLoading && !collection) {
+  if (isLoading) {
+    return <CollectionDetailRouteLoading label={t('loading.collection')} />;
+  }
+
+  if (!collection) {
     return (
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
         <Button variant="ghost" size="sm" className="w-fit gap-1" asChild>
@@ -99,24 +105,20 @@ export function CollectionDetailPage() {
         </div>
         <div className="min-w-0 flex-1">
           <h1 className="font-bold text-page-title text-foreground tracking-tight">
-            {collection?.name ?? '…'}
+            {collection.name}
           </h1>
-          {collection?.description ? (
+          {collection.description ? (
             <p className="mt-1 text-[13px] text-muted-foreground leading-5">
               {collection.description}
             </p>
           ) : null}
-          {!isLoading ? (
-            <p className="mt-2 text-caption text-muted-foreground">
-              {t('collectionDetail.repoCount', { count })}
-            </p>
-          ) : null}
+          <p className="mt-2 text-caption text-muted-foreground">
+            {t('collectionDetail.repoCount', { count })}
+          </p>
         </div>
       </div>
 
-      {isLoading ? (
-        <div className="min-h-48 animate-pulse rounded-lg border bg-card" />
-      ) : memberRecords.length === 0 ? (
+      {memberRecords.length === 0 ? (
         <EmptyState
           icon={FolderIcon}
           title={t('collectionDetail.emptyTitle')}

@@ -8,8 +8,15 @@ function FullScreenLoader() {
 
   return (
     <div className="flex min-h-svh items-center justify-center bg-background">
-      <div className="flex items-center gap-3 text-muted-foreground text-sm">
-        <span className="size-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent" />
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex items-center gap-3 text-muted-foreground text-sm"
+      >
+        <span
+          className="size-4 animate-spin rounded-full border-2 border-muted-foreground border-t-transparent motion-reduce:animate-none"
+          aria-hidden="true"
+        />
         {t('auth.loading')}
       </div>
     </div>

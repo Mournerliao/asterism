@@ -17,9 +17,21 @@
   "common": {
     "cancel": "Cancel",
     "save": "Save",
+    "saving": "Saving…",
     "edit": "Edit",
     "delete": "Delete",
+    "deleting": "Deleting…",
     "actions": "Actions"
+  },
+  "loading": {
+    "page": "Loading page…",
+    "repositories": "Loading repositories…",
+    "collections": "Loading collections…",
+    "collection": "Loading collection…",
+    "tags": "Loading tags…",
+    "dashboard": "Loading insights…",
+    "charts": "Loading charts…",
+    "importExport": "Loading backup data…"
   },
   "theme": {
     "light": "Light",
@@ -100,7 +112,7 @@
     "reconnectTitle": "GitHub connection expired",
     "reconnectDescription": "Reconnect to resume syncing your stars.",
     "reconnectError": "Couldn't start GitHub reconnect.",
-    "progress": "Syncing GitHub Stars… {{current}} / {{total}} repositories"
+    "progress": "Syncing GitHub Stars…"
   },
   "browse": {
     "title": "All Repositories",
@@ -237,6 +249,7 @@
     "downloadFormat": "Download {{format}}",
     "uploadPrompt": "Choose an Asterism JSON backup",
     "uploadHint": "or drag and drop · Asterism export v1 (.json)",
+    "restoring": "Restoring backup…",
     "emptyTitle": "Nothing to export yet",
     "emptyDescription": "Sync your stars first, then export tags, collections, and notes.",
     "invalidFile": "Please upload a JSON file",

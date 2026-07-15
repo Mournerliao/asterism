@@ -8,6 +8,10 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> 加载反馈统一（2026-07-15，见 `logs/2026-07-15-loading-state-unification.md`）：移除 Browse 首次进入时 route Suspense 的大矩形闪烁，默认页改为直接加载；其余路由与 Browse / Collections / Tags / Collection Detail / Dashboard / Import Export 全部改为镜像真实结构的专属骨架。初始查询与后台刷新分离，Import Export 不再闪现假空态；同步改为真实 indeterminate 状态，保存 / 删除 / 恢复等写操作统一按钮内 pending 反馈、重复提交防护、i18n 与 reduced-motion / a11y 语义。
+
+> 交互统一（2026-07-15，见 `logs/2026-07-15-browse-repo-name-link-consistency.md`）：Browse 宫格与表格的仓库名称统一为 GitHub 外链；表格整行的其余区域继续打开详情抽屉，并移除名称旁重复的 external-link 图标。两种视图由此共享“名称离站、容器看详情”的交互模型。
+
 > 优化（2026-07-14，见 `logs/2026-07-14-browse-list-organization-responsive.md`、`logs/2026-07-14-browse-list-information-hierarchy-correction.md`、`logs/2026-07-14-browse-list-row-interaction.md`）：Browse 列表从固定 640px GitHub 元数据表格重构为响应式语义表格：整行打开详情、独立外链打开 GitHub，新增 Archived 与 Updated + Starred activity；最终桌面列收敛为 Repository / Language / Stars / Activity，标签 / 集合 / 笔记仅在存在时作为 Repository 次级上下文出现，不再用 Organization 独立列或“未整理”占位。桌面 64px、移动端堆叠且无横向滚动，虚拟行按实测高度校准并补 `aria-rowcount` / `aria-rowindex`。
 
 > 视觉修复（2026-07-14，见 `logs/2026-07-14-browse-list-surface-alignment-polish.md`）：Browse 列表表面改用与 Repo Card 一致的 `--card`，以 `overflow: clip` 完整裁切圆角且不引入新的滚动容器；表头统一左对齐并与 cell 共用列模板和内边距。吸顶控制区移除贯穿视口的底部分隔线，改为无硬边界的 10px 渐隐背景。

@@ -5,12 +5,15 @@ import {
   FileJsonIcon,
   FileSpreadsheetIcon,
   FileTextIcon,
+  LoaderCircleIcon,
   UploadIcon,
 } from 'lucide-react';
 import { type DragEvent, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { EmptyState } from '../components/empty-state';
+import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
+import { ImportExportContentSkeleton } from '../components/page-loading-states';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
 import {
@@ -36,13 +39,20 @@ export function ImportExportPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  const { data: starredRepos } = useStarredRepos();
-  const { data: tags } = useTags();
-  const { data: collections } = useCollections();
-  const { data: repoTags } = useRepoTags();
-  const { data: collectionRepos } = useCollectionRepos();
-  const { data: notesList } = useNotesList();
+  const { data: starredRepos, isLoading: starredReposLoading } = useStarredRepos();
+  const { data: tags, isLoading: tagsLoading } = useTags();
+  const { data: collections, isLoading: collectionsLoading } = useCollections();
+  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
+  const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
+  const { data: notesList, isLoading: notesLoading } = useNotesList();
   const importData = useImportUserData();
+  const isLoading =
+    starredReposLoading ||
+    tagsLoading ||
+    collectionsLoading ||
+    repoTagsLoading ||
+    collectionReposLoading ||
+    notesLoading;
 
   const snapshot = useMemo((): ExportSnapshot => {
     const records = starredRepos ?? [];
@@ -109,6 +119,9 @@ export function ImportExportPage() {
   };
 
   const handleImportFile = async (file: File) => {
+    if (importData.isPending) {
+      return;
+    }
     if (!file.name.endsWith('.json')) {
       toast.error(t('importExport.invalidFile'));
       return;
@@ -155,7 +168,11 @@ export function ImportExportPage() {
     <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
       <PageHeader title={t('importExport.title')} description={t('importExport.subtitle')} />
 
-      {!hasData ? (
+      {isLoading ? (
+        <LoadingRegion label={t('loading.importExport')}>
+          <ImportExportContentSkeleton />
+        </LoadingRegion>
+      ) : !hasData ? (
         <EmptyState
           icon={DownloadIcon}
           title={t('importExport.emptyTitle')}
@@ -227,32 +244,49 @@ export function ImportExportPage() {
             {/* biome-ignore lint/a11y/useSemanticElements: 交互形态不适合原生 button，按用户要求使用 div */}
             <div
               role="button"
-              tabIndex={0}
-              className={`flex min-h-36 cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
+              tabIndex={importData.isPending ? -1 : 0}
+              aria-disabled={importData.isPending}
+              aria-busy={importData.isPending}
+              className={`flex min-h-36 flex-col items-center justify-center gap-2 rounded-lg border border-dashed p-6 text-sm transition-colors ${
                 dragOver ? 'border-primary bg-accent' : 'border-border bg-muted/30'
-              }`}
-              onClick={() => fileInputRef.current?.click()}
+              } ${importData.isPending ? 'cursor-wait opacity-70' : 'cursor-pointer'}`}
+              onClick={() => {
+                if (!importData.isPending) {
+                  fileInputRef.current?.click();
+                }
+              }}
               onKeyDown={(event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
+                if (!importData.isPending && (event.key === 'Enter' || event.key === ' ')) {
                   event.preventDefault();
                   fileInputRef.current?.click();
                 }
               }}
               onDragOver={(event) => {
                 event.preventDefault();
-                setDragOver(true);
+                if (!importData.isPending) {
+                  setDragOver(true);
+                }
               }}
               onDragLeave={() => setDragOver(false)}
               onDrop={onDrop}
             >
-              <UploadIcon className="size-8 text-muted-foreground" />
-              <span className="font-medium text-foreground">{t('importExport.uploadPrompt')}</span>
+              {importData.isPending ? (
+                <LoaderCircleIcon className="size-8 animate-spin text-muted-foreground motion-reduce:animate-none" />
+              ) : (
+                <UploadIcon className="size-8 text-muted-foreground" />
+              )}
+              <span className="font-medium text-foreground">
+                {importData.isPending
+                  ? t('importExport.restoring')
+                  : t('importExport.uploadPrompt')}
+              </span>
               <span className="text-muted-foreground">{t('importExport.uploadHint')}</span>
             </div>
             <input
               ref={fileInputRef}
               type="file"
               accept="application/json,.json"
+              disabled={importData.isPending}
               className="hidden"
               onChange={(event) => {
                 const file = event.target.files?.[0];

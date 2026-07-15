@@ -15,7 +15,9 @@ import { useNavigate } from 'react-router-dom';
 import { CollectionFormDialog } from '../components/collection-form-dialog';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { EmptyState } from '../components/empty-state';
+import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
+import { CollectionGridSkeleton } from '../components/page-loading-states';
 import {
   useCollections,
   useCreateCollection,
@@ -23,8 +25,6 @@ import {
   useUpdateCollection,
 } from '../data/use-collections';
 import { formatRelativeTime } from '../lib/format';
-
-const SKELETON_KEYS = ['a', 'b', 'c'];
 
 export function CollectionsPage() {
   const { t, i18n } = useTranslation();
@@ -48,7 +48,7 @@ export function CollectionsPage() {
     <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
       <PageHeader
         title={t('collections.title')}
-        description={subtitle}
+        description={isLoading ? undefined : subtitle}
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <PlusIcon className="size-4" />
@@ -58,11 +58,9 @@ export function CollectionsPage() {
       />
 
       {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {SKELETON_KEYS.map((key) => (
-            <Card key={key} className="h-32 animate-pulse" />
-          ))}
-        </div>
+        <LoadingRegion label={t('loading.collections')}>
+          <CollectionGridSkeleton />
+        </LoadingRegion>
       ) : list.length === 0 ? (
         <EmptyState
           icon={FolderIcon}

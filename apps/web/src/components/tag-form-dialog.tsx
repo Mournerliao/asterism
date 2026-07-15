@@ -13,6 +13,7 @@ import {
 } from '@asterism/ui';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PendingActionContent } from './pending-action-content';
 
 function isDuplicateName(name: string, existingNames: string[], excludeName?: string): boolean {
   const normalized = name.trim().toLowerCase();
@@ -78,9 +79,16 @@ export function TagFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!pending) {
+          onOpenChange(nextOpen);
+        }
+      }}
+    >
       <DialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4" aria-busy={pending}>
           <DialogHeader>
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
@@ -97,6 +105,7 @@ export function TagFormDialog({
               autoFocus
               maxLength={50}
               aria-invalid={Boolean(nameError)}
+              disabled={pending}
             />
             {nameError ? <p className="text-destructive text-sm">{nameError}</p> : null}
           </div>
@@ -109,12 +118,17 @@ export function TagFormDialog({
                 <div
                   key={swatch}
                   role="button"
-                  tabIndex={0}
+                  tabIndex={pending ? -1 : 0}
+                  aria-disabled={pending}
                   aria-label={`${t('tags.colorLabel')} ${index + 1}`}
                   aria-pressed={color === swatch}
-                  onClick={() => setColor(swatch)}
+                  onClick={() => {
+                    if (!pending) {
+                      setColor(swatch);
+                    }
+                  }}
                   onKeyDown={(event) => {
-                    if (event.key === 'Enter' || event.key === ' ') {
+                    if (!pending && (event.key === 'Enter' || event.key === ' ')) {
                       event.preventDefault();
                       setColor(swatch);
                     }
@@ -131,11 +145,24 @@ export function TagFormDialog({
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={pending}
+              onClick={() => onOpenChange(false)}
+            >
               {t('common.cancel')}
             </Button>
-            <Button type="submit" disabled={pending || name.trim().length === 0}>
-              {submitLabel}
+            <Button
+              type="submit"
+              disabled={pending || name.trim().length === 0}
+              aria-busy={pending}
+            >
+              <PendingActionContent
+                pending={pending}
+                idleLabel={submitLabel}
+                pendingLabel={t('common.saving')}
+              />
             </Button>
           </DialogFooter>
         </form>

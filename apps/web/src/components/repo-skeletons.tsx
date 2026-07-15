@@ -1,5 +1,8 @@
 import { Card, Skeleton } from '@asterism/ui';
 
+const GRID_SKELETON_KEYS = ['g1', 'g2', 'g3', 'g4', 'g5', 'g6'] as const;
+const LIST_SKELETON_KEYS = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'l8'] as const;
+
 export function RepoCardSkeleton() {
   return (
     <Card className="flex h-auto min-h-[208px] flex-col gap-3 rounded-lg p-4 sm:h-[208px]">
@@ -43,6 +46,35 @@ export function RepoListRowSkeleton() {
         <Skeleton className="h-3 w-16" />
         <Skeleton className="h-3 w-16" />
       </div>
+    </div>
+  );
+}
+
+export function RepoGridSkeleton() {
+  return (
+    <div
+      className="grid gap-4"
+      style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(370px, 100%), 1fr))' }}
+    >
+      {GRID_SKELETON_KEYS.map((key) => (
+        <RepoCardSkeleton key={key} />
+      ))}
+    </div>
+  );
+}
+
+export function RepoListSkeleton() {
+  return (
+    <div className="overflow-clip rounded-lg border bg-card text-card-foreground">
+      <div className="hidden h-10 grid-cols-[minmax(0,1fr)_5rem_9rem] items-center border-border border-b bg-muted/55 sm:grid lg:grid-cols-[minmax(0,1fr)_9rem_5rem_8rem]">
+        <Skeleton className="mx-3 h-3 w-20" />
+        <Skeleton className="sr-only h-3 w-14 lg:not-sr-only lg:mx-3" />
+        <Skeleton className="mx-3 h-3 w-10" />
+        <Skeleton className="mx-3 h-3 w-14" />
+      </div>
+      {LIST_SKELETON_KEYS.map((key) => (
+        <RepoListRowSkeleton key={key} />
+      ))}
     </div>
   );
 }

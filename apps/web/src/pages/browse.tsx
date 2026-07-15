@@ -12,9 +12,11 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { EmptyState } from '../components/empty-state';
+import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
+import { BrowseToolbarSkeleton } from '../components/page-loading-states';
 import { RepoFilterBar } from '../components/repo-filter-bar';
-import { RepoCardSkeleton, RepoListRowSkeleton } from '../components/repo-skeletons';
+import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useCollectionRepos } from '../data/use-collection-repos';
@@ -29,29 +31,8 @@ import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useRepoDrawer } from '../stores/repo-drawer';
 
-const INITIAL_GRID_KEYS = ['g1', 'g2', 'g3', 'g4', 'g5', 'g6'] as const;
-const INITIAL_LIST_KEYS = ['l1', 'l2', 'l3', 'l4', 'l5', 'l6', 'l7', 'l8'] as const;
-
 function InitialLoadingState({ view }: { view: RepoViewMode }) {
-  if (view === 'list') {
-    return (
-      <div className="flex flex-col">
-        {INITIAL_LIST_KEYS.map((key) => (
-          <RepoListRowSkeleton key={key} />
-        ))}
-      </div>
-    );
-  }
-  return (
-    <div
-      className="grid gap-4"
-      style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(370px, 1fr))' }}
-    >
-      {INITIAL_GRID_KEYS.map((key) => (
-        <RepoCardSkeleton key={key} />
-      ))}
-    </div>
-  );
+  return view === 'list' ? <RepoListSkeleton /> : <RepoGridSkeleton />;
 }
 
 export function BrowsePage() {
@@ -59,11 +40,13 @@ export function BrowsePage() {
   const { view, transitionTo } = useBrowseView();
   const filters = useBrowseFilters();
   const openDrawer = useRepoDrawer((state) => state.open);
-  const { data, isLoading, isError, refetch, isFetching } = useStarredRepos();
-  const { data: tags } = useTags();
-  const { data: repoTags } = useRepoTags();
-  const { data: collectionRepos } = useCollectionRepos();
-  const { data: noteRepoIds } = useNoteRepoIds();
+  const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
+  const { data: tags, isLoading: tagsLoading } = useTags();
+  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
+  const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
+  const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
+  const isLoading =
+    reposLoading || tagsLoading || repoTagsLoading || collectionReposLoading || notesLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
@@ -137,9 +120,7 @@ export function BrowsePage() {
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
 
-  const repoContent = isLoading ? (
-    <InitialLoadingState view={view} />
-  ) : isError ? (
+  const repoContent = isError ? (
     <EmptyState
       icon={AlertTriangleIcon}
       title={t('browse.errorTitle')}
@@ -202,6 +183,22 @@ export function BrowsePage() {
     />
   );
 
+  if (isLoading) {
+    return (
+      <LoadingRegion
+        label={t('loading.repositories')}
+        className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5"
+      >
+        <div className="shrink-0">
+          <BrowseToolbarSkeleton />
+        </div>
+        <div className="-mx-6 min-h-0 flex-1 overflow-hidden px-6">
+          <InitialLoadingState view={view} />
+        </div>
+      </LoadingRegion>
+    );
+  }
+
   if (hasRepos) {
     return (
       <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5">
@@ -211,18 +208,13 @@ export function BrowsePage() {
               <PageHeader
                 size="section"
                 title={t('browse.title')}
-                description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
+                description={!isError ? t('browse.count', { total }) : undefined}
               />
               <RepoViewToggle committedView={view} onSelect={transitionTo} />
             </div>
             <RepoFilterBar facets={facets} tags={tags ?? []} />
           </GlassControlRow>
-          {sync.isPending ? (
-            <SyncProgressBanner
-              current={Math.floor(records.length * 0.7)}
-              total={records.length || 100}
-            />
-          ) : null}
+          {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
         </div>
 
         <div ref={setRepoScrollElement} className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
@@ -237,15 +229,10 @@ export function BrowsePage() {
       <PageHeader
         size="section"
         title={t('browse.title')}
-        description={!isLoading && !isError ? t('browse.count', { total }) : undefined}
+        description={!isError ? t('browse.count', { total }) : undefined}
       />
 
-      {sync.isPending ? (
-        <SyncProgressBanner
-          current={Math.floor(records.length * 0.7)}
-          total={records.length || 100}
-        />
-      ) : null}
+      {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
 
       {repoContent}
     </div>

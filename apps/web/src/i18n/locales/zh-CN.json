@@ -17,9 +17,21 @@
   "common": {
     "cancel": "取消",
     "save": "保存",
+    "saving": "保存中…",
     "edit": "编辑",
     "delete": "删除",
+    "deleting": "删除中…",
     "actions": "操作"
+  },
+  "loading": {
+    "page": "正在加载页面…",
+    "repositories": "正在加载仓库…",
+    "collections": "正在加载集合…",
+    "collection": "正在加载集合详情…",
+    "tags": "正在加载标签…",
+    "dashboard": "正在加载洞察…",
+    "charts": "正在加载图表…",
+    "importExport": "正在加载备份数据…"
   },
   "theme": {
     "light": "浅色",
@@ -100,7 +112,7 @@
     "reconnectTitle": "GitHub 连接已过期",
     "reconnectDescription": "重新连接后即可继续同步 Star。",
     "reconnectError": "无法发起 GitHub 重新连接。",
-    "progress": "正在同步 GitHub Stars… {{current}} / {{total}} 个仓库"
+    "progress": "正在同步 GitHub Stars…"
   },
   "browse": {
     "title": "全部仓库",
@@ -237,6 +249,7 @@
     "downloadFormat": "下载 {{format}}",
     "uploadPrompt": "选择 Asterism JSON 备份",
     "uploadHint": "或拖拽到此处 · Asterism v1 导出（.json）",
+    "restoring": "正在恢复备份…",
     "emptyTitle": "暂无可导出数据",
     "emptyDescription": "请先同步 stars，再导出标签、集合与笔记。",
     "invalidFile": "请上传 JSON 文件",

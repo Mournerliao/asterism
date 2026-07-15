@@ -1,16 +1,16 @@
 import type { TagWithCount } from '@asterism/db';
-import { Button, Card, Input } from '@asterism/ui';
+import { Button, Card, Input, Skeleton } from '@asterism/ui';
 import { PencilIcon, PlusIcon, SearchIcon, TagIcon, XIcon } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ConfirmDialog } from '../components/confirm-dialog';
 import { EmptyState } from '../components/empty-state';
+import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
+import { TagGridSkeleton } from '../components/page-loading-states';
 import { SearchInputIcon } from '../components/search-input-icon';
 import { TagFormDialog } from '../components/tag-form-dialog';
 import { useCreateTag, useDeleteTag, useTags, useUpdateTag } from '../data/use-tags';
-
-const SKELETON_KEYS = ['a', 'b', 'c', 'd', 'e', 'f'];
 
 export function TagsPage() {
   const { t, i18n } = useTranslation();
@@ -42,7 +42,7 @@ export function TagsPage() {
     <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-6 overflow-y-auto">
       <PageHeader
         title={t('tags.title')}
-        description={subtitle}
+        description={isLoading ? undefined : subtitle}
         actions={
           <Button onClick={() => setCreateOpen(true)}>
             <PlusIcon className="size-4" />
@@ -51,7 +51,9 @@ export function TagsPage() {
         }
       />
 
-      {list.length > 0 ? (
+      {isLoading ? (
+        <Skeleton className="h-9 w-full max-w-md" />
+      ) : list.length > 0 ? (
         <div className="relative max-w-md">
           <SearchInputIcon className="left-3" />
           <Input
@@ -64,11 +66,9 @@ export function TagsPage() {
       ) : null}
 
       {isLoading ? (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {SKELETON_KEYS.map((key) => (
-            <Card key={key} className="h-16 animate-pulse" />
-          ))}
-        </div>
+        <LoadingRegion label={t('loading.tags')}>
+          <TagGridSkeleton />
+        </LoadingRegion>
       ) : list.length === 0 ? (
         <EmptyState
           icon={TagIcon}

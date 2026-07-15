@@ -20,7 +20,7 @@
 - [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化按计划留到 **Phase 2**（见 `decisions/0004`）。
 - [ ] **Biome 不约束 CSS**：因 Tailwind v4 语法，`*.css` 已排除出 Biome；如需 CSS 规范后续再决策（见 `decisions/0004`）。
 - [x] **`globals.css` 同步 Graphite Glass token**（2026-07-10）：light/dark、单色 brand、语义状态、蓝色阶图表与限定交互层玻璃已落地；见 ADR 0009 与对应日志。
-- [ ] **同步进度必须来自真实状态**：Browse 当前用已有记录数推算同步进度，违反状态透明契约。后续需让 Edge Function / client 暴露真实 processed/total；若无法提供则改成 indeterminate，不显示伪精确计数。
+- [x] **同步进度必须来自真实状态**（2026-07-15）：Edge Function 尚未暴露 processed/total，因此 Browse 已改为 indeterminate 同步状态，不再用已有记录数推算伪精确计数；未来后端提供真实进度后再升级为 determinate。
 - [ ] **Topbar Search 作用域需收敛**：Search 在全部路由显示但只写 Browse filter store。后续需裁决为 Browse/collection scoped search，或升级为真正的全局搜索/command surface，避免跨页隐藏筛选状态。
 - [ ] **写操作失败恢复需统一**：标签、集合与笔记 mutations 的 pending、错误、重试、草稿保留和 optimistic rollback 尚未形成一致契约；后续需统一交互与数据恢复策略，并验证错误通告后的焦点路径。
 - [x] **Browse 筛选层级精简**（2026-07-14）：主栏保留语言 / Topic / 标签 / 更多筛选 / 排序，Star 阈值、更新时间与状态收进带 active count 的次级弹层；高基数 facets 使用固定结果窗口与搜索，见 `logs/2026-07-14-browse-filter-hierarchy-and-facet-performance.md`。

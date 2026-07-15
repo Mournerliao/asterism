@@ -1,5 +1,5 @@
 import { deriveDashboardInsights } from '@asterism/core';
-import { Button, Card, Skeleton } from '@asterism/ui';
+import { Button } from '@asterism/ui';
 import {
   AlertTriangleIcon,
   FolderIcon,
@@ -15,7 +15,12 @@ import { useTranslation } from 'react-i18next';
 import { DashboardCharts } from '../components/dashboard/dashboard-charts';
 import { StatCard } from '../components/dashboard/stat-card';
 import { EmptyState } from '../components/empty-state';
+import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
+import {
+  DashboardChartsSkeleton,
+  DashboardContentSkeleton,
+} from '../components/page-loading-states';
 import { useCollections } from '../data/use-collections';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
@@ -26,14 +31,19 @@ const LazyDashboardCharts = lazy(async () => ({
   default: DashboardCharts,
 }));
 
-const STAT_SKELETON_KEYS = ['a', 'b', 'c', 'd'];
-
 export function DashboardPage() {
   const { t, i18n } = useTranslation();
-  const { data: starredRepos, isLoading, isError, refetch, isFetching } = useStarredRepos();
-  const { data: tags } = useTags();
-  const { data: collections } = useCollections();
-  const { data: repoTags } = useRepoTags();
+  const {
+    data: starredRepos,
+    isLoading: starredReposLoading,
+    isError,
+    refetch,
+    isFetching,
+  } = useStarredRepos();
+  const { data: tags, isLoading: tagsLoading } = useTags();
+  const { data: collections, isLoading: collectionsLoading } = useCollections();
+  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
+  const isLoading = starredReposLoading || tagsLoading || collectionsLoading || repoTagsLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
 
@@ -61,17 +71,9 @@ export function DashboardPage() {
       <PageHeader title={t('dashboard.title')} description={t('dashboard.subtitle')} />
 
       {isLoading ? (
-        <>
-          <div className="grid grid-cols-2 border-y lg:grid-cols-4 lg:divide-x [&>*:nth-child(-n+2)]:border-b [&>*:nth-child(odd)]:border-r lg:[&>*]:border-r-0 lg:[&>*]:border-b-0">
-            {STAT_SKELETON_KEYS.map((key) => (
-              <Card key={key} className="h-24 animate-pulse" />
-            ))}
-          </div>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <Card className="h-72 animate-pulse" />
-            <Card className="h-72 animate-pulse" />
-          </div>
-        </>
+        <LoadingRegion label={t('loading.dashboard')} className="flex flex-col gap-6">
+          <DashboardContentSkeleton />
+        </LoadingRegion>
       ) : isError ? (
         <EmptyState
           icon={AlertTriangleIcon}
@@ -139,12 +141,9 @@ export function DashboardPage() {
 
           <Suspense
             fallback={
-              <div className="grid gap-4 lg:grid-cols-2">
-                <Skeleton className="h-72" />
-                <Skeleton className="h-72" />
-                <Skeleton className="h-72" />
-                <Skeleton className="h-72" />
-              </div>
+              <LoadingRegion label={t('loading.charts')}>
+                <DashboardChartsSkeleton count={4} />
+              </LoadingRegion>
             }
           >
             <LazyDashboardCharts insights={insights} />

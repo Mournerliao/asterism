@@ -35,6 +35,7 @@ import { useCreateTag, useTags } from '../data/use-tags';
 import { formatCompactNumber, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { useRepoDrawer } from '../stores/repo-drawer';
+import { PendingActionContent } from './pending-action-content';
 import { TagBadge } from './tag-badge';
 import { TagFormDialog } from './tag-form-dialog';
 
@@ -312,6 +313,7 @@ function NotesSection({ repoId }: { repoId: string }) {
             onChange={(event) => setBody(event.target.value)}
             placeholder={t('drawer.notesPlaceholder')}
             rows={4}
+            disabled={save.isPending}
             className="min-h-16 rounded-md text-[13px] leading-5"
           />
           {dirty ? (
@@ -319,6 +321,7 @@ function NotesSection({ repoId }: { repoId: string }) {
               <Button
                 variant="ghost"
                 size="sm"
+                disabled={save.isPending}
                 onClick={() => {
                   setBody(serverBody);
                   setEditing(false);
@@ -329,12 +332,16 @@ function NotesSection({ repoId }: { repoId: string }) {
               <Button
                 size="sm"
                 disabled={save.isPending}
+                aria-busy={save.isPending}
                 onClick={() => {
-                  save.mutate({ repoId, body });
-                  setEditing(false);
+                  save.mutate({ repoId, body }, { onSuccess: () => setEditing(false) });
                 }}
               >
-                {t('drawer.saveNote')}
+                <PendingActionContent
+                  pending={save.isPending}
+                  idleLabel={t('drawer.saveNote')}
+                  pendingLabel={t('common.saving')}
+                />
               </Button>
             </div>
           ) : null}

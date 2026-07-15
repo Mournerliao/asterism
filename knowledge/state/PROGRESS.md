@@ -8,6 +8,10 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> 分段切换器统一（2026-07-15，见 `logs/2026-07-15-settings-segmented-control-consistency.md`）：Settings 主题切换从独立 solid 轨道收敛为 Browse 使用的默认 glass 轨道，文本 / 图标两种内容表达共享同一表面、边框、圆角、选中态与动效规范。
+
+> 空状态动作收敛（2026-07-15，见 `logs/2026-07-15-empty-state-action-hierarchy.md`）：Collections / Tags 在无数据时只保留空状态主体中的首次创建主操作，不再于页头重复显示；已有数据后恢复页头创建入口，标签搜索无结果仍保留追加能力。
+
 > 加载反馈统一（2026-07-15，见 `logs/2026-07-15-loading-state-unification.md`）：移除 Browse 首次进入时 route Suspense 的大矩形闪烁，默认页改为直接加载；其余路由与 Browse / Collections / Tags / Collection Detail / Dashboard / Import Export 全部改为镜像真实结构的专属骨架。初始查询与后台刷新分离，Import Export 不再闪现假空态；同步改为真实 indeterminate 状态，保存 / 删除 / 恢复等写操作统一按钮内 pending 反馈、重复提交防护、i18n 与 reduced-motion / a11y 语义。
 
 > 交互统一（2026-07-15，见 `logs/2026-07-15-browse-repo-name-link-consistency.md`）：Browse 宫格与表格的仓库名称统一为 GitHub 外链；表格整行的其余区域继续打开详情抽屉，并移除名称旁重复的 external-link 图标。两种视图由此共享“名称离站、容器看详情”的交互模型。

@@ -50,10 +50,12 @@ export function CollectionsPage() {
         title={t('collections.title')}
         description={isLoading ? undefined : subtitle}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="size-4" />
-            {t('collections.create')}
-          </Button>
+          list.length > 0 ? (
+            <Button onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="size-4" />
+              {t('collections.create')}
+            </Button>
+          ) : undefined
         }
       />
 

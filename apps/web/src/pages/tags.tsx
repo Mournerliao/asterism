@@ -44,10 +44,12 @@ export function TagsPage() {
         title={t('tags.title')}
         description={isLoading ? undefined : subtitle}
         actions={
-          <Button onClick={() => setCreateOpen(true)}>
-            <PlusIcon className="size-4" />
-            {t('tags.create')}
-          </Button>
+          list.length > 0 ? (
+            <Button onClick={() => setCreateOpen(true)}>
+              <PlusIcon className="size-4" />
+              {t('tags.create')}
+            </Button>
+          ) : undefined
         }
       />
 

@@ -83,7 +83,6 @@ export function SettingsPage() {
           description={t('settings.themeDescription')}
           control={
             <SegmentedControl<Theme>
-              variant="solid"
               value={theme}
               onValueChange={setTheme}
               ariaLabel={t('settings.theme')}

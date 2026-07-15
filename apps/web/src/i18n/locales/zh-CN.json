@@ -176,10 +176,10 @@
     "addCollection": "加入集合",
     "noteSaveError": "无法保存笔记，草稿仍为你保留。",
     "unsavedTitle": "要保存这篇笔记的更改吗？",
-    "unsavedDescription": "笔记还有未保存的更改，请先保存或放弃更改再继续。",
+    "unsavedDescription": "这篇笔记还有未保存的更改。",
     "continueEditing": "继续编辑",
-    "discardAndContinue": "放弃并继续",
-    "saveAndContinue": "保存并继续"
+    "discardAndContinue": "放弃更改",
+    "saveAndContinue": "保存更改"
   },
   "collections": {
     "title": "集合",

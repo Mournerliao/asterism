@@ -176,10 +176,10 @@
     "addCollection": "Add to collection",
     "noteSaveError": "Couldn't save this note. Your draft is still here.",
     "unsavedTitle": "Save changes to this note?",
-    "unsavedDescription": "Your note has unsaved changes. Save or discard them before continuing.",
-    "continueEditing": "Continue editing",
-    "discardAndContinue": "Discard and continue",
-    "saveAndContinue": "Save and continue"
+    "unsavedDescription": "Your note has unsaved changes.",
+    "continueEditing": "Keep editing",
+    "discardAndContinue": "Discard changes",
+    "saveAndContinue": "Save changes"
   },
   "collections": {
     "title": "Collections",

@@ -801,6 +801,7 @@ function UnsavedNoteDialog() {
     >
       <DialogContent
         showCloseButton={false}
+        className="gap-5 p-5 sm:max-w-[28rem]"
         onEscapeKeyDown={(event) => {
           if (confirmPending) event.preventDefault();
         }}
@@ -817,22 +818,38 @@ function UnsavedNoteDialog() {
             </p>
           ) : null}
         </DialogHeader>
-        <DialogFooter className="sm:justify-between">
-          <Button variant="ghost" disabled={confirmPending} onClick={continueEditing}>
+        <DialogFooter className="flex-col sm:justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full sm:w-auto"
+            disabled={confirmPending}
+            onClick={continueEditing}
+          >
             {t('drawer.continueEditing')}
           </Button>
-          <div className="flex flex-col-reverse gap-2 sm:flex-row">
-            <Button variant="outline" disabled={confirmPending} onClick={discardAndContinue}>
-              {t('drawer.discardAndContinue')}
-            </Button>
-            <Button disabled={confirmPending} aria-busy={confirmPending} onClick={saveAndContinue}>
-              <PendingActionContent
-                pending={confirmPending}
-                idleLabel={t('drawer.saveAndContinue')}
-                pendingLabel={t('common.saving')}
-              />
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full sm:w-auto"
+            disabled={confirmPending}
+            onClick={discardAndContinue}
+          >
+            {t('drawer.discardAndContinue')}
+          </Button>
+          <Button
+            size="sm"
+            className="w-full sm:w-auto"
+            disabled={confirmPending}
+            aria-busy={confirmPending}
+            onClick={saveAndContinue}
+          >
+            <PendingActionContent
+              pending={confirmPending}
+              idleLabel={t('drawer.saveAndContinue')}
+              pendingLabel={t('common.saving')}
+            />
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

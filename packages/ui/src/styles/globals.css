@@ -14,11 +14,13 @@
   --text-page-title: 1.5rem;
   --text-section-title: 1.25rem;
   --text-drawer-title: 1rem;
-  --text-repo-name: 1.375rem;
+  --text-repo-name: 1.125rem;
   --text-body: 0.8125rem;
   --text-caption: 0.75rem;
   --text-micro: 0.6875rem;
   --leading-body: 1.25rem;
+  --leading-caption: 1rem;
+  --leading-micro: 0.875rem;
   --spacing-unit: 0.25rem;
   --radius: 0.5rem;
   /* Surfaces · graphite light */
@@ -160,8 +162,11 @@
   --text-drawer-title: var(--text-drawer-title);
   --text-repo-name: var(--text-repo-name);
   --text-body: var(--text-body);
+  --text-body--line-height: var(--leading-body);
   --text-caption: var(--text-caption);
+  --text-caption--line-height: var(--leading-caption);
   --text-micro: var(--text-micro);
+  --text-micro--line-height: var(--leading-micro);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);

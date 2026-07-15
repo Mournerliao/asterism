@@ -2,6 +2,7 @@ import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { memo, useEffect, useState } from 'react';
 import type { RepoViewMode } from '../stores/browse-view';
+import type { RepoOpenModality } from '../stores/repo-inspector';
 import { RepoCollection } from './repo-collection';
 
 const VIEW_MODES = ['grid', 'list'] as const satisfies readonly RepoViewMode[];
@@ -12,6 +13,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
+  selectedRepoId,
   onSelect,
   scrollElement,
 }: {
@@ -20,7 +22,8 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   tagsByRepo?: Map<string, Tag[]>;
   collectionCountByRepo?: Map<string, number>;
   noteRepoIds?: Set<string>;
-  onSelect?: (record: StarredRepoRecord) => void;
+  selectedRepoId?: string;
+  onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
 }) {
   // 访问过的视图保持挂载，后续切换只做显隐，避开虚拟列表重建成本。
@@ -43,6 +46,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
               tagsByRepo={tagsByRepo}
               collectionCountByRepo={collectionCountByRepo}
               noteRepoIds={noteRepoIds}
+              selectedRepoId={selectedRepoId}
               onSelect={onSelect}
               scrollElement={mode === view ? scrollElement : null}
             />

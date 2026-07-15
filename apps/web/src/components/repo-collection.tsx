@@ -4,10 +4,12 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useEffect, useRef, useState } from 'react';
 import { useScrollMargin } from '../lib/scroll-margin';
 import type { RepoViewMode } from '../stores/browse-view';
+import type { RepoOpenModality } from '../stores/repo-inspector';
 import { RepoCard } from './repo-card';
 import { RepoTable } from './repo-table';
 
 const MIN_CARD_WIDTH = 370;
+const CARD_GAP = 16;
 const MAX_COLUMNS = 3;
 
 type RepoCollectionProps = {
@@ -15,7 +17,8 @@ type RepoCollectionProps = {
   tagsByRepo?: Map<string, Tag[]>;
   collectionCountByRepo?: Map<string, number>;
   noteRepoIds?: Set<string>;
-  onSelect?: (record: StarredRepoRecord) => void;
+  selectedRepoId?: string;
+  onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
 };
 
@@ -28,7 +31,13 @@ function useColumns(ref: React.RefObject<HTMLElement | null>): number {
       return;
     }
     const update = () => {
-      const next = Math.max(1, Math.min(MAX_COLUMNS, Math.floor(el.clientWidth / MIN_CARD_WIDTH)));
+      const next = Math.max(
+        1,
+        Math.min(
+          MAX_COLUMNS,
+          Math.floor((el.clientWidth + CARD_GAP) / (MIN_CARD_WIDTH + CARD_GAP)),
+        ),
+      );
       setColumns(next);
     };
     update();
@@ -45,6 +54,7 @@ const RepoGridView = memo(function RepoGridView({
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
+  selectedRepoId,
   onSelect,
   scrollElement,
 }: RepoCollectionProps) {
@@ -65,6 +75,16 @@ const RepoGridView = memo(function RepoGridView({
   useEffect(() => {
     virtualizer.measure();
   }, [virtualizer, columns, records.length, scrollMargin]);
+
+  useEffect(() => {
+    if (!selectedRepoId || !scrollElement) {
+      return;
+    }
+    const index = records.findIndex((record) => record.repoId === selectedRepoId);
+    if (index >= 0) {
+      virtualizer.scrollToIndex(Math.floor(index / columns), { align: 'auto' });
+    }
+  }, [columns, records, scrollElement, selectedRepoId, virtualizer]);
 
   return (
     <div ref={collectionRef} className="relative w-full">
@@ -91,6 +111,7 @@ const RepoGridView = memo(function RepoGridView({
                     tags={tagsByRepo?.get(record.repoId)}
                     collectionCount={collectionCountByRepo?.get(record.repoId)}
                     hasNote={noteRepoIds?.has(record.repoId)}
+                    selected={record.repoId === selectedRepoId}
                     onSelect={onSelect}
                   />
                 ))}
@@ -108,6 +129,7 @@ const RepoListView = memo(function RepoListView({
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
+  selectedRepoId,
   onSelect,
   scrollElement,
 }: RepoCollectionProps) {
@@ -117,6 +139,7 @@ const RepoListView = memo(function RepoListView({
       tagsByRepo={tagsByRepo}
       collectionCountByRepo={collectionCountByRepo}
       noteRepoIds={noteRepoIds}
+      selectedRepoId={selectedRepoId}
       onSelect={onSelect}
       scrollElement={scrollElement}
     />
@@ -131,6 +154,7 @@ export const RepoCollection = memo(function RepoCollection({
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
+  selectedRepoId,
   onSelect,
   scrollElement,
 }: RepoCollectionProps & { view: RepoViewMode }) {
@@ -141,6 +165,7 @@ export const RepoCollection = memo(function RepoCollection({
         tagsByRepo={tagsByRepo}
         collectionCountByRepo={collectionCountByRepo}
         noteRepoIds={noteRepoIds}
+        selectedRepoId={selectedRepoId}
         onSelect={onSelect}
         scrollElement={scrollElement}
       />
@@ -153,6 +178,7 @@ export const RepoCollection = memo(function RepoCollection({
       tagsByRepo={tagsByRepo}
       collectionCountByRepo={collectionCountByRepo}
       noteRepoIds={noteRepoIds}
+      selectedRepoId={selectedRepoId}
       onSelect={onSelect}
       scrollElement={scrollElement}
     />

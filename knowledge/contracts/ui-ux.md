@@ -20,7 +20,7 @@
 | Browse · 列表/表格 | `8:59` | ⚠️ frame 名为 "Browse - Card View"，**实为表格/列表视图** |
 | Browse · 卡片 | `8:227` | ⚠️ frame 名为 "Dashboard"，**实为卡片视图** |
 | Settings | `8:299` | 外观 / 账号 / AI（BYOK，Coming Soon） |
-| Repo Detail Drawer | `8:364` | 仓库详情抽屉（tags / collections / notes） |
+| Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（tags / collections / notes） |
 | Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计仪表盘** |
 | Tags Management | `12:2` | 标签管理 |
 | Collections | `12:126` | 集合 |
@@ -83,7 +83,7 @@
 | `--text-page-title` | 页面标题（Settings/Dashboard/Tags） | `1.5rem`（24px）/ Bold |
 | `--text-section-title` | 区块标题（Browse 页头、空状态） | `1.25rem`（20px）/ SemiBold |
 | `--text-drawer-title` | Drawer 标题 | `1rem`（16px）/ SemiBold |
-| `--text-repo-name` | Drawer 仓库名 | `1.375rem`（22px）/ Bold |
+| `--text-repo-name` | Repo Inspector 仓库名 | `1.125rem`（18px）/ SemiBold |
 | `--text-body` | 描述、卡片正文 | `0.8125rem`（13px）/ line-height `1.25rem` |
 | `--text-caption` | 筛选、统计、副标题 | `0.75rem`（12px） |
 | `--text-micro` | 表格列头 | `0.6875rem`（11px）/ Medium |
@@ -197,7 +197,7 @@ Browse 卡片采用舒展但高效的固定节奏：桌面 / 平板目标高度 
 
 - 仓库身份：弱化 owner、强调 repo name；语言色点只作为小面积编码，Archived 使用既有 outline badge。
 - 描述：固定最多两行；仅当文本真实溢出时，hover 展示完整描述 tooltip，未溢出时不创建冗余浮层。完整文本保留在 DOM 中供辅助技术读取。
-- 整理上下文：用户自定义标签优先，GitHub topics 仅补充剩余空间；同名项按大小写不敏感去重，溢出统一折叠为 `+n` 并通过 tooltip 展示。集合数量与笔记存在状态位于该行右侧，集合名称与笔记正文仍留在详情抽屉。
+- 整理上下文：用户自定义标签优先，GitHub topics 仅补充剩余空间；同名项按大小写不敏感去重，溢出统一折叠为 `+n` 并通过 tooltip 展示。集合数量与笔记存在状态位于该行右侧，集合名称与笔记正文仍留在 Repo Inspector。
 - 单基线 Footer：Stars / Forks 位于左侧，Updated / Starred 组成右侧不可换行的紧凑时间组（如 `Updated 2w · Starred 4w`）；完整相对时间通过 tooltip 与无障碍标签提供。仅极窄单列允许两个信息组整体上下排列，不允许时间字段自行散落换行。
 - 交互语义：整卡详情触发器与 GitHub 外链必须是并列交互，不得把链接嵌套在 `role=button` 容器内；两条路径均需键盘可达并有可见焦点。
 
@@ -205,12 +205,24 @@ Browse 卡片采用舒展但高效的固定节奏：桌面 / 平板目标高度 
 
 Browse 列表是紧凑生产力视图，不是 GitHub 元数据表格的复刻。每行必须优先回答仓库身份、技术属性与近期 activity；个人整理信息只在真实存在时作为 Repository 的次级上下文出现，不得以空状态占用独立列。桌面目标行高为 64px，移动端按内容安全增高并使用实测高度驱动虚拟滚动。
 
-- 仓库身份与点击语义：整行是打开 Asterism 详情抽屉的主操作，支持 pointer click 与聚焦后的 Enter / Space；仓库名称与卡片视图保持一致，作为唯一的 GitHub 外链并新窗口打开，不再额外显示重复的 external-link 图标。名称链接与整行详情触发器必须并列，点击或键盘激活名称只打开 GitHub。行继续保持原生 `row` 语义，不改写为 `role=button`；Archived 使用既有 outline badge，描述保持单行截断。
+- 仓库身份与点击语义：整行是打开 Asterism Repo Inspector 的主操作，支持 pointer click 与聚焦后的 Enter / Space；仓库名称与卡片视图保持一致，作为唯一的 GitHub 外链并新窗口打开，不再额外显示重复的 external-link 图标。名称链接与整行详情触发器必须并列，点击或键盘激活名称只打开 GitHub。行继续保持原生 `row` 语义，不改写为 `role=button`；Archived 使用既有 outline badge，描述保持单行截断。
 - 整理上下文：用户自定义标签、集合数量与笔记存在状态收进 Repository 次级信息，不混入 GitHub topics；标签按真实可用宽度折叠为 `+n`。三者都不存在时不渲染占位文案，不设置 Organization 独立列。
 - Activity：Updated 与 Starred 同时可见，完整相对时间通过 tooltip 与无障碍文本提供；按更新时间排序时，Updated 不得被响应式布局隐藏。
-- 表面与对齐：列表容器使用与 Repo Card 一致的 `--card` 内容表面，圆角必须裁切表头、行 hover 与虚拟占位内容；表头和 cell 必须复用同一列模板与水平内边距，并统一左对齐。表头使用独立的 muted surface、caption 字号与 semibold 字重，必须与正文形成可辨识层级。
-- 响应式列：`≥1024px` 显示 Repository / Language / Stars / Activity；`640–1023px` 视觉隐藏 Language、保留其表头与 cell 语义；`<640px` 视觉隐藏表头，单行重排为身份、描述/整理上下文、Language / Stars / Activity，不产生横向滚动。
+- 表面与对齐：列表容器使用与 Repo Card 一致的 `--card` 内容表面，圆角必须裁切表头、行 hover 与虚拟占位内容；表头和 cell 必须复用同一列模板与水平内边距，并统一左对齐。表头使用独立的 muted surface、micro 字号与 medium 字重，必须与正文形成可辨识层级。
+- 响应式列：按列表容器而非浏览器视口切换；容器 `≥1024px` 显示 Repository / Language / Stars / Activity，`640–1023px` 视觉隐藏 Language、保留其表头与 cell 语义，`<640px` 视觉隐藏表头并重排为身份、描述/整理上下文、Language / Stars / Activity。任何详情呈现都不得改变主内容的 x、宽度或产生横向滚动。
 - 可访问性：语义表格提供总行数与虚拟行索引；隐藏列必须在辅助技术树中保留正确的四列表头关联。名称、外链、标签溢出等交互各自键盘可达并使用 `--ring`；触控设备上的 segmented control 与紧凑入口命中区域不小于 44px。
+
+### Repo Quick Look Pattern · 仓库快速详情模式
+
+Repo Quick Look 是 Browse 与集合详情共享的瞬时、非模态详情层。它服务于快速扫读与轻量整理，不是持久工作区；打开前后主内容的位置与宽度必须完全不变。
+
+- 自适应呈现：`≥1280px` 通过 body portal 固定在右侧 `24px`、顶部 `72px`，宽 `480px`，最大高度为 `min(46rem, 100svh - 88px)`；`768–1279px` 使用同尺寸上限的水平居中悬浮层，左右至少 `16px`；两档均无遮罩、焦点锁定或布局占位。`<768px` 使用底部 Sheet，最大高度 `90svh`。
+- 表面与动效：悬浮层使用 Graphite Glass overlay、`12px` 圆角与既有 `--glass-shadow`，不得添加装饰性玻璃或更大阴影。打开与关闭从当前可见 repo trigger 以 `220ms` ease-out 位移和轻微缩放展开/收回；trigger 不可见时退化为淡入淡出。相邻仓库切换只对内容做 `120ms` crossfade，窗口不移动；reduced motion 下直接切换。
+- 连续浏览：当前卡片或列表行使用完整 inset ring / surface 表达选中，不使用侧边色条；`J` / `K` 与面板内上一项 / 下一项控制沿当前可见排序移动，并在虚拟列表中把新选中项滚入视野。输入框、菜单与对话框聚焦时不得劫持快捷键。
+- 选择与关闭：点击当前已选仓库再次关闭，点击其他仓库直接切换；点击悬浮窗外或按 Esc 关闭，repo trigger 自身不走外部关闭处理。任何路由变化都关闭 Quick Look，不跨页面保留。键盘 Enter / Space 打开时把焦点移入窗口，关闭后返回原 trigger；pointer 打开保留列表操作上下文。
+- 编辑安全：笔记草稿切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续或继续编辑。保存失败时保留草稿与原选择，不得静默丢失。
+- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；仓库名使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。主体固定为 Overview → Tags → Collections → Notes 的单列结构。
+- 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 
 ### Browse Filter Pattern · 浏览筛选模式
 

@@ -1,23 +1,25 @@
 import type { Tag } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import { ArrowLeftIcon, FolderIcon } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { EmptyState } from '../components/empty-state';
 import { CollectionDetailRouteLoading } from '../components/page-loading-states';
 import { RepoCollection } from '../components/repo-collection';
+import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useTags } from '../data/use-tags';
-import { useRepoDrawer } from '../stores/repo-drawer';
+import { useRepoInspectorStore } from '../stores/repo-inspector';
 
 export function CollectionDetailPage() {
   const { t, i18n } = useTranslation();
   const { id } = useParams<{ id: string }>();
-  const openDrawer = useRepoDrawer((state) => state.open);
+  const { requestOpen, registerContext } = useRepoInspector();
+  const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
 
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: starredRepos, isLoading: reposLoading } = useStarredRepos();
@@ -41,6 +43,19 @@ export function CollectionDetailPage() {
     );
     return starredRepos.filter((record) => memberIds.has(record.repoId));
   }, [collection, collectionRepos, starredRepos]);
+  const inspectorContext = useMemo(
+    () => ({ sourceKey: `collection:${id ?? 'unknown'}`, records: memberRecords }),
+    [id, memberRecords],
+  );
+  const openInspector = useCallback(
+    (record: (typeof memberRecords)[number], modality: 'keyboard' | 'pointer') =>
+      requestOpen(record, inspectorContext, modality),
+    [inspectorContext, requestOpen],
+  );
+
+  useEffect(() => {
+    registerContext(inspectorContext);
+  }, [inspectorContext, registerContext]);
 
   const tagsByRepo = useMemo(() => {
     const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
@@ -129,7 +144,8 @@ export function CollectionDetailPage() {
           records={memberRecords}
           view="list"
           tagsByRepo={tagsByRepo}
-          onSelect={openDrawer}
+          selectedRepoId={selectedRepoId}
+          onSelect={openInspector}
           scrollElement={scrollElement}
         />
       )}

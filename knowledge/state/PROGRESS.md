@@ -8,6 +8,10 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> 字体层级修正（2026-07-15，见 `logs/2026-07-15-repo-inspector-typography.md`）：Repo Table 与 Repo Inspector 重排为连续的 13px 身份/正文、12px 常规元数据、11px Activity/紧凑元数据；Inspector 仓库名由 22px/Bold 收敛为 18px/SemiBold。数字与日期统一 Geist Mono + tabular numerals；同时修复 `tailwind-merge` 误删自定义语义字号 class 的根因，并以用户 Chrome computed style 验证最终层级。
+
+> Repo Quick Look（2026-07-15，见 `logs/2026-07-15-repo-quick-look.md`、ADR 0010）：移除低价值的 Pin / Expand / Peek / Focus 与桌面停靠布局；桌面右侧、平板居中使用非模态 portal 悬浮窗，手机保留底部 Sheet，主内容打开前后尺寸与位置完全不变。保留 J/K、虚拟列表定位、焦点恢复与未保存笔记三选项保护。
+
 > 分段切换器统一（2026-07-15，见 `logs/2026-07-15-settings-segmented-control-consistency.md`）：Settings 主题切换从独立 solid 轨道收敛为 Browse 使用的默认 glass 轨道，文本 / 图标两种内容表达共享同一表面、边框、圆角、选中态与动效规范。
 
 > 空状态动作收敛（2026-07-15，见 `logs/2026-07-15-empty-state-action-hierarchy.md`）：Collections / Tags 在无数据时只保留空状态主体中的首次创建主操作，不再于页头重复显示；已有数据后恢复页头创建入口，标签搜索无结果仍保留追加能力。

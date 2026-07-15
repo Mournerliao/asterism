@@ -29,7 +29,7 @@ Color strategy: **Restrained** — blue is reserved for primary actions, current
 ## Typography
 
 - **Fonts**: `"Geist Variable"` (sans, body/UI), `"Geist Mono Variable"` (numbers/dates).
-- **Scale** (desktop): display 28px/Bold → page-title 24px/Bold → section-title 20px/SemiBold → drawer-title 16px/SemiBold → repo-name 22px/Bold → body 13px/1.25 line-height → caption 12px → micro 11px/Medium (table headers).
+- **Scale** (desktop): display 28px/Bold → page-title 24px/Bold → section-title 20px/SemiBold → drawer-title 16px/SemiBold → Repo Inspector name 18px/SemiBold → body 13px/1.25 line-height → caption 12px/1rem line-height → micro 11px/0.875rem line-height. Table headers use micro/Medium; Activity and Inspector compact metadata use micro/Regular.
 - **Weights**: Regular 400 · Medium 500 · SemiBold 600 · Bold 700.
 - Full scale + usage mapping in `ui-ux.md`.
 
@@ -45,7 +45,7 @@ Base `--radius: 0.5rem` (8px), shadcn standard derivation: `sm` 4px (badges/tags
 
 ## Motion
 
-- Product feedback uses 120–240ms transitions and `--ease-out-quart`; drawer/modal entrances stay within 300ms.
+- Product feedback uses 120–240ms transitions and `--ease-out-quart`; Quick Look uses a 220ms source transition and 120ms content crossfade, while modal entrances stay within 300ms.
 - Buttons and segmented controls use a subtle translate/scale/brightness press response. No page-load choreography, bounce or elastic curves; `prefers-reduced-motion` collapses transitions.
 
 ## Components

@@ -8,32 +8,66 @@ import { useTranslation } from 'react-i18next';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
+import type { RepoOpenModality } from '../stores/repo-inspector';
 import { OverflowChipRow } from './overflow-chip-row';
 import { TagPill } from './tag-badge';
 
 const DESKTOP_ROW_HEIGHT = 64;
-const TABLE_GRID_CLASS =
-  'grid grid-cols-[auto_auto_minmax(0,1fr)] sm:grid-cols-[minmax(0,1fr)_5rem_9rem] lg:grid-cols-[minmax(0,1fr)_9rem_5rem_8rem]';
-const RESPONSIVE_LANGUAGE_CLASS =
-  'sm:absolute sm:h-px sm:w-px sm:overflow-hidden sm:whitespace-nowrap sm:[clip-path:inset(50%)] lg:static lg:h-auto lg:w-auto lg:overflow-visible lg:whitespace-normal lg:[clip-path:none]';
+const MOBILE_ROW_HEIGHT = 104;
+type TableLayout = 'mobile' | 'compact' | 'wide';
+
+function tableGridClass(layout: TableLayout): string {
+  if (layout === 'mobile') {
+    return 'grid grid-cols-[auto_auto_minmax(0,1fr)]';
+  }
+  if (layout === 'compact') {
+    return 'grid grid-cols-[minmax(0,1fr)_5rem_8rem]';
+  }
+  return 'grid grid-cols-[minmax(0,1fr)_9rem_5rem_8rem]';
+}
+
+function useTableLayout(ref: React.RefObject<HTMLElement | null>): TableLayout {
+  const [layout, setLayout] = useState<TableLayout>('mobile');
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) {
+      return;
+    }
+    const update = () => {
+      const width = element.clientWidth;
+      setLayout(width < 640 ? 'mobile' : width < 1024 ? 'compact' : 'wide');
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [ref]);
+
+  return layout;
+}
 
 function ActivityValue({
   compact,
   full,
-  label,
+  shortLabel,
+  fullLabel,
 }: {
   compact: string | null;
   full: string | null;
-  label: (time: string) => string;
+  shortLabel: string;
+  fullLabel: (time: string) => string;
 }) {
   if (!compact || !full) {
     return null;
   }
 
   return (
-    <span title={label(full)}>
-      <span aria-hidden="true">{label(compact)}</span>
-      <span className="sr-only">{label(full)}</span>
+    <span title={fullLabel(full)}>
+      <span aria-hidden="true">
+        {shortLabel} <span className="font-mono tabular-nums">{compact}</span>
+      </span>
+      <span className="sr-only">{fullLabel(full)}</span>
     </span>
   );
 }
@@ -101,6 +135,8 @@ export const RepoTableRow = memo(function RepoTableRow({
   collectionCount = 0,
   hasNote = false,
   onSelect,
+  selected = false,
+  layout,
   rowIndex,
   measureElement,
 }: {
@@ -108,7 +144,9 @@ export const RepoTableRow = memo(function RepoTableRow({
   tags?: Tag[];
   collectionCount?: number;
   hasNote?: boolean;
-  onSelect?: (record: StarredRepoRecord) => void;
+  onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
+  selected?: boolean;
+  layout: TableLayout;
   rowIndex: number;
   measureElement: (element: HTMLTableRowElement | null) => void;
 }) {
@@ -120,14 +158,16 @@ export const RepoTableRow = memo(function RepoTableRow({
   const compactUpdated = formatCompactRelativeTime(repo.pushedAt, locale);
   const starred = formatRelativeTime(starredAt, locale);
   const compactStarred = formatCompactRelativeTime(starredAt, locale);
-  const handleOpen = onSelect ? () => onSelect(record) : undefined;
+  const handleOpen = onSelect
+    ? (modality: RepoOpenModality) => onSelect(record, modality)
+    : undefined;
   const handleRowClick = handleOpen
     ? (event: MouseEvent<HTMLTableRowElement>) => {
         const target = event.target as Element;
         if (target.closest('a, button, [role="button"]')) {
           return;
         }
-        handleOpen();
+        handleOpen('pointer');
       }
     : undefined;
   const handleRowKeyDown = handleOpen
@@ -136,7 +176,7 @@ export const RepoTableRow = memo(function RepoTableRow({
           return;
         }
         event.preventDefault();
-        handleOpen();
+        handleOpen('keyboard');
       }
     : undefined;
 
@@ -146,32 +186,47 @@ export const RepoTableRow = memo(function RepoTableRow({
       data-index={rowIndex - 2}
       aria-rowindex={rowIndex}
       aria-label={handleOpen ? t('browse.openDetails', { repo: repo.fullName }) : undefined}
+      aria-selected={selected}
+      aria-expanded={selected}
+      aria-controls={handleOpen ? 'repo-inspector' : undefined}
+      data-repo-quick-look-trigger={handleOpen ? record.repoId : undefined}
       tabIndex={handleOpen ? 0 : undefined}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
       className={cn(
-        TABLE_GRID_CLASS,
-        'group min-h-[104px] gap-x-3 gap-y-2 border-border/50 border-b px-3 py-3 transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:h-16 sm:min-h-16 sm:gap-0 sm:px-0 sm:py-0',
+        tableGridClass(layout),
+        layout === 'mobile'
+          ? 'min-h-[104px] gap-x-3 gap-y-2 px-3 py-3'
+          : 'h-16 min-h-16 gap-0 px-0 py-0',
+        'group border-border/50 border-b transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        selected && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
         handleOpen && 'cursor-pointer',
       )}
     >
-      <td className="col-span-3 flex min-w-0 flex-col justify-center gap-0.5 sm:col-span-1 sm:px-3">
+      <td
+        className={cn(
+          'flex min-w-0 flex-col justify-center gap-1',
+          layout === 'mobile' ? 'col-span-3' : 'col-span-1 px-3',
+        )}
+      >
         <div className="flex min-w-0 items-center gap-1.5">
           <a
             href={`https://github.com/${repo.fullName}`}
             target="_blank"
             rel="noreferrer noopener"
             aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
-            className="group/link min-w-0 truncate rounded-sm text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="group/link min-w-0 truncate rounded-sm text-caption focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           >
-            <span className="font-medium text-muted-foreground">{repo.owner}</span>
+            <span className="font-normal text-muted-foreground">{repo.owner}</span>
             <span className="text-muted-foreground"> / </span>
-            <span className="font-semibold text-link group-hover/link:underline">{repo.name}</span>
+            <span className="font-semibold text-body text-link group-hover/link:underline">
+              {repo.name}
+            </span>
           </a>
           {repo.archived ? (
             <Badge
               variant="outline"
-              className="h-5 shrink-0 gap-1 px-1.5 text-[11px] text-muted-foreground"
+              className="h-5 shrink-0 gap-1 px-1.5 text-micro text-muted-foreground"
             >
               <ArchiveIcon className="size-3" aria-hidden="true" />
               {t('browse.archived')}
@@ -180,21 +235,28 @@ export const RepoTableRow = memo(function RepoTableRow({
         </div>
         <div className="flex min-w-0 items-center gap-3">
           {repo.description ? (
-            <p className="min-w-0 flex-1 truncate text-[13px] text-muted-foreground">
+            <p className="min-w-0 flex-1 truncate text-caption text-muted-foreground">
               {repo.description}
             </p>
           ) : null}
-          <div className="hidden min-w-0 max-w-[45%] flex-[0_1_18rem] sm:block">
+          <div
+            className={cn('min-w-0 max-w-[45%] flex-[0_1_18rem]', layout === 'mobile' && 'hidden')}
+          >
             <RepoContext tags={tags} collectionCount={collectionCount} hasNote={hasNote} />
           </div>
         </div>
-        <div className="mt-1 min-w-0 sm:hidden">
+        <div className={cn('mt-1 min-w-0', layout !== 'mobile' && 'hidden')}>
           <RepoContext tags={tags} collectionCount={collectionCount} hasNote={hasNote} />
         </div>
       </td>
 
       <td
-        className={`${RESPONSIVE_LANGUAGE_CLASS} flex min-w-0 items-center text-caption text-foreground lg:px-3`}
+        className={cn(
+          'flex min-w-0 items-center text-caption text-foreground',
+          layout === 'wide' && 'px-3',
+          layout === 'compact' &&
+            'absolute h-px w-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)]',
+        )}
       >
         {repo.language ? (
           <span className="flex min-w-0 items-center gap-1.5">
@@ -210,21 +272,33 @@ export const RepoTableRow = memo(function RepoTableRow({
         )}
       </td>
 
-      <td className="flex items-center gap-1 self-center font-mono text-caption text-foreground sm:px-3">
-        <StarIcon className="size-3.5 sm:hidden" aria-hidden="true" />
+      <td
+        className={cn(
+          'flex items-center gap-1 self-center font-mono text-caption text-foreground',
+          layout !== 'mobile' && 'px-3',
+        )}
+      >
+        <StarIcon className={cn('size-3.5', layout !== 'mobile' && 'hidden')} aria-hidden="true" />
         {formatCompactNumber(repo.stargazers, locale)}
       </td>
 
-      <td className="flex min-w-0 flex-col items-end justify-center self-center whitespace-nowrap text-caption text-muted-foreground sm:items-start sm:px-3">
+      <td
+        className={cn(
+          'flex min-w-0 flex-col justify-center self-center whitespace-nowrap text-micro text-muted-foreground',
+          layout === 'mobile' ? 'items-end' : 'items-start px-3',
+        )}
+      >
         <ActivityValue
           compact={compactUpdated}
           full={updated}
-          label={(time) => t('browse.updated', { time })}
+          shortLabel={t('browse.updatedShort')}
+          fullLabel={(time) => t('browse.updated', { time })}
         />
         <ActivityValue
           compact={compactStarred}
           full={starred}
-          label={(time) => t('browse.starred', { time })}
+          shortLabel={t('browse.starredShort')}
+          fullLabel={(time) => t('browse.starred', { time })}
         />
         {!compactUpdated && !compactStarred ? <span>—</span> : null}
       </td>
@@ -232,21 +306,28 @@ export const RepoTableRow = memo(function RepoTableRow({
   );
 });
 
-function TableHeader() {
+function TableHeader({ layout }: { layout: TableLayout }) {
   const { t } = useTranslation();
-  const className = 'px-3 text-left font-semibold text-caption text-foreground/75';
+  const className = 'px-3 text-left font-medium text-micro text-foreground/75';
   return (
-    <thead className="sr-only sm:not-sr-only sm:block">
+    <thead className={layout === 'mobile' ? 'sr-only' : 'block'}>
       <tr
         className={cn(
-          TABLE_GRID_CLASS,
+          tableGridClass(layout),
           'sticky top-0 z-10 h-10 items-center border-border border-b bg-muted/55',
         )}
       >
         <th scope="col" className={className}>
           {t('browse.table.repository')}
         </th>
-        <th scope="col" className={`${RESPONSIVE_LANGUAGE_CLASS} ${className}`}>
+        <th
+          scope="col"
+          className={cn(
+            className,
+            layout === 'compact' &&
+              'absolute h-px w-px overflow-hidden whitespace-nowrap [clip-path:inset(50%)]',
+          )}
+        >
           {t('browse.table.language')}
         </th>
         <th scope="col" className={className}>
@@ -265,6 +346,7 @@ export const RepoTable = memo(function RepoTable({
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
+  selectedRepoId,
   onSelect,
   scrollElement,
 }: {
@@ -272,11 +354,13 @@ export const RepoTable = memo(function RepoTable({
   tagsByRepo?: Map<string, Tag[]>;
   collectionCountByRepo?: Map<string, number>;
   noteRepoIds?: Set<string>;
-  onSelect?: (record: StarredRepoRecord) => void;
+  selectedRepoId?: string;
+  onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
 }) {
   const { t } = useTranslation();
   const tableRef = useRef<HTMLTableElement>(null);
+  const layout = useTableLayout(tableRef);
   const [resolvedScroll, setResolvedScroll] = useState<HTMLElement | null>(scrollElement ?? null);
   const scrollMargin = useScrollMargin(tableRef, resolvedScroll);
 
@@ -291,7 +375,7 @@ export const RepoTable = memo(function RepoTable({
   const virtualizer = useVirtualizer({
     count: records.length,
     getScrollElement: () => resolvedScroll,
-    estimateSize: () => DESKTOP_ROW_HEIGHT,
+    estimateSize: () => (layout === 'mobile' ? MOBILE_ROW_HEIGHT : DESKTOP_ROW_HEIGHT),
     overscan: 10,
     scrollMargin,
   });
@@ -302,15 +386,31 @@ export const RepoTable = memo(function RepoTable({
   const paddingTop = firstItem ? firstItem.start - scrollMargin : 0;
   const paddingBottom = lastItem ? virtualizer.getTotalSize() - (lastItem.end - scrollMargin) : 0;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: container topology changes row measurements
+  useEffect(() => {
+    virtualizer.measure();
+  }, [layout, virtualizer]);
+
+  useEffect(() => {
+    if (!selectedRepoId || !resolvedScroll) {
+      return;
+    }
+    const index = records.findIndex((record) => record.repoId === selectedRepoId);
+    if (index >= 0) {
+      virtualizer.scrollToIndex(index, { align: 'auto' });
+    }
+  }, [records, resolvedScroll, selectedRepoId, virtualizer]);
+
   return (
     <table
       ref={tableRef}
+      data-layout={layout}
       aria-label={t('browse.table.label')}
       aria-colcount={4}
       aria-rowcount={records.length + 1}
       className="block w-full overflow-clip rounded-lg border bg-card text-card-foreground"
     >
-      <TableHeader />
+      <TableHeader layout={layout} />
       <tbody className="block">
         {paddingTop > 0 ? (
           <tr className="block">
@@ -334,6 +434,8 @@ export const RepoTable = memo(function RepoTable({
               tags={tagsByRepo?.get(record.repoId)}
               collectionCount={collectionCountByRepo?.get(record.repoId)}
               hasNote={noteRepoIds?.has(record.repoId)}
+              selected={record.repoId === selectedRepoId}
+              layout={layout}
               onSelect={onSelect}
               rowIndex={virtualRow.index + 2}
               measureElement={virtualizer.measureElement}

@@ -1,0 +1,840 @@
+import { repoFullName } from '@asterism/core';
+import type { StarredRepoRecord } from '@asterism/db';
+import {
+  Button,
+  cn,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+  Sheet,
+  SheetContent,
+  SheetTitle,
+  Skeleton,
+  Textarea,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@asterism/ui';
+import {
+  ArchiveIcon,
+  CheckIcon,
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  ExternalLinkIcon,
+  GitForkIcon,
+  PlusIcon,
+  StarIcon,
+  XIcon,
+} from 'lucide-react';
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
+import { useRepoInspector } from '../contexts/repo-inspector-context';
+import { useCollectionRepos, useToggleCollectionRepo } from '../data/use-collection-repos';
+import { useCollections } from '../data/use-collections';
+import { useNote } from '../data/use-note';
+import { useRepoTags, useToggleRepoTag } from '../data/use-repo-tags';
+import { useCreateTag, useTags } from '../data/use-tags';
+import { useMediaQuery } from '../hooks/use-media-query';
+import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
+import { languageColor } from '../lib/language-colors';
+import { adjacentRepo, findRepoIndex, useRepoInspectorStore } from '../stores/repo-inspector';
+import { PendingActionContent } from './pending-action-content';
+import { TagBadge } from './tag-badge';
+import { TagFormDialog } from './tag-form-dialog';
+
+function ControlButton({
+  label,
+  children,
+  ...props
+}: { label: string; children: ReactNode } & React.ComponentProps<typeof Button>) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button type="button" variant="ghost" size="icon-sm" aria-label={label} {...props}>
+          {children}
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent sideOffset={6}>{label}</TooltipContent>
+    </Tooltip>
+  );
+}
+
+const TRIGGER_ATTRIBUTE = 'data-repo-quick-look-trigger';
+
+function visibleTrigger(repoId: string): HTMLElement | null {
+  const selector = `[${TRIGGER_ATTRIBUTE}="${CSS.escape(repoId)}"]`;
+  for (const element of document.querySelectorAll<HTMLElement>(selector)) {
+    const rect = element.getBoundingClientRect();
+    if (rect.width > 0 && rect.height > 0) {
+      return element;
+    }
+  }
+  return null;
+}
+
+function sourceTransform(source: HTMLElement | null, target: HTMLElement): string {
+  if (!source) {
+    return 'none';
+  }
+  const sourceRect = source.getBoundingClientRect();
+  const targetRect = target.getBoundingClientRect();
+  const x = sourceRect.left + sourceRect.width / 2 - (targetRect.left + targetRect.width / 2);
+  const y = sourceRect.top + sourceRect.height / 2 - (targetRect.top + targetRect.height / 2);
+  return `translate3d(${x}px, ${y}px, 0) scale(0.96)`;
+}
+
+export function RepoInspector() {
+  const { t } = useTranslation();
+  const floating = useMediaQuery('(min-width: 768px)');
+  const record = useRepoInspectorStore((state) => state.record);
+  const context = useRepoInspectorStore((state) => state.context);
+  const { requestNavigate, requestClose, dirty, confirmOpen, openModality, closeSignal } =
+    useRepoInspector();
+  const index = findRepoIndex(context, record?.repoId);
+  const previous = adjacentRepo(context, record?.repoId, -1);
+  const next = adjacentRepo(context, record?.repoId, 1);
+
+  useEffect(() => {
+    if (!record || floating) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as Element | null;
+      if (
+        target?.closest('input, textarea, select, [contenteditable="true"], [role="menu"]') ||
+        target?.closest('[role="dialog"]:not(#repo-inspector)')
+      ) {
+        return;
+      }
+      if (event.key.toLowerCase() === 'j' && next) {
+        event.preventDefault();
+        requestNavigate(1);
+      } else if (event.key.toLowerCase() === 'k' && previous) {
+        event.preventDefault();
+        requestNavigate(-1);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [floating, next, previous, record, requestNavigate]);
+
+  const handledMobileCloseSignal = useRef(closeSignal);
+  useEffect(() => {
+    if (floating || !record || handledMobileCloseSignal.current === closeSignal) return;
+    handledMobileCloseSignal.current = closeSignal;
+    requestClose();
+  }, [closeSignal, floating, record, requestClose]);
+
+  if (floating) {
+    return record
+      ? createPortal(
+          <FloatingQuickLook
+            record={record}
+            index={index}
+            total={context?.records.length ?? 0}
+            hasPrevious={Boolean(previous)}
+            hasNext={Boolean(next)}
+            dirty={dirty}
+            confirmOpen={confirmOpen}
+            openModality={openModality}
+            closeSignal={closeSignal}
+            onPrevious={() => requestNavigate(-1)}
+            onNext={() => requestNavigate(1)}
+            onClose={requestClose}
+          />,
+          document.body,
+        )
+      : null;
+  }
+
+  return (
+    <Sheet
+      open={Boolean(record)}
+      onOpenChange={(open) => {
+        if (!open) {
+          requestClose();
+        }
+      }}
+    >
+      <SheetContent
+        id="repo-inspector"
+        side="bottom"
+        className="@container/inspector h-[min(90svh,52rem)] gap-0 overflow-hidden rounded-t-lg border-x border-t p-0 [&>button.absolute]:hidden"
+      >
+        <SheetTitle className="sr-only">{t('drawer.title')}</SheetTitle>
+        {record ? (
+          <InspectorBody
+            record={record}
+            mobile
+            index={index}
+            total={context?.records.length ?? 0}
+            hasPrevious={Boolean(previous)}
+            hasNext={Boolean(next)}
+            onPrevious={() => requestNavigate(-1)}
+            onNext={() => requestNavigate(1)}
+            onClose={requestClose}
+          />
+        ) : null}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function FloatingQuickLook({
+  record,
+  index,
+  total,
+  hasPrevious,
+  hasNext,
+  dirty,
+  confirmOpen,
+  openModality,
+  closeSignal,
+  onPrevious,
+  onNext,
+  onClose,
+}: {
+  record: StarredRepoRecord;
+  index: number;
+  total: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  dirty: boolean;
+  confirmOpen: boolean;
+  openModality: 'keyboard' | 'pointer';
+  closeSignal: number;
+  onPrevious: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const closingRef = useRef(false);
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const currentRepoId = useRef(record.repoId);
+  const handledCloseSignal = useRef(closeSignal);
+  currentRepoId.current = record.repoId;
+
+  useLayoutEffect(() => {
+    const panel = panelRef.current;
+    if (!panel) return;
+    const source = visibleTrigger(currentRepoId.current);
+    returnFocusRef.current = source;
+    if (!reducedMotion) {
+      panel.animate(
+        [
+          { opacity: 0, transform: sourceTransform(source, panel) },
+          { opacity: 1, transform: 'none' },
+        ],
+        { duration: 220, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+      );
+    }
+    if (openModality === 'keyboard') {
+      panel.focus({ preventScroll: true });
+    }
+  }, [openModality, reducedMotion]);
+
+  const close = useCallback(async () => {
+    if (closingRef.current || confirmOpen) return;
+    if (dirty) {
+      onClose();
+      return;
+    }
+    closingRef.current = true;
+    const panel = panelRef.current;
+    const source = visibleTrigger(currentRepoId.current) ?? returnFocusRef.current;
+    if (panel && !reducedMotion) {
+      const animation = panel.animate(
+        [
+          { opacity: 1, transform: 'none' },
+          { opacity: 0, transform: sourceTransform(source, panel) },
+        ],
+        { duration: 220, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+      );
+      await animation.finished.catch(() => undefined);
+    }
+    onClose();
+    queueMicrotask(() => source?.focus({ preventScroll: true }));
+  }, [confirmOpen, dirty, onClose, reducedMotion]);
+
+  useEffect(() => {
+    if (handledCloseSignal.current === closeSignal) return;
+    handledCloseSignal.current = closeSignal;
+    void close();
+  }, [close, closeSignal]);
+
+  useEffect(() => {
+    const handlePointerDown = (event: PointerEvent) => {
+      const target = event.target as Element | null;
+      const link = target?.closest<HTMLAnchorElement>('a[href]');
+      const followsInternalRoute =
+        link && link.origin === window.location.origin && link.target !== '_blank';
+      if (
+        confirmOpen ||
+        panelRef.current?.contains(target) ||
+        target?.closest(`[${TRIGGER_ATTRIBUTE}]`) ||
+        followsInternalRoute
+      ) {
+        return;
+      }
+      void close();
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as Element | null;
+      if (
+        target?.closest('input, textarea, select, [contenteditable="true"], [role="menu"]') ||
+        target?.closest('[role="dialog"]:not(#repo-inspector)')
+      ) {
+        return;
+      }
+      if (event.key.toLowerCase() === 'j' && hasNext) {
+        event.preventDefault();
+        onNext();
+      } else if (event.key.toLowerCase() === 'k' && hasPrevious) {
+        event.preventDefault();
+        onPrevious();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        void close();
+      }
+    };
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [close, confirmOpen, hasNext, hasPrevious, onNext, onPrevious]);
+
+  return (
+    <div className="pointer-events-none fixed top-[4.5rem] right-auto left-1/2 z-50 h-[min(46rem,calc(100svh-5.5rem))] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 xl:right-6 xl:left-auto xl:translate-x-0">
+      <div
+        ref={panelRef}
+        id="repo-inspector"
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby="repo-quick-look-title"
+        tabIndex={-1}
+        className="asterism-glass-overlay @container/inspector pointer-events-auto h-full overflow-hidden rounded-xl border text-popover-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <InspectorBody
+          record={record}
+          index={index}
+          total={total}
+          hasPrevious={hasPrevious}
+          hasNext={hasNext}
+          onPrevious={onPrevious}
+          onNext={onNext}
+          onClose={() => void close()}
+        />
+      </div>
+    </div>
+  );
+}
+
+function InspectorBody({
+  record,
+  mobile = false,
+  index,
+  total,
+  hasPrevious,
+  hasNext,
+  onPrevious,
+  onNext,
+  onClose,
+}: {
+  record: StarredRepoRecord;
+  mobile?: boolean;
+  index: number;
+  total: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+  onPrevious: () => void;
+  onNext: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { repo } = record;
+  const position = index >= 0 ? t('drawer.position', { current: index + 1, total }) : null;
+
+  return (
+    <div
+      className={cn(
+        'flex h-full min-h-0 flex-col text-card-foreground',
+        mobile ? 'bg-card' : 'bg-transparent',
+      )}
+    >
+      {mobile ? (
+        <div className="flex h-5 shrink-0 items-center justify-center" aria-hidden="true">
+          <span className="h-1 w-8 rounded-full bg-muted-foreground/35" />
+        </div>
+      ) : null}
+      <header className="asterism-glass-surface z-10 shrink-0 border-b px-6 py-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-caption text-muted-foreground">{repo.owner}</p>
+            <div className="mt-1 flex min-w-0 items-center gap-2">
+              <h2
+                id="repo-quick-look-title"
+                className="truncate font-semibold text-repo-name text-foreground"
+              >
+                {repo.name}
+              </h2>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <a
+                    href={`https://github.com/${repoFullName(repo)}`}
+                    target="_blank"
+                    rel="noreferrer noopener"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    aria-label={t('drawer.openOnGitHub')}
+                  >
+                    <ExternalLinkIcon className="size-4" />
+                  </a>
+                </TooltipTrigger>
+                <TooltipContent sideOffset={6}>{t('drawer.openOnGitHub')}</TooltipContent>
+              </Tooltip>
+            </div>
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <ControlButton label={t('common.cancel')} onClick={onClose}>
+              <XIcon className="size-4" />
+            </ControlButton>
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="min-w-0 truncate font-mono text-micro text-muted-foreground tabular-nums">
+            {position ?? t('drawer.outsideSequence')}
+          </span>
+          <div className="flex items-center gap-1">
+            <ControlButton
+              label={t('drawer.previous')}
+              disabled={!hasPrevious}
+              onClick={onPrevious}
+            >
+              <ChevronLeftIcon className="size-4" />
+            </ControlButton>
+            <ControlButton label={t('drawer.next')} disabled={!hasNext} onClick={onNext}>
+              <ChevronRightIcon className="size-4" />
+            </ControlButton>
+          </div>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
+        <div
+          key={record.repoId}
+          className="animate-in fade-in-0 duration-[120ms] motion-reduce:animate-none"
+        >
+          <Overview record={record} />
+          <div className="mt-6 flex flex-col gap-5">
+            <TagsSection repoId={record.repoId} />
+            <CollectionsSection repoId={record.repoId} />
+            <NotesSection repoId={record.repoId} />
+          </div>
+        </div>
+      </div>
+      <UnsavedNoteDialog />
+    </div>
+  );
+}
+
+function Overview({ record }: { record: StarredRepoRecord }) {
+  const { t, i18n } = useTranslation();
+  const { repo } = record;
+  const dotColor = languageColor(repo.language);
+  const updated = formatRelativeTime(repo.pushedAt, i18n.language);
+  const compactUpdated = formatCompactRelativeTime(repo.pushedAt, i18n.language);
+  return (
+    <section className="border-b pb-5">
+      {repo.description ? (
+        <p className="max-w-[70ch] text-body text-foreground/85 text-pretty">{repo.description}</p>
+      ) : null}
+      <div
+        className={cn(
+          'flex flex-wrap items-center gap-x-3 gap-y-1.5 text-micro text-muted-foreground',
+          repo.description && 'mt-4',
+        )}
+      >
+        {repo.language ? (
+          <span className="flex items-center gap-2">
+            <span
+              aria-hidden="true"
+              className={cn('size-2 rounded-full', !dotColor && 'bg-muted-foreground')}
+              style={dotColor ? { backgroundColor: dotColor } : undefined}
+            />
+            {repo.language}
+          </span>
+        ) : null}
+        <span className="flex items-center gap-1">
+          <StarIcon className="size-3" aria-hidden="true" />
+          <span className="font-mono tabular-nums">
+            {formatCompactNumber(repo.stargazers, i18n.language)}
+          </span>
+          {t('drawer.starLabel')}
+        </span>
+        {repo.forks != null ? (
+          <span className="flex items-center gap-1">
+            <GitForkIcon className="size-3" aria-hidden="true" />
+            <span className="font-mono tabular-nums">
+              {formatCompactNumber(repo.forks, i18n.language)}
+            </span>
+            {t('drawer.forkLabel')}
+          </span>
+        ) : null}
+        {updated && compactUpdated ? (
+          <span title={t('browse.updated', { time: updated })}>
+            <span aria-hidden="true">
+              {t('browse.updatedShort')}{' '}
+              <span className="font-mono tabular-nums">{compactUpdated}</span>
+            </span>
+            <span className="sr-only">{t('browse.updated', { time: updated })}</span>
+          </span>
+        ) : null}
+        {repo.archived ? (
+          <span className="flex items-center gap-1">
+            <ArchiveIcon className="size-3" aria-hidden="true" />
+            {t('browse.archived')}
+          </span>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function SectionLabel({ children }: { children: ReactNode }) {
+  return <h3 className="font-semibold text-caption text-foreground">{children}</h3>;
+}
+
+function TagsSection({ repoId }: { repoId: string }) {
+  const { t } = useTranslation();
+  const { data: tags = [] } = useTags();
+  const { data: links = [] } = useRepoTags();
+  const toggle = useToggleRepoTag();
+  const createTag = useCreateTag();
+  const [createOpen, setCreateOpen] = useState(false);
+  const assignedIds = useMemo(
+    () => new Set(links.filter((link) => link.repoId === repoId).map((link) => link.tagId)),
+    [links, repoId],
+  );
+  const assignedTags = tags.filter((tag) => assignedIds.has(tag.id));
+
+  const handleCreate = async (values: { name: string; color: string }) => {
+    const created = await createTag.mutateAsync({
+      name: values.name,
+      color: values.color,
+      seed: tags.length,
+    });
+    await toggle.mutateAsync({ repoId, tagId: created.id, assigned: false });
+    setCreateOpen(false);
+  };
+
+  return (
+    <section className="flex flex-col gap-2">
+      <SectionLabel>{t('drawer.tags')}</SectionLabel>
+      <div className="flex flex-wrap items-center gap-2">
+        {assignedTags.map((tag) => (
+          <TagBadge
+            key={tag.id}
+            name={tag.name}
+            color={tag.color}
+            removeLabel={t('drawer.removeTag', { name: tag.name })}
+            onRemove={() => toggle.mutate({ repoId, tagId: tag.id, assigned: true })}
+          />
+        ))}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="h-6 gap-1 rounded-sm px-2 text-caption">
+              <PlusIcon className="size-3" />
+              {t('drawer.addTag')}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="max-h-72 w-56 overflow-auto">
+            {tags.map((tag) => (
+              <DropdownMenuCheckboxItem
+                key={tag.id}
+                checked={assignedIds.has(tag.id)}
+                onSelect={(event) => event.preventDefault()}
+                onCheckedChange={() =>
+                  toggle.mutate({ repoId, tagId: tag.id, assigned: assignedIds.has(tag.id) })
+                }
+              >
+                <span
+                  className="size-2.5 rounded-full"
+                  style={{ backgroundColor: tag.color ?? 'var(--muted-foreground)' }}
+                />
+                {tag.name}
+              </DropdownMenuCheckboxItem>
+            ))}
+            {tags.length > 0 ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+              <PlusIcon className="size-4" />
+              {t('drawer.createTag')}
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+      <TagFormDialog
+        open={createOpen}
+        onOpenChange={setCreateOpen}
+        title={t('tags.createTitle')}
+        submitLabel={t('tags.create')}
+        existingNames={tags.map((tag) => tag.name)}
+        pending={createTag.isPending}
+        onSubmit={handleCreate}
+      />
+    </section>
+  );
+}
+
+function CollectionsSection({ repoId }: { repoId: string }) {
+  const { t } = useTranslation();
+  const { data: collections = [] } = useCollections();
+  const { data: links = [] } = useCollectionRepos();
+  const toggle = useToggleCollectionRepo();
+  const [editing, setEditing] = useState(false);
+  const memberIds = useMemo(
+    () => new Set(links.filter((link) => link.repoId === repoId).map((link) => link.collectionId)),
+    [links, repoId],
+  );
+  const selected = collections.filter((collection) => memberIds.has(collection.id));
+  const visible = editing ? collections : selected;
+
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <SectionLabel>{t('drawer.collections')}</SectionLabel>
+        {collections.length > 0 ? (
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-caption text-link"
+            onClick={() => setEditing((value) => !value)}
+          >
+            {editing ? t('common.done') : t('common.edit')}
+          </Button>
+        ) : null}
+      </div>
+      {collections.length === 0 ? (
+        <p className="text-body text-muted-foreground">{t('drawer.noCollections')}</p>
+      ) : visible.length === 0 ? (
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="w-fit"
+          onClick={() => setEditing(true)}
+        >
+          <PlusIcon className="size-3.5" />
+          {t('drawer.addCollection')}
+        </Button>
+      ) : (
+        <div className="flex flex-col gap-1">
+          {visible.map((collection) => {
+            const member = memberIds.has(collection.id);
+            return (
+              <Button
+                key={collection.id}
+                type="button"
+                variant="ghost"
+                disabled={!editing}
+                onClick={() => toggle.mutate({ collectionId: collection.id, repoId, member })}
+                className={cn(
+                  'h-8 w-full justify-between rounded-sm px-2 text-left text-body',
+                  member
+                    ? 'bg-background text-foreground'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <span className="truncate">{collection.name}</span>
+                {member ? <CheckIcon className="size-4 shrink-0 text-link" /> : null}
+              </Button>
+            );
+          })}
+        </div>
+      )}
+    </section>
+  );
+}
+
+function NotesSection({ repoId }: { repoId: string }) {
+  const { t } = useTranslation();
+  const { data: serverBody, isLoading } = useNote(repoId);
+  const {
+    noteDraft,
+    syncNote,
+    setNoteBody,
+    setNoteEditing,
+    saveNote,
+    discardNote,
+    confirmPending,
+  } = useRepoInspector();
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (serverBody !== undefined) {
+      syncNote(repoId, serverBody);
+    }
+  }, [repoId, serverBody, syncNote]);
+
+  if (isLoading || !noteDraft || noteDraft.repoId !== repoId) {
+    return <Skeleton className="h-24 w-full" />;
+  }
+  const dirty = noteDraft.body !== noteDraft.serverBody;
+
+  return (
+    <section className="flex min-w-0 flex-col gap-2">
+      <div className="flex items-center justify-between gap-3">
+        <SectionLabel>{t('drawer.notes')}</SectionLabel>
+        {!noteDraft.editing && noteDraft.serverBody ? (
+          <Button
+            type="button"
+            variant="link"
+            className="h-auto p-0 text-caption text-link"
+            onClick={() => setNoteEditing(true)}
+          >
+            {t('common.edit')}
+          </Button>
+        ) : null}
+      </div>
+      {noteDraft.editing || !noteDraft.serverBody ? (
+        <>
+          <Textarea
+            value={noteDraft.body}
+            onChange={(event) => {
+              setError(false);
+              setNoteBody(event.target.value);
+            }}
+            placeholder={t('drawer.notesPlaceholder')}
+            rows={4}
+            disabled={confirmPending}
+            className="min-h-24 rounded-md text-body"
+          />
+          {error ? (
+            <p role="alert" className="text-caption text-destructive">
+              {t('drawer.noteSaveError')}
+            </p>
+          ) : null}
+          {dirty ? (
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={confirmPending}
+                onClick={() => {
+                  discardNote();
+                  setNoteEditing(false);
+                }}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                size="sm"
+                disabled={confirmPending}
+                aria-busy={confirmPending}
+                onClick={async () => {
+                  try {
+                    await saveNote();
+                  } catch {
+                    setError(true);
+                  }
+                }}
+              >
+                <PendingActionContent
+                  pending={confirmPending}
+                  idleLabel={t('drawer.saveNote')}
+                  pendingLabel={t('common.saving')}
+                />
+              </Button>
+            </div>
+          ) : null}
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setNoteEditing(true)}
+          className="w-full rounded-md bg-background p-3 text-left text-body text-muted-foreground transition-colors hover:bg-accent/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        >
+          {noteDraft.serverBody}
+        </button>
+      )}
+    </section>
+  );
+}
+
+function UnsavedNoteDialog() {
+  const { t } = useTranslation();
+  const {
+    confirmOpen,
+    confirmPending,
+    confirmError,
+    saveAndContinue,
+    discardAndContinue,
+    continueEditing,
+  } = useRepoInspector();
+  return (
+    <Dialog
+      open={confirmOpen}
+      onOpenChange={(open) => {
+        if (!open && !confirmPending) continueEditing();
+      }}
+    >
+      <DialogContent
+        showCloseButton={false}
+        onEscapeKeyDown={(event) => {
+          if (confirmPending) event.preventDefault();
+        }}
+        onPointerDownOutside={(event) => {
+          if (confirmPending) event.preventDefault();
+        }}
+      >
+        <DialogHeader>
+          <DialogTitle>{t('drawer.unsavedTitle')}</DialogTitle>
+          <DialogDescription>{t('drawer.unsavedDescription')}</DialogDescription>
+          {confirmError ? (
+            <p role="alert" className="text-caption text-destructive">
+              {t('drawer.noteSaveError')}
+            </p>
+          ) : null}
+        </DialogHeader>
+        <DialogFooter className="sm:justify-between">
+          <Button variant="ghost" disabled={confirmPending} onClick={continueEditing}>
+            {t('drawer.continueEditing')}
+          </Button>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row">
+            <Button variant="outline" disabled={confirmPending} onClick={discardAndContinue}>
+              {t('drawer.discardAndContinue')}
+            </Button>
+            <Button disabled={confirmPending} aria-busy={confirmPending} onClick={saveAndContinue}>
+              <PendingActionContent
+                pending={confirmPending}
+                idleLabel={t('drawer.saveAndContinue')}
+                pendingLabel={t('common.saving')}
+              />
+            </Button>
+          </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}

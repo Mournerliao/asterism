@@ -7,6 +7,7 @@ import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
+import type { RepoOpenModality } from '../stores/repo-inspector';
 import { OverflowChipRow } from './overflow-chip-row';
 import { buildRepoContextItems, type RepoContextItem } from './repo-card-context';
 import { TagBadge } from './tag-badge';
@@ -59,13 +60,15 @@ export const RepoCard = memo(function RepoCard({
   tags,
   collectionCount = 0,
   hasNote = false,
+  selected = false,
   onSelect,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
   collectionCount?: number;
   hasNote?: boolean;
-  onSelect?: (record: StarredRepoRecord) => void;
+  selected?: boolean;
+  onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
 }) {
   const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
@@ -79,17 +82,26 @@ export const RepoCard = memo(function RepoCard({
     () => buildRepoContextItems(tags ?? [], repo.topics),
     [repo.topics, tags],
   );
-  const handleOpen = onSelect ? () => onSelect(record) : undefined;
+  const handleOpen = onSelect ? () => onSelect(record, 'pointer') : undefined;
   const collectionLabel = t('browse.inCollections', { count: collectionCount });
   const noteLabel = t('browse.hasNote');
 
   return (
-    <Card className="group relative flex h-auto min-h-[208px] flex-col gap-3 rounded-lg p-4 transition-[border-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] sm:h-[208px] dark:hover:shadow-none">
+    <Card
+      data-selected={selected}
+      className={cn(
+        'group relative flex h-auto min-h-[208px] flex-col gap-3 rounded-lg p-4 transition-[border-color,background-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] sm:h-[208px] dark:hover:shadow-none',
+        selected && 'border-ring/70 bg-accent/25 shadow-[inset_0_0_0_1px_var(--ring)]',
+      )}
+    >
       {handleOpen ? (
         <button
           type="button"
           aria-label={t('browse.openDetails', { repo: repo.fullName })}
-          onClick={handleOpen}
+          aria-expanded={selected}
+          aria-controls="repo-inspector"
+          data-repo-quick-look-trigger={record.repoId}
+          onClick={(event) => onSelect?.(record, event.detail === 0 ? 'keyboard' : 'pointer')}
           className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         />
       ) : null}

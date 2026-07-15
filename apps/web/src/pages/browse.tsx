@@ -8,7 +8,7 @@ import {
   SearchXIcon,
   StarIcon,
 } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { EmptyState } from '../components/empty-state';
@@ -19,6 +19,7 @@ import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
+import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
@@ -29,7 +30,7 @@ import { useBrowseView } from '../hooks/use-browse-view';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
-import { useRepoDrawer } from '../stores/repo-drawer';
+import { useRepoInspectorStore } from '../stores/repo-inspector';
 
 function InitialLoadingState({ view }: { view: RepoViewMode }) {
   return view === 'list' ? <RepoListSkeleton /> : <RepoGridSkeleton />;
@@ -39,7 +40,8 @@ export function BrowsePage() {
   const { t, i18n } = useTranslation();
   const { view, transitionTo } = useBrowseView();
   const filters = useBrowseFilters();
-  const openDrawer = useRepoDrawer((state) => state.open);
+  const { requestOpen, registerContext } = useRepoInspector();
+  const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
   const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
   const { data: tags, isLoading: tagsLoading } = useTags();
   const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
@@ -93,6 +95,16 @@ export function BrowsePage() {
       ),
     [records, filters, tagsByRepoId],
   );
+  const inspectorContext = useMemo(() => ({ sourceKey: 'browse', records: visible }), [visible]);
+  const openInspector = useCallback(
+    (record: (typeof visible)[number], modality: 'keyboard' | 'pointer') =>
+      requestOpen(record, inspectorContext, modality),
+    [inspectorContext, requestOpen],
+  );
+
+  useEffect(() => {
+    registerContext(inspectorContext);
+  }, [inspectorContext, registerContext]);
 
   const tagsByRepo = useMemo(() => {
     const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
@@ -178,7 +190,8 @@ export function BrowsePage() {
       tagsByRepo={tagsByRepo}
       collectionCountByRepo={collectionCountByRepo}
       noteRepoIds={noteRepoIdSet}
-      onSelect={openDrawer}
+      selectedRepoId={selectedRepoId}
+      onSelect={openInspector}
       scrollElement={repoScrollElement}
     />
   );

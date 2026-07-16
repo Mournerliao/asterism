@@ -16,7 +16,7 @@
 ## 未落地的工作项（基础设施）
 
 - [x] **CI（GitHub Actions）已建**：`.github/workflows/ci.yml` 跑 lint / typecheck / test / build（pnpm + Node 22，纯 Node）。2026-06-29 落地。
-- [ ] **部署 `read-repo-readme` Edge Function**：Issue #3–#4 的授权路径、typed outcomes 与 ETag/304 代码已落地，但当前 Supabase 环境尚未部署该函数；逐环境执行 `supabase functions deploy read-repo-readme` 后，再用真实授权仓库完成 authenticated / public fallback / 304 浏览器验收。
+- [ ] **部署 `read-repo-readme` Edge Function**：Issue #3–#5 的授权路径、typed outcomes、ETag/304 与不受信 README 清洗/链接边界代码已落地，但当前 Supabase 环境尚未部署该函数；逐环境执行 `supabase functions deploy read-repo-readme` 后，再用真实授权仓库完成 authenticated / public fallback / 304 及真实复杂 README 浏览器验收。
 - [ ] **发布工程细化**：Changesets 已配根，但发布流程（版本、changelog、tag）待 Phase 0+ 跑通。
 - [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化按计划留到 **Phase 2**（见 `decisions/0004`）。
 - [ ] **Biome 不约束 CSS**：因 Tailwind v4 语法，`*.css` 已排除出 Biome；如需 CSS 规范后续再决策（见 `decisions/0004`）。

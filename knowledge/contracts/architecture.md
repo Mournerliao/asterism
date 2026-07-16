@@ -122,7 +122,7 @@ sequenceDiagram
 
 ### README 实时读取
 
-README 工作区走独立的非持久化读取链：Web 路由 → TanStack Query → `packages/db` → `read-repo-readme` Edge Function → GitHub REST。函数必须先校验 Supabase JWT，并确认 `user_stars` 中存在当前用户与 owner/name 对应仓库的成员关系，之后才允许发起 GitHub 请求。`provider_token` 仅用于当前上游请求；缺失时可在成员校验后对公开仓库走匿名 GitHub 请求。TanStack Query 以用户和规范化 owner/name 去重并提供 5 分钟短期内存 freshness；再次请求把缓存 ETag 传给函数，由函数以 `If-None-Match` 条件请求 GitHub，304 时复用匹配的内存 HTML。GitHub 返回的 HTML 不写入 Postgres、Dexie 或浏览器持久存储，客户端在 `dangerouslySetInnerHTML` 前使用 DOMPurify 与显式允许列表双重清洗。详见 ADR 0011。
+README 工作区走独立的非持久化读取链：Web 路由 → TanStack Query → `packages/db` → `read-repo-readme` Edge Function → GitHub REST。函数必须先校验 Supabase JWT，并确认 `user_stars` 中存在当前用户与 owner/name 对应仓库的成员关系，之后才允许发起 GitHub 请求。`provider_token` 仅用于当前上游请求；缺失时可在成员校验后对公开仓库走匿名 GitHub 请求。TanStack Query 以用户和规范化 owner/name 去重并提供 5 分钟短期内存 freshness；再次请求把缓存 ETag 传给函数，由函数以 `If-None-Match` 条件请求 GitHub，304 时复用匹配的内存 HTML。GitHub 返回的 HTML 不写入 Postgres、Dexie 或浏览器持久存储，客户端在 `dangerouslySetInnerHTML` 前使用 DOMPurify 与显式 tag / attribute / class 允许列表双重清洗；fragment 只更新当前工作区 hash 并把目标滚入视口、移交程序化焦点，仓库文件与目录分别转为 GitHub `blob` / `tree`，所有离站链接统一使用安全新标签页。详见 ADR 0011。
 
 ## OAuth & Permissions · 鉴权与权限边界
 

@@ -96,6 +96,37 @@ describe('README workspace route', () => {
     expect(container.querySelector('script')).toBeNull();
   });
 
+  it('keeps fragment navigation in the workspace and updates the route hash', async () => {
+    mocks.result.data = {
+      status: 'success',
+      html: '<p>Install</p><a href="#user-content-install">Jump to install</a>',
+      etag: null,
+    };
+    const router = await renderPage('en');
+    await act(async () => {
+      await vi.waitFor(() => expect(container.textContent).toContain('Jump to install'));
+    });
+    const fragmentLink = container.querySelector<HTMLAnchorElement>(
+      'a[href="#user-content-install"]',
+    );
+    const target = container.querySelector<HTMLElement>('article');
+    if (!target) {
+      throw new Error('Expected README fragment target');
+    }
+    target.id = 'user-content-install';
+    expect(target.id).toBe('user-content-install');
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(target, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+
+    await act(async () => fragmentLink?.click());
+
+    expect(router.state.location.pathname).toBe('/repos/openai/codex/readme');
+    expect(router.state.location.hash).toBe('#user-content-install');
+    expect(target?.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(target);
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+  });
+
   it.each([
     ['en', 'Repository not in your library'],
     ['zh-CN', '仓库不在你的资料库中'],

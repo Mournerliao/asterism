@@ -27,7 +27,7 @@ export type { StarredRepoRecord } from './queries/repos';
 export { getLatestStarredAt, listStarredRepos, mapRepoRow } from './queries/repos';
 export type { TagWithCount } from './queries/tags';
 export { createTag, deleteTag, listTags, updateTag } from './queries/tags';
-export type { RepoReadmeOutcome, RepoReadmeRequest } from './readme';
+export type { RepoReadmeOutcome, RepoReadmeRequest, RepoReadmeSuccess } from './readme';
 export { invokeRepoReadme } from './readme';
 export type { SyncStarsResult } from './sync';
 export { invokeSyncStars, SyncStarsError } from './sync';

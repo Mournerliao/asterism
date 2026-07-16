@@ -198,7 +198,8 @@
     "reconnectDescription": "重新连接 GitHub 后，再尝试加载此 README。",
     "errorTitle": "无法加载此 README",
     "errorDescription": "请求暂时失败，你在 Asterism 中的位置不会改变。",
-    "retry": "重试"
+    "retry": "重试",
+    "checkAgain": "再次检查"
   },
   "collections": {
     "title": "集合",

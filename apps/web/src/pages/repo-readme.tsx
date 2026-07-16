@@ -1,3 +1,4 @@
+import type { RepoReadmeOutcome } from '@asterism/db';
 import { Button, Skeleton } from '@asterism/ui';
 import {
   AlertTriangleIcon,
@@ -6,11 +7,13 @@ import {
   ExternalLinkIcon,
   RefreshCwIcon,
 } from 'lucide-react';
-import { lazy, Suspense } from 'react';
+import { lazy, type ReactNode, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams } from 'react-router-dom';
+import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
+import { PendingActionContent } from '../components/pending-action-content';
 import { useRepoReadme } from '../data/use-repo-readme';
 import { type ReadmeRouteState, resolveReadmeReturn } from '../lib/readme-navigation';
 
@@ -19,6 +22,49 @@ const ReadmeDocument = lazy(() =>
     default: module.ReadmeDocument,
   })),
 );
+
+type ReadmeFailureStatus = Exclude<RepoReadmeOutcome['status'], 'success'>;
+
+const recoveryConfig = {
+  not_found: {
+    title: 'readme.notFoundTitle',
+    description: 'readme.notFoundDescription',
+    action: 'check',
+    icon: BookOpenIcon,
+  },
+  not_in_library: {
+    title: 'readme.notInLibraryTitle',
+    description: 'readme.notInLibraryDescription',
+    action: 'browse',
+    icon: AlertTriangleIcon,
+  },
+  rate_limited: {
+    title: 'readme.rateLimitedTitle',
+    description: 'readme.rateLimitedDescription',
+    action: 'reconnect',
+    icon: AlertTriangleIcon,
+  },
+  reconnect_required: {
+    title: 'readme.reconnectTitle',
+    description: 'readme.reconnectDescription',
+    action: 'reconnect',
+    icon: AlertTriangleIcon,
+  },
+  retryable_error: {
+    title: 'readme.errorTitle',
+    description: 'readme.errorDescription',
+    action: 'retry',
+    icon: AlertTriangleIcon,
+  },
+} as const satisfies Record<
+  ReadmeFailureStatus,
+  {
+    title: string;
+    description: string;
+    action: 'browse' | 'check' | 'reconnect' | 'retry';
+    icon: typeof AlertTriangleIcon;
+  }
+>;
 
 function ReadmeDocumentSkeleton({ label }: { label: string }) {
   return (
@@ -51,6 +97,7 @@ export function RepoReadmePage() {
   const { owner, name } = useParams<{ owner: string; name: string }>();
   const location = useLocation();
   const readme = useRepoReadme(owner, name);
+  const reconnect = useGitHubReconnect();
   const repo = `${owner ?? ''}/${name ?? ''}`;
   const githubUrl = `https://github.com/${encodeURIComponent(owner ?? '')}/${encodeURIComponent(name ?? '')}`;
   const returnDestination = resolveReadmeReturn(
@@ -63,17 +110,55 @@ export function RepoReadmePage() {
       ? t('readme.backToCollection', { name: returnDestination.collectionName })
       : t('readme.backToBrowse');
   const state = readme.data?.status;
-  const errorCopy =
-    state === 'not_found'
-      ? ['readme.notFoundTitle', 'readme.notFoundDescription']
-      : state === 'not_in_library'
-        ? ['readme.notInLibraryTitle', 'readme.notInLibraryDescription']
-        : state === 'rate_limited'
-          ? ['readme.rateLimitedTitle', 'readme.rateLimitedDescription']
-          : state === 'reconnect_required'
-            ? ['readme.reconnectTitle', 'readme.reconnectDescription']
-            : ['readme.errorTitle', 'readme.errorDescription'];
-  const showError = readme.isError || (state && state !== 'success');
+  const failureStatus: ReadmeFailureStatus | null = readme.isError
+    ? 'retryable_error'
+    : state && state !== 'success'
+      ? state
+      : null;
+  const recovery = failureStatus ? recoveryConfig[failureStatus] : null;
+  const retry = () => void readme.refetch();
+  let recoveryAction: ReactNode = null;
+  switch (recovery?.action) {
+    case 'browse':
+      recoveryAction = (
+        <Button variant="outline" className="min-h-11 sm:min-h-9" asChild>
+          <Link to="/">{t('readme.backToBrowse')}</Link>
+        </Button>
+      );
+      break;
+    case 'reconnect':
+      recoveryAction = (
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button
+            className="min-h-11 sm:min-h-9"
+            disabled={reconnect.reconnectPending}
+            onClick={() => void reconnect.reconnect()}
+          >
+            <PendingActionContent
+              pending={reconnect.reconnectPending}
+              idleLabel={t('sync.reconnectAction')}
+              pendingLabel={t('sync.reconnecting')}
+            />
+          </Button>
+          <Button variant="outline" className="min-h-11 sm:min-h-9" asChild>
+            <a href={githubUrl} target="_blank" rel="noreferrer noopener">
+              <ExternalLinkIcon className="size-4" aria-hidden="true" />
+              {t('readme.openOnGitHub')}
+            </a>
+          </Button>
+        </div>
+      );
+      break;
+    case 'check':
+    case 'retry':
+      recoveryAction = (
+        <Button variant="outline" className="min-h-11 sm:min-h-9" onClick={retry}>
+          <RefreshCwIcon className="size-4" aria-hidden="true" />
+          {recovery.action === 'check' ? t('readme.checkAgain') : t('readme.retry')}
+        </Button>
+      );
+      break;
+  }
 
   return (
     <div className="-m-6 flex min-h-0 flex-1 flex-col bg-background">
@@ -121,24 +206,13 @@ export function RepoReadmePage() {
               label={t('readme.documentLabel', { repo })}
             />
           </Suspense>
-        ) : showError ? (
+        ) : recovery ? (
           <div className="mx-auto flex min-h-full w-full max-w-3xl items-center px-6 py-10">
             <EmptyState
-              icon={state === 'not_found' ? BookOpenIcon : AlertTriangleIcon}
-              title={t(errorCopy[0] as string)}
-              description={t(errorCopy[1] as string)}
-              action={
-                state === 'not_in_library' ? (
-                  <Button variant="outline" asChild>
-                    <Link to="/">{t('readme.backToBrowse')}</Link>
-                  </Button>
-                ) : (
-                  <Button variant="outline" onClick={() => readme.refetch()}>
-                    <RefreshCwIcon className="size-4" aria-hidden="true" />
-                    {t('readme.retry')}
-                  </Button>
-                )
-              }
+              icon={recovery.icon}
+              title={t(recovery.title)}
+              description={t(recovery.description)}
+              action={recoveryAction}
             />
           </div>
         ) : null}

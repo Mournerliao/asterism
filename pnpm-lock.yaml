@@ -251,6 +251,21 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  supabase:
+    devDependencies:
+      '@asterism/config':
+        specifier: workspace:*
+        version: link:../packages/config
+      '@supabase/supabase-js':
+        specifier: ^2.108.2
+        version: 2.108.2
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^4.1.9
+        version: 4.1.9(@types/node@26.0.1)(happy-dom@20.10.6)(vite@8.1.0)
+
 packages:
 
   /@1natsu/wait-element@4.2.0:

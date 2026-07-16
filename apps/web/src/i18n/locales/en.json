@@ -198,7 +198,8 @@
     "reconnectDescription": "Reconnect GitHub, then try loading this README again.",
     "errorTitle": "Couldn't load this README",
     "errorDescription": "The request failed temporarily. Your place in Asterism is unchanged.",
-    "retry": "Try again"
+    "retry": "Try again",
+    "checkAgain": "Check again"
   },
   "collections": {
     "title": "Collections",

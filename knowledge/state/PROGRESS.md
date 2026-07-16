@@ -10,6 +10,8 @@
 
 > README 工作区端到端路径（2026-07-16，见 `logs/2026-07-16-readme-workspace-path.md`、ADR 0011）：Repo Quick Look 新增双语、全宽、44px 的 Read README 导航行；`/repos/:owner/:name` 重定向到 `/readme` 工作区，App Shell 保持挂载并立即呈现仓库身份、来源感知返回与文档骨架。新增 `packages/db` 查询链与 `read-repo-readme` Edge Function，在任何 GitHub 请求前校验会话和 `user_stars` 成员关系；返回的 GitHub HTML 不持久化，并经 DOMPurify + 显式允许列表清洗后使用固定本地 Markdown 样式渲染。Browse / Collection / 直链返回、en / zh-CN、成员拒绝与未保存笔记全部决策已有路由级回归测试。
 
+> README 缓存与恢复状态（2026-07-16，见 `logs/2026-07-16-readme-fetch-recovery.md`、ADR 0011）：README 数据链完成 success / no README / not in library / rate limit / reconnect / retryable typed outcomes；所有状态留在 App Shell 内并提供上下文化恢复操作。provider token 只进入当前函数请求且不进入 key 或持久层；TanStack Query 以稳定 key 进行并发去重和 5 分钟内存 freshness，ETag 经 Edge Function 转为 GitHub `If-None-Match`，304 复用匹配内存 HTML。
+
 > Repo Quick Look 可移动窗口（2026-07-16，见 `logs/2026-07-16-repo-quick-look-drag.md`）：桌面/平板浮窗默认位于右下角 24px，高度随内容收缩且最多 736px；以完整仓库身份首行为拖动区域且不增加冗余 drag icon，pointer 拖动使用 transform 保持流畅并限制在视口安全边距内，窗口 resize 后自动回收到可见范围，手机 Sheet 不启用拖动。
 
 > Repo Quick Look 仓库链接统一（2026-07-16，见 `logs/2026-07-16-repo-quick-look-link-consistency.md`）：浮窗头部由分行 owner / repo + 独立 external-link 图标收敛为单行 `owner / repo` 主链接；弱化 owner、以链接蓝强调 repo name，并与 Browse 卡片和表格共享“仓库身份离站”的交互模型。

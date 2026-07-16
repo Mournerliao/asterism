@@ -16,10 +16,15 @@ const mocks = vi.hoisted(() => ({
     isError: boolean;
     refetch: ReturnType<typeof vi.fn>;
   },
+  reconnect: vi.fn(),
 }));
 
 vi.mock('../data/use-repo-readme', () => ({
   useRepoReadme: () => mocks.result,
+}));
+
+vi.mock('../auth/use-github-reconnect', () => ({
+  useGitHubReconnect: () => ({ reconnect: mocks.reconnect, reconnectPending: false }),
 }));
 
 let container: HTMLDivElement;
@@ -44,6 +49,7 @@ async function renderPage(locale = 'en', state?: ReadmeRouteState) {
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
   mocks.result = { isPending: false, isError: false, refetch: vi.fn() };
+  mocks.reconnect.mockReset();
   container = document.createElement('div');
   document.body.append(container);
   root = createRoot(container);
@@ -100,6 +106,46 @@ describe('README workspace route', () => {
 
     expect(container.textContent).toContain(title);
     expect(container.querySelector('.markdown-body')).toBeNull();
+  });
+
+  it.each([
+    ['not_found', 'This repository has no README', 'Check again'],
+    ['rate_limited', 'GitHub rate limit reached', 'Reconnect GitHub'],
+    ['reconnect_required', 'GitHub access needs reconnecting', 'Reconnect GitHub'],
+    ['retryable_error', "Couldn't load this README", 'Try again'],
+  ])('renders dedicated recovery for %s', async (status, title, action) => {
+    mocks.result.data = { status };
+
+    await renderPage('en');
+
+    expect(container.textContent).toContain(title);
+    expect(container.textContent).toContain(action);
+  });
+
+  it('offers reconnect and GitHub escape actions when rate limited', async () => {
+    mocks.result.data = { status: 'rate_limited' };
+
+    await renderPage('en');
+    const buttons = [...container.querySelectorAll<HTMLButtonElement>('button')];
+    const reconnect = buttons.find((button) => button.textContent?.includes('Reconnect GitHub'));
+
+    expect(reconnect).toBeDefined();
+    expect(container.querySelector('a[href="https://github.com/openai/codex"]')).not.toBeNull();
+    await act(async () => reconnect?.click());
+    expect(mocks.reconnect).toHaveBeenCalledOnce();
+  });
+
+  it('retries transient failure in place without changing route', async () => {
+    mocks.result.data = { status: 'retryable_error' };
+    const router = await renderPage('en');
+    const retry = [...container.querySelectorAll<HTMLButtonElement>('button')].find((button) =>
+      button.textContent?.includes('Try again'),
+    );
+
+    await act(async () => retry?.click());
+
+    expect(mocks.result.refetch).toHaveBeenCalledOnce();
+    expect(router.state.location.pathname).toBe('/repos/openai/codex/readme');
   });
 
   it.each([

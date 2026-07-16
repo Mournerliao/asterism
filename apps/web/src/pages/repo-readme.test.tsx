@@ -58,6 +58,7 @@ beforeEach(() => {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  vi.restoreAllMocks();
 });
 
 describe('README workspace route', () => {
@@ -94,6 +95,68 @@ describe('README workspace route', () => {
     expect(container.textContent).toContain(back);
     expect(container.textContent).toContain('Safe README');
     expect(container.querySelector('script')).toBeNull();
+    const canvas = container.querySelector<HTMLElement>('[data-readme-canvas="content"]');
+    expect(canvas?.dataset.readmeStyleVersion).toBe('1');
+    expect(canvas?.className).toContain('max-w-[60rem]');
+    expect(canvas?.className).toContain('bg-card');
+    expect(canvas?.className).toContain('readme-document-enter');
+    const transition = container.querySelector<HTMLElement>('[data-readme-transition="crossfade"]');
+    expect(transition).not.toBeNull();
+    const outgoingCanvas = transition?.querySelector<HTMLElement>(
+      '.readme-document-exit [data-readme-canvas="skeleton"]',
+    );
+    expect(outgoingCanvas).not.toBeNull();
+    expect(outgoingCanvas?.closest('.readme-document-exit')?.getAttribute('aria-hidden')).toBe(
+      'true',
+    );
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 180)));
+    expect(transition?.querySelector('[data-readme-canvas="skeleton"]')).toBeNull();
+    expect(transition?.querySelector('[data-readme-canvas="content"]')).not.toBeNull();
+  });
+
+  it('uses the same versioned solid canvas for the loading document shape', async () => {
+    mocks.result = { isPending: true, isError: false, refetch: vi.fn() };
+
+    await renderPage('en');
+
+    const canvas = container.querySelector<HTMLElement>('[data-readme-canvas="skeleton"]');
+    expect(canvas?.dataset.readmeStyleVersion).toBe('1');
+    expect(canvas?.getAttribute('role')).toBe('status');
+    expect(canvas?.getAttribute('aria-busy')).toBe('true');
+    expect(canvas?.className).toContain('max-w-[60rem]');
+    expect(canvas?.className).toContain('bg-card');
+    expect(canvas?.className).not.toContain('backdrop-blur');
+    expect(canvas?.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(11);
+  });
+
+  it('skips the outgoing skeleton entirely when reduced motion is preferred', async () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query) =>
+        ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as MediaQueryList,
+    );
+    mocks.result.data = {
+      status: 'success',
+      html: '<h1>Short README</h1>',
+      etag: null,
+    };
+
+    await renderPage('en');
+    await act(async () => {
+      await vi.waitFor(() => expect(container.textContent).toContain('Short README'));
+    });
+
+    const transition = container.querySelector('[data-readme-transition="crossfade"]');
+    expect(transition?.querySelector('[data-readme-canvas="skeleton"]')).toBeNull();
+    expect(transition?.querySelector('[data-readme-canvas="content"]')).not.toBeNull();
   });
 
   it('keeps fragment navigation in the workspace and updates the route hash', async () => {

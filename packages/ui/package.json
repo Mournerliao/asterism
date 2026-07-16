@@ -15,7 +15,8 @@
   },
   "files": [
     "dist",
-    "src/styles/globals.css"
+    "src/styles/globals.css",
+    "src/styles/readme-document-v1.css"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json && tsc-alias -p tsconfig.build.json",

@@ -66,7 +66,7 @@ export {
   PopoverContent,
   PopoverTrigger,
 } from './components/ui/popover';
-export { ReadmeDocument } from './components/ui/readme-document';
+export { ReadmeDocument, ReadmeDocumentSkeleton } from './components/ui/readme-document';
 export type {
   SegmentedControlDisplay,
   SegmentedControlOption,

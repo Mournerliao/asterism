@@ -1,5 +1,5 @@
 import type { RepoReadmeOutcome } from '@asterism/db';
-import { Button, Skeleton } from '@asterism/ui';
+import { Button, ReadmeDocumentSkeleton, Skeleton } from '@asterism/ui';
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
@@ -7,14 +7,14 @@ import {
   ExternalLinkIcon,
   RefreshCwIcon,
 } from 'lucide-react';
-import { lazy, type ReactNode, Suspense } from 'react';
+import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useLocation, useParams } from 'react-router-dom';
 import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { EmptyState } from '../components/empty-state';
-import { LoadingRegion } from '../components/loading-region';
 import { PendingActionContent } from '../components/pending-action-content';
 import { useRepoReadme } from '../data/use-repo-readme';
+import { useMediaQuery } from '../hooks/use-media-query';
 import { type ReadmeRouteState, resolveReadmeReturn } from '../lib/readme-navigation';
 
 const ReadmeDocument = lazy(() =>
@@ -66,9 +66,9 @@ const recoveryConfig = {
   }
 >;
 
-function ReadmeDocumentSkeleton({ label }: { label: string }) {
+function ReadmeDocumentLoading({ label }: { label: string }) {
   return (
-    <LoadingRegion label={label} className="mx-auto w-full max-w-[60rem] px-5 py-8 sm:px-8">
+    <ReadmeDocumentSkeleton label={label}>
       <div className="space-y-7" aria-hidden="true">
         <Skeleton className="h-8 w-2/5" />
         <div className="space-y-3">
@@ -88,7 +88,39 @@ function ReadmeDocumentSkeleton({ label }: { label: string }) {
           <Skeleton className="h-3 w-3/4" />
         </div>
       </div>
-    </LoadingRegion>
+    </ReadmeDocumentSkeleton>
+  );
+}
+
+function ReadmeDocumentCrossfade({
+  children,
+  loadingLabel,
+}: {
+  children: ReactNode;
+  loadingLabel: string;
+}) {
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const [showOutgoing, setShowOutgoing] = useState(() => !reducedMotion);
+
+  useEffect(() => {
+    if (reducedMotion) {
+      setShowOutgoing(false);
+      return;
+    }
+
+    const timeout = window.setTimeout(() => setShowOutgoing(false), 160);
+    return () => window.clearTimeout(timeout);
+  }, [reducedMotion]);
+
+  return (
+    <div className="readme-document-crossfade" data-readme-transition="crossfade">
+      {showOutgoing ? (
+        <div className="readme-document-exit" aria-hidden="true">
+          <ReadmeDocumentLoading label={loadingLabel} />
+        </div>
+      ) : null}
+      {children}
+    </div>
   );
 }
 
@@ -196,15 +228,17 @@ export function RepoReadmePage() {
 
       <div className="min-h-0 flex-1 overflow-y-auto">
         {readme.isPending ? (
-          <ReadmeDocumentSkeleton label={t('readme.loading')} />
+          <ReadmeDocumentLoading label={t('readme.loading')} />
         ) : readme.data?.status === 'success' && owner && name ? (
-          <Suspense fallback={<ReadmeDocumentSkeleton label={t('readme.loading')} />}>
-            <ReadmeDocument
-              html={readme.data.html}
-              owner={owner}
-              name={name}
-              label={t('readme.documentLabel', { repo })}
-            />
+          <Suspense fallback={<ReadmeDocumentLoading label={t('readme.loading')} />}>
+            <ReadmeDocumentCrossfade loadingLabel={t('readme.loading')}>
+              <ReadmeDocument
+                html={readme.data.html}
+                owner={owner}
+                name={name}
+                label={t('readme.documentLabel', { repo })}
+              />
+            </ReadmeDocumentCrossfade>
           </Suspense>
         ) : recovery ? (
           <div className="mx-auto flex min-h-full w-full max-w-3xl items-center px-6 py-10">

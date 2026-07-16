@@ -14,6 +14,8 @@
 
 > README 内容安全与链接边界（2026-07-16，见 `logs/2026-07-16-readme-content-security.md`、ADR 0011）：DOMPurify 后继续执行显式 tag / attribute / class allowlist，移除脚本、表单、可执行 embed、危险 scheme、事件属性及可覆盖 App Shell 的 utility class，同时保留 GitHub 常见结构、badge、居中内容、代码与 details。fragment 点击更新当前 README 路由 hash，并聚焦、滚动至匹配目标；仓库相对文件/目录分别解析为 GitHub `blob` / `tree`，全部离站链接统一为安全新标签页，异常媒体与不支持结构安全降级。
 
+> README 响应式文档画布（2026-07-16，见 `logs/2026-07-16-readme-responsive-canvas.md`、ADR 0011）：`@asterism/ui` 新增显式 content / skeleton canvas variants，共享实体 card、60rem 最大宽度与响应式 padding；Asterism 原创 MIT `readme-document-v1.css` 固定覆盖 GFM、HTML-heavy header、badge、媒体、表格、代码和 details。大图保持比例，宽表/代码局部滚动，loaded 以 160ms opacity crossfade 进入并遵循 reduced motion；紧凑 header 在窄屏保留返回、仓库身份与 GitHub 图标。
+
 > Repo Quick Look 可移动窗口（2026-07-16，见 `logs/2026-07-16-repo-quick-look-drag.md`）：桌面/平板浮窗默认位于右下角 24px，高度随内容收缩且最多 736px；以完整仓库身份首行为拖动区域且不增加冗余 drag icon，pointer 拖动使用 transform 保持流畅并限制在视口安全边距内，窗口 resize 后自动回收到可见范围，手机 Sheet 不启用拖动。
 
 > Repo Quick Look 仓库链接统一（2026-07-16，见 `logs/2026-07-16-repo-quick-look-link-consistency.md`）：浮窗头部由分行 owner / repo + 独立 external-link 图标收敛为单行 `owner / repo` 主链接；弱化 owner、以链接蓝强调 repo name，并与 Browse 卡片和表格共享“仓库身份离站”的交互模型。

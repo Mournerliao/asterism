@@ -30,7 +30,7 @@ vi.mock('../auth/use-github-reconnect', () => ({
 let container: HTMLDivElement;
 let root: Root;
 
-async function renderPage(locale = 'en', state?: ReadmeRouteState) {
+async function renderPage(locale = 'en', state?: ReadmeRouteState, hash = '') {
   await import('../components/readme-document');
   await i18n.changeLanguage(locale);
   const router = createMemoryRouter(
@@ -39,7 +39,7 @@ async function renderPage(locale = 'en', state?: ReadmeRouteState) {
       { path: '/collections/:id', element: <span>Collection destination</span> },
       { path: '/repos/:owner/:name/readme', element: <RepoReadmePage /> },
     ],
-    { initialEntries: [{ pathname: '/repos/openai/codex/readme', state }] },
+    { initialEntries: [{ pathname: '/repos/openai/codex/readme', hash, state }] },
   );
   await act(async () => root.render(<RouterProvider router={router} />));
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
@@ -188,6 +188,160 @@ describe('README workspace route', () => {
     expect(target?.getAttribute('tabindex')).toBe('-1');
     expect(document.activeElement).toBe(target);
     expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start' });
+  });
+
+  it('offers adaptive outline presentations and navigates entries with focus and hash updates', async () => {
+    mocks.result.data = {
+      status: 'success',
+      html: `
+        <h1>Codex</h1>
+        <h2 id="install">Install</h2>
+        <h3 id="requirements">Requirements</h3>
+        <h2 id="usage">Usage</h2>
+      `,
+      etag: null,
+    };
+    const router = await renderPage('en');
+    await act(async () => {
+      await vi.waitFor(() => expect(container.textContent).toContain('Requirements'));
+    });
+
+    expect(container.querySelector('[data-readme-outline="desktop"]')).not.toBeNull();
+    expect(container.querySelector('[data-readme-outline-trigger="popover"]')).not.toBeNull();
+    expect(container.querySelector('[data-readme-outline-trigger="sheet"]')).not.toBeNull();
+    const scrollIntoView = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView);
+
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[data-outline-id="usage"]')?.click(),
+    );
+
+    const focusedTarget = container.querySelector<HTMLElement>('#usage');
+    expect(router.state.location.hash).toBe('#usage');
+    expect(focusedTarget?.getAttribute('tabindex')).toBe('-1');
+    expect(document.activeElement).toBe(focusedTarget);
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'smooth', block: 'start' });
+    expect(
+      container.querySelector('[data-readme-outline="desktop"] [data-outline-id="requirements"]'),
+    ).toBeNull();
+  });
+
+  it('opens a copied section URL after content loads and hides controls for an empty outline', async () => {
+    const scrollIntoView = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView);
+    mocks.result.data = {
+      status: 'success',
+      html: '<h1>Codex</h1><h2 id="install">Install</h2><h2 id="usage">Usage</h2>',
+      etag: null,
+    };
+
+    await renderPage('en', undefined, '#usage');
+    await act(async () => {
+      await vi.waitFor(() =>
+        expect(
+          container.querySelector('[data-outline-id="usage"]')?.getAttribute('aria-current'),
+        ).toBe('location'),
+      );
+    });
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
+
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    mocks.result.data = { status: 'success', html: '<h1>Only a title</h1>', etag: null };
+    await renderPage('en');
+    expect(container.querySelector('[data-readme-outline="desktop"]')).toBeNull();
+    expect(container.querySelector('[data-readme-outline-trigger]')).toBeNull();
+  });
+
+  it('tracks natural scrolling with replace semantics instead of growing browser history', async () => {
+    mocks.result.data = {
+      status: 'success',
+      html: '<h1>Codex</h1><h2 id="install">Install</h2><h2 id="usage">Usage</h2>',
+      etag: null,
+    };
+    const router = await renderPage('en');
+    const scroller = container.querySelector<HTMLElement>('[data-readme-scroll-container]');
+    const install = container.querySelector<HTMLElement>('#install');
+    const usage = container.querySelector<HTMLElement>('#usage');
+    vi.spyOn(scroller as HTMLElement, 'getBoundingClientRect').mockReturnValue({
+      top: 0,
+    } as DOMRect);
+    vi.spyOn(install as HTMLElement, 'getBoundingClientRect').mockReturnValue({
+      top: -20,
+    } as DOMRect);
+    vi.spyOn(usage as HTMLElement, 'getBoundingClientRect').mockReturnValue({ top: 40 } as DOMRect);
+
+    await act(async () => scroller?.dispatchEvent(new Event('scroll')));
+
+    expect(router.state.location.hash).toBe('#usage');
+    expect(router.state.historyAction).toBe('REPLACE');
+  });
+
+  it('opens the transient outline from the keyboard and preserves selected-heading focus on close', async () => {
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(() => undefined);
+    mocks.result.data = {
+      status: 'success',
+      html: '<h1>Codex</h1><h2 id="install">Install</h2><h2 id="usage">Usage</h2>',
+      etag: null,
+    };
+    await renderPage('en');
+    const trigger = container.querySelector<HTMLButtonElement>(
+      '[data-readme-outline-trigger="popover"]',
+    );
+    trigger?.focus();
+
+    await act(async () =>
+      trigger?.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 })),
+    );
+    const popover = document.querySelector<HTMLElement>('[data-slot="popover-content"]');
+    expect(popover).not.toBeNull();
+
+    await act(async () =>
+      popover?.querySelector<HTMLButtonElement>('[data-outline-id="usage"]')?.click(),
+    );
+    expect(document.querySelector('[data-slot="popover-content"]')).toBeNull();
+    expect(document.activeElement).toBe(container.querySelector('#usage'));
+
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[data-readme-outline-trigger="sheet"]')?.click(),
+    );
+    const sheet = document.querySelector<HTMLElement>('[data-slot="sheet-content"]');
+    expect(sheet).not.toBeNull();
+    await act(async () =>
+      sheet?.querySelector<HTMLButtonElement>('[data-outline-id="install"]')?.click(),
+    );
+    expect(document.querySelector('[data-slot="sheet-content"]')).toBeNull();
+    expect(document.activeElement).toBe(container.querySelector('#install'));
+  });
+
+  it('avoids smooth section scrolling when reduced motion is preferred', async () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query) =>
+        ({
+          matches: query === '(prefers-reduced-motion: reduce)',
+          media: query,
+          onchange: null,
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as MediaQueryList,
+    );
+    const scrollIntoView = vi.fn();
+    vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView);
+    mocks.result.data = {
+      status: 'success',
+      html: '<h1>Codex</h1><h2 id="install">Install</h2><h2 id="usage">Usage</h2>',
+      etag: null,
+    };
+    await renderPage('en');
+
+    await act(async () =>
+      container.querySelector<HTMLButtonElement>('[data-outline-id="usage"]')?.click(),
+    );
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ behavior: 'auto', block: 'start' });
   });
 
   it.each([

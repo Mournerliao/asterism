@@ -17,7 +17,7 @@ Repo Quick Look 适合快速检查与整理，不适合承载完整 README。新
 
 采用方案 3。工作区路由通过 TanStack Query 调用 `packages/db`，再调用 `read-repo-readme` Edge Function。函数先验证 Supabase JWT，再以 `user_id + repos.full_name` 精确相等确认 `user_stars` 成员关系；只有通过后才请求 GitHub REST README HTML。当前会话若有 `provider_token` 则只用于该次上游请求，否则允许公开仓库匿名回退。token 不记录、不缓存、不持久化。
 
-HTML 不进入 Postgres、Dexie 或浏览器持久存储。TanStack Query 以用户和仓库身份作为稳定 key，在 5 分钟 freshness 内去重；重新验证时把成功结果的 ETag 传给 Edge Function，函数以 `If-None-Match` 请求 GitHub，304 仅复用 ETag 匹配的内存 HTML。Web 在渲染前执行 DOMPurify 与第二层显式 tag / attribute / class allowlist，移除脚本、事件属性、表单、可执行 embed、危险 URL 与可借用应用 utility class 的界面覆盖；只保留 GitHub 代码高亮所需的 class 子集。fragment 由 Router 原位更新工作区 hash，并把匹配目标设为程序化焦点后滚入视口；仓库相对文件和目录分别转向 GitHub `blob` / `tree`，外链使用新标签页与 `noreferrer noopener`。清洗内容固定由 Asterism 原创 MIT `readme-document-v1.css` 渲染在 `@asterism/ui` 的 960px 实体 canvas；loading / loaded 共享结构，loaded 只做 reduced-motion 安全 opacity crossfade。
+HTML 不进入 Postgres、Dexie 或浏览器持久存储。TanStack Query 以用户和仓库身份作为稳定 key，在 5 分钟 freshness 内去重；重新验证时把成功结果的 ETag 传给 Edge Function，函数以 `If-None-Match` 请求 GitHub，304 仅复用 ETag 匹配的内存 HTML。Web 在渲染前执行 DOMPurify 与第二层显式 tag / attribute / class allowlist，移除脚本、事件属性、表单、可执行 embed、危险 URL 与可借用应用 utility class 的界面覆盖；只保留 GitHub 代码高亮所需的 class 子集。fragment 由 Router 原位更新工作区 hash，并把匹配目标设为程序化焦点后滚入视口；仓库相对文件和目录分别转向 GitHub `blob` / `tree`，外链使用新标签页与 `noreferrer noopener`。清洗后的 HTML 再进入单一 Outline 推导模块，稳定补全 heading target，并以共享 active state 驱动 desktop rail / tablet Popover / mobile Sheet；用户选择写入普通 hash history，自然滚动只以 `replace` 同步 hash，复制的 section URL 在内容加载后恢复定位。清洗内容固定由 Asterism 原创 MIT `readme-document-v1.css` 渲染在 `@asterism/ui` 的 960px 实体 canvas；loading / loaded 共享结构，loaded 只做 reduced-motion 安全 opacity crossfade。
 
 ## Consequences
 

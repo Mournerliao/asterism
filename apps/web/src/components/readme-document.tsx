@@ -2,21 +2,28 @@ import { ReadmeDocument as ReadmeDocumentSurface } from '@asterism/ui';
 import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sanitizeReadmeHtml } from '../lib/readme-content';
+import { deriveReadmeOutline, type ReadmeOutlineItem } from '../lib/readme-outline';
 
 export function ReadmeDocument({
   html,
   owner,
   name,
   label,
+  onOutlineChange,
 }: {
   html: string;
   owner: string;
   name: string;
   label: string;
+  onOutlineChange: (items: ReadmeOutlineItem[]) => void;
 }) {
   const navigate = useNavigate();
   const documentRef = useRef<HTMLDivElement>(null);
-  const sanitizedHtml = useMemo(() => sanitizeReadmeHtml(html, owner, name), [html, owner, name]);
+  const outline = useMemo(
+    () => deriveReadmeOutline(sanitizeReadmeHtml(html, owner, name)),
+    [html, name, owner],
+  );
+  useEffect(() => onOutlineChange(outline.items), [onOutlineChange, outline.items]);
   useEffect(() => {
     const container = documentRef.current;
     if (!container) {
@@ -60,7 +67,7 @@ export function ReadmeDocument({
 
   return (
     <div ref={documentRef}>
-      <ReadmeDocumentSurface sanitizedHtml={sanitizedHtml} label={label} />
+      <ReadmeDocumentSurface sanitizedHtml={outline.html} label={label} />
     </div>
   );
 }

@@ -7,19 +7,30 @@ import {
   ExternalLinkIcon,
   RefreshCwIcon,
 } from 'lucide-react';
-import { lazy, type ReactNode, Suspense, useEffect, useState } from 'react';
+import { lazy, type ReactNode, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Link, useLocation, useParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { EmptyState } from '../components/empty-state';
 import { PendingActionContent } from '../components/pending-action-content';
 import { useRepoReadme } from '../data/use-repo-readme';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { type ReadmeRouteState, resolveReadmeReturn } from '../lib/readme-navigation';
+import type { ReadmeOutlineItem } from '../lib/readme-outline';
 
 const ReadmeDocument = lazy(() =>
   import('../components/readme-document').then((module) => ({
     default: module.ReadmeDocument,
+  })),
+);
+const ReadmeOutlineTriggers = lazy(() =>
+  import('../components/readme-outline').then((module) => ({
+    default: module.ReadmeOutlineTriggers,
+  })),
+);
+const ReadmeOutlineRail = lazy(() =>
+  import('../components/readme-outline').then((module) => ({
+    default: module.ReadmeOutlineRail,
   })),
 );
 
@@ -128,8 +139,15 @@ export function RepoReadmePage() {
   const { t } = useTranslation();
   const { owner, name } = useParams<{ owner: string; name: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const readme = useRepoReadme(owner, name);
   const reconnect = useGitHubReconnect();
+  const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const pendingSectionFocusRef = useRef<string | null>(null);
+  const skipNextHashScrollRef = useRef(false);
+  const [outlineItems, setOutlineItems] = useState<ReadmeOutlineItem[]>([]);
+  const [activeOutlineId, setActiveOutlineId] = useState<string | null>(null);
   const repo = `${owner ?? ''}/${name ?? ''}`;
   const githubUrl = `https://github.com/${encodeURIComponent(owner ?? '')}/${encodeURIComponent(name ?? '')}`;
   const returnDestination = resolveReadmeReturn(
@@ -142,6 +160,93 @@ export function RepoReadmePage() {
       ? t('readme.backToCollection', { name: returnDestination.collectionName })
       : t('readme.backToBrowse');
   const state = readme.data?.status;
+  const findSectionTarget = useCallback(
+    (id: string) =>
+      Array.from(scrollContainerRef.current?.querySelectorAll<HTMLElement>('[id]') ?? []).find(
+        (element) => element.id === id,
+      ) ?? null,
+    [],
+  );
+  const navigateToSection = useCallback(
+    (id: string) => {
+      pendingSectionFocusRef.current = id;
+      void navigate({ hash: `#${encodeURIComponent(id)}` });
+      setActiveOutlineId(id);
+    },
+    [navigate],
+  );
+  useEffect(() => {
+    if (outlineItems.length === 0) {
+      setActiveOutlineId(null);
+      return;
+    }
+    setActiveOutlineId((current) =>
+      current && outlineItems.some((item) => item.id === current)
+        ? current
+        : (outlineItems[0]?.id ?? null),
+    );
+  }, [outlineItems]);
+  useEffect(() => {
+    if (state !== 'success') {
+      setOutlineItems([]);
+    }
+  }, [state]);
+  useEffect(() => {
+    const hash = location.hash.slice(1);
+    if (!hash || outlineItems.length === 0) {
+      return;
+    }
+    if (skipNextHashScrollRef.current) {
+      skipNextHashScrollRef.current = false;
+      return;
+    }
+    let id: string;
+    try {
+      id = decodeURIComponent(hash);
+    } catch {
+      id = hash;
+    }
+    const target = findSectionTarget(id);
+    if (!target) {
+      return;
+    }
+    setActiveOutlineId(id);
+    if (pendingSectionFocusRef.current === id) {
+      pendingSectionFocusRef.current = null;
+      if (!target.hasAttribute('tabindex')) {
+        target.setAttribute('tabindex', '-1');
+      }
+      target.setAttribute('data-readme-heading-focus', 'true');
+      target.focus({ preventScroll: true });
+      target.scrollIntoView({ behavior: reducedMotion ? 'auto' : 'smooth', block: 'start' });
+      return;
+    }
+    target.scrollIntoView({ behavior: 'auto', block: 'start' });
+  }, [findSectionTarget, location.hash, outlineItems, reducedMotion]);
+  useEffect(() => {
+    const scrollContainer = scrollContainerRef.current;
+    if (!scrollContainer || outlineItems.length === 0) {
+      return;
+    }
+    const trackActiveSection = () => {
+      const threshold = scrollContainer.getBoundingClientRect().top + 72;
+      let nextId = outlineItems[0]?.id ?? null;
+      for (const item of outlineItems) {
+        const target = findSectionTarget(item.id);
+        if (target && target.getBoundingClientRect().top <= threshold) {
+          nextId = item.id;
+        }
+      }
+      if (!nextId || nextId === activeOutlineId) {
+        return;
+      }
+      setActiveOutlineId(nextId);
+      skipNextHashScrollRef.current = true;
+      void navigate({ hash: `#${encodeURIComponent(nextId)}` }, { replace: true });
+    };
+    scrollContainer.addEventListener('scroll', trackActiveSection, { passive: true });
+    return () => scrollContainer.removeEventListener('scroll', trackActiveSection);
+  }, [activeOutlineId, findSectionTarget, navigate, outlineItems]);
   const failureStatus: ReadmeFailureStatus | null = readme.isError
     ? 'retryable_error'
     : state && state !== 'success'
@@ -193,7 +298,7 @@ export function RepoReadmePage() {
   }
 
   return (
-    <div className="-m-6 flex min-h-0 flex-1 flex-col bg-background">
+    <div className="@container/readme-workspace -m-6 flex min-h-0 flex-1 flex-col bg-background">
       <header className="asterism-glass-surface z-10 flex min-h-13 shrink-0 items-center gap-3 border-b px-4 sm:px-6">
         <Button
           variant="ghost"
@@ -212,6 +317,15 @@ export function RepoReadmePage() {
           <span className="text-muted-foreground"> / </span>
           <span>{name}</span>
         </div>
+        {outlineItems.length > 0 ? (
+          <Suspense fallback={null}>
+            <ReadmeOutlineTriggers
+              items={outlineItems}
+              activeId={activeOutlineId}
+              onSelect={navigateToSection}
+            />
+          </Suspense>
+        ) : null}
         <Button
           variant="outline"
           size="sm"
@@ -226,18 +340,32 @@ export function RepoReadmePage() {
         </Button>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div
+        ref={scrollContainerRef}
+        data-readme-scroll-container
+        className="min-h-0 flex-1 overflow-y-auto"
+      >
         {readme.isPending ? (
           <ReadmeDocumentLoading label={t('readme.loading')} />
         ) : readme.data?.status === 'success' && owner && name ? (
           <Suspense fallback={<ReadmeDocumentLoading label={t('readme.loading')} />}>
             <ReadmeDocumentCrossfade loadingLabel={t('readme.loading')}>
-              <ReadmeDocument
-                html={readme.data.html}
-                owner={owner}
-                name={name}
-                label={t('readme.documentLabel', { repo })}
-              />
+              <div className="mx-auto w-full @min-[1100px]/readme-workspace:grid @min-[1100px]/readme-workspace:max-w-[76.5rem] @min-[1100px]/readme-workspace:grid-cols-[minmax(0,60rem)_14rem] @min-[1100px]/readme-workspace:gap-6 @min-[1100px]/readme-workspace:px-6">
+                <ReadmeDocument
+                  html={readme.data.html}
+                  owner={owner}
+                  name={name}
+                  label={t('readme.documentLabel', { repo })}
+                  onOutlineChange={setOutlineItems}
+                />
+                {outlineItems.length > 0 ? (
+                  <ReadmeOutlineRail
+                    items={outlineItems}
+                    activeId={activeOutlineId}
+                    onSelect={navigateToSection}
+                  />
+                ) : null}
+              </div>
             </ReadmeDocumentCrossfade>
           </Suspense>
         ) : recovery ? (

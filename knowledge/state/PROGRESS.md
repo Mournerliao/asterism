@@ -8,6 +8,8 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> README 仓库身份居中（2026-07-17，见 `logs/2026-07-17-readme-header-centered-identity.md`）：工作区 header 从顺序 flex 改为 `1fr / auto / 1fr` 对称三列，返回动作与 Outline / GitHub 操作分别锚定两侧，仓库身份保持几何居中且在窄空间安全截断；44px 移动触控目标、焦点语义与自适应 Outline 行为保持不变。
+
 > README 自适应目录与 section 深链（2026-07-17，见 `logs/2026-07-17-readme-outline-deep-links.md`、ADR 0011）：最终清洗 HTML 经单一 Outline 模块补全稳定 heading target，兼容标题型 h1 排除、真实 h1 section、层级跳跃、GitHub anchor、重复/中文标题与空目录；主容器 `≥1100px` 使用实体 rail、`768–1099px` 使用 header Popover、`<768px` 使用底部 Sheet，长分支围绕 active section 折叠。选择条目更新 hash、滚动并聚焦 heading；自然滚动以 history replace 同步 active hash，复制深链在内容加载后恢复，reduced motion 禁用 smooth scroll。
 
 > README 工作区端到端路径（2026-07-16，见 `logs/2026-07-16-readme-workspace-path.md`、ADR 0011）：Repo Quick Look 新增双语、全宽、44px 的 Read README 导航行；`/repos/:owner/:name` 重定向到 `/readme` 工作区，App Shell 保持挂载并立即呈现仓库身份、来源感知返回与文档骨架。新增 `packages/db` 查询链与 `read-repo-readme` Edge Function，在任何 GitHub 请求前校验会话和 `user_stars` 成员关系；返回的 GitHub HTML 不持久化，并经 DOMPurify + 显式允许列表清洗后使用固定本地 Markdown 样式渲染。Browse / Collection / 直链返回、en / zh-CN、成员拒绝与未保存笔记全部决策已有路由级回归测试。

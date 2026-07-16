@@ -95,6 +95,13 @@ describe('README workspace route', () => {
     expect(container.textContent).toContain(back);
     expect(container.textContent).toContain('Safe README');
     expect(container.querySelector('script')).toBeNull();
+    const workspaceHeader = container.querySelector<HTMLElement>('[data-readme-header]');
+    const repoIdentity = container.querySelector<HTMLElement>('[data-readme-repo-identity]');
+    expect(workspaceHeader?.className).toContain(
+      'grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)]',
+    );
+    expect(repoIdentity?.className).toContain('justify-self-center');
+    expect(repoIdentity?.className).toContain('text-center');
     const canvas = container.querySelector<HTMLElement>('[data-readme-canvas="content"]');
     expect(canvas?.dataset.readmeStyleVersion).toBe('1');
     expect(canvas?.className).toContain('max-w-[60rem]');
@@ -203,7 +210,9 @@ describe('README workspace route', () => {
     };
     const router = await renderPage('en');
     await act(async () => {
-      await vi.waitFor(() => expect(container.textContent).toContain('Requirements'));
+      await vi.waitFor(() =>
+        expect(container.querySelector('[data-readme-outline="desktop"]')).not.toBeNull(),
+      );
     });
 
     expect(container.querySelector('[data-readme-outline="desktop"]')).not.toBeNull();

@@ -299,45 +299,55 @@ export function RepoReadmePage() {
 
   return (
     <div className="@container/readme-workspace -m-6 flex min-h-0 flex-1 flex-col bg-background">
-      <header className="asterism-glass-surface z-10 flex min-h-13 shrink-0 items-center gap-3 border-b px-4 sm:px-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          className="min-h-11 min-w-11 gap-2 sm:min-h-8 sm:min-w-0"
-          asChild
+      <header
+        data-readme-header
+        className="asterism-glass-surface z-10 grid min-h-13 shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-center gap-3 border-b px-4 sm:px-6"
+      >
+        <div className="min-w-0 justify-self-start">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="min-h-11 min-w-11 max-w-full gap-2 sm:min-h-8 sm:min-w-0"
+            asChild
+          >
+            <Link to={returnDestination.to}>
+              <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+              <span className="hidden truncate sm:inline">{returnLabel}</span>
+              <span className="sr-only sm:hidden">{returnLabel}</span>
+            </Link>
+          </Button>
+        </div>
+        <div
+          data-readme-repo-identity
+          className="min-w-0 max-w-full justify-self-center truncate text-center text-body font-semibold"
         >
-          <Link to={returnDestination.to}>
-            <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
-            <span className="hidden truncate sm:inline">{returnLabel}</span>
-            <span className="sr-only sm:hidden">{returnLabel}</span>
-          </Link>
-        </Button>
-        <div className="min-w-0 flex-1 truncate text-body font-semibold">
           <span className="text-muted-foreground">{owner}</span>
           <span className="text-muted-foreground"> / </span>
           <span>{name}</span>
         </div>
-        {outlineItems.length > 0 ? (
-          <Suspense fallback={null}>
-            <ReadmeOutlineTriggers
-              items={outlineItems}
-              activeId={activeOutlineId}
-              onSelect={navigateToSection}
-            />
-          </Suspense>
-        ) : null}
-        <Button
-          variant="outline"
-          size="sm"
-          className="min-h-11 min-w-11 gap-2 sm:min-h-8 sm:min-w-0"
-          asChild
-        >
-          <a href={githubUrl} target="_blank" rel="noreferrer noopener">
-            <ExternalLinkIcon className="size-4" aria-hidden="true" />
-            <span className="hidden sm:inline">{t('readme.openOnGitHub')}</span>
-            <span className="sr-only sm:hidden">{t('readme.openOnGitHub')}</span>
-          </a>
-        </Button>
+        <div className="flex min-w-0 justify-self-end gap-2">
+          {outlineItems.length > 0 ? (
+            <Suspense fallback={null}>
+              <ReadmeOutlineTriggers
+                items={outlineItems}
+                activeId={activeOutlineId}
+                onSelect={navigateToSection}
+              />
+            </Suspense>
+          ) : null}
+          <Button
+            variant="outline"
+            size="sm"
+            className="min-h-11 min-w-11 gap-2 sm:min-h-8 sm:min-w-0"
+            asChild
+          >
+            <a href={githubUrl} target="_blank" rel="noreferrer noopener">
+              <ExternalLinkIcon className="size-4" aria-hidden="true" />
+              <span className="hidden sm:inline">{t('readme.openOnGitHub')}</span>
+              <span className="sr-only sm:hidden">{t('readme.openOnGitHub')}</span>
+            </a>
+          </Button>
+        </div>
       </header>
 
       <div

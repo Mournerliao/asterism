@@ -200,13 +200,17 @@ export function BrowsePage() {
     return (
       <LoadingRegion
         label={t('loading.repositories')}
-        className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5"
+        className="-m-6 flex min-h-0 flex-1 flex-col gap-5"
       >
-        <div className="shrink-0">
-          <BrowseToolbarSkeleton />
+        <div className="shrink-0 px-6 pt-6">
+          <div className="mx-auto w-full max-w-6xl">
+            <BrowseToolbarSkeleton />
+          </div>
         </div>
-        <div className="-mx-6 min-h-0 flex-1 overflow-hidden px-6">
-          <InitialLoadingState view={view} />
+        <div className="min-h-0 flex-1 overflow-hidden px-6 pb-6">
+          <div className="mx-auto w-full max-w-6xl">
+            <InitialLoadingState view={view} />
+          </div>
         </div>
       </LoadingRegion>
     );
@@ -214,40 +218,48 @@ export function BrowsePage() {
 
   if (hasRepos) {
     return (
-      <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5">
-        <div className="flex shrink-0 flex-col gap-4">
-          <GlassControlRow stuck={stuck} className="flex-col items-stretch gap-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <PageHeader
-                size="section"
-                title={t('browse.title')}
-                description={!isError ? t('browse.count', { total }) : undefined}
-              />
-              <RepoViewToggle committedView={view} onSelect={transitionTo} />
-            </div>
-            <RepoFilterBar facets={facets} tags={tags ?? []} />
-          </GlassControlRow>
-          {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
+      <div className="-m-6 flex min-h-0 flex-1 flex-col gap-5">
+        <div className="shrink-0 px-6 pt-6">
+          <div className="mx-auto flex w-full max-w-6xl flex-col gap-4">
+            <GlassControlRow stuck={stuck} className="flex-col items-stretch gap-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <PageHeader
+                  size="section"
+                  title={t('browse.title')}
+                  description={!isError ? t('browse.count', { total }) : undefined}
+                />
+                <RepoViewToggle committedView={view} onSelect={transitionTo} />
+              </div>
+              <RepoFilterBar facets={facets} tags={tags ?? []} />
+            </GlassControlRow>
+            {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
+          </div>
         </div>
 
-        <div ref={setRepoScrollElement} className="-mx-6 min-h-0 flex-1 overflow-y-auto px-6">
-          {repoContent}
+        <div
+          ref={setRepoScrollElement}
+          data-browse-scroll-container
+          className="min-h-0 flex-1 overflow-y-auto px-6 pb-6"
+        >
+          <div className="mx-auto w-full max-w-6xl">{repoContent}</div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-5 overflow-y-auto">
-      <PageHeader
-        size="section"
-        title={t('browse.title')}
-        description={!isError ? t('browse.count', { total }) : undefined}
-      />
+    <div data-browse-scroll-container className="-m-6 min-h-0 flex-1 overflow-y-auto px-6 py-6">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
+        <PageHeader
+          size="section"
+          title={t('browse.title')}
+          description={!isError ? t('browse.count', { total }) : undefined}
+        />
 
-      {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
+        {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
 
-      {repoContent}
+        {repoContent}
+      </div>
     </div>
   );
 }

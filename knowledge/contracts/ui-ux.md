@@ -105,7 +105,7 @@
 
 ### Scrollbar · 滚动条（定稿）
 
-> 全局样式落在 `packages/ui/src/styles/globals.css` `@layer base`，所有可滚动区域（页面内容区、Drawer、下拉菜单、代码预览等）统一应用。Authenticated app 的 `AppLayout` 主内容区**不滚动**（`overflow-hidden`），各页面根节点或 Browse 列表区自行承担纵向滚动；Browse 列表区可用 `-mx-6 px-6` 使滚动条贴主内容区右边缘。Drawer / Dropdown / Select / 代码预览 / 横向表格等局部交互可保留局部滚动。
+> 全局样式落在 `packages/ui/src/styles/globals.css` `@layer base`，所有可滚动区域（页面内容区、Drawer、下拉菜单、代码预览等）统一应用。Authenticated app 的 `AppLayout` 主内容区**不滚动**（`overflow-hidden`），各页面根节点或 Browse 列表区自行承担纵向滚动；Browse 使用全宽滚动层承载 scrollbar，再以内层 `px-6` + `max-w-6xl` 保持内容宽度，使轨道贴主内容区右边缘而不拉宽内容。Drawer / Dropdown / Select / 代码预览 / 横向表格等局部交互可保留局部滚动。
 
 | Token / 属性 | 值 | 说明 |
 | --- | --- | --- |
@@ -120,7 +120,7 @@
 
 应用主内容区（`AppLayout` 的 `<main>`）为 **flex 列容器、不滚动**（`overflow-hidden p-6`），各页面自行声明滚动区域。
 
-Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 + 筛选栏（及同步进度条）固定在上方 `shrink-0` 区域；仅下方列表区 `flex-1 overflow-y-auto` 滚动，虚拟列表绑定该区域。无需 `position: sticky`，也不依赖修改 `main` 的 padding 或给各页面补 `pt-6`。
+Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 + 筛选栏（及同步进度条）固定在上方 `shrink-0` 区域；仅下方全宽列表层 `flex-1 overflow-y-auto` 滚动，虚拟列表绑定该区域，列表内容再由 `px-6` + `max-w-6xl` 居中限宽。页面根节点用 `-m-6` 穿过 `main` padding，让 scrollbar 贴主内容区边缘；无需 `position: sticky`，也不修改 `main` 自身的 padding。
 
 其余页面根节点使用 `flex-1 min-h-0 overflow-y-auto` 整页滚动。
 

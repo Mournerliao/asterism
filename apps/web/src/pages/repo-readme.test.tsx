@@ -218,6 +218,9 @@ describe('README workspace route', () => {
     expect(container.querySelector('[data-readme-outline="desktop"]')).not.toBeNull();
     expect(container.querySelector('[data-readme-outline-trigger="popover"]')).not.toBeNull();
     expect(container.querySelector('[data-readme-outline-trigger="sheet"]')).not.toBeNull();
+    const railScroll = container.querySelector<HTMLElement>('[data-readme-outline-scroll="rail"]');
+    expect(railScroll?.className).toContain('-mr-3');
+    expect(railScroll?.className).toContain('pr-3');
     const scrollIntoView = vi.fn();
     vi.spyOn(HTMLElement.prototype, 'scrollIntoView').mockImplementation(scrollIntoView);
 

@@ -26,13 +26,25 @@ function visibleItems(items: ReadmeOutlineItem[], activeId: string | null) {
   return items.filter((item) => item.parentId === null || item.parentId === activeParentId);
 }
 
-function OutlineList({ items, activeId, onSelect }: ReadmeOutlineProps) {
+function OutlineList({
+  items,
+  activeId,
+  onSelect,
+  edgeToEdge = false,
+}: ReadmeOutlineProps & { edgeToEdge?: boolean }) {
   const { t } = useTranslation();
   const renderedItems = useMemo(() => visibleItems(items, activeId), [activeId, items]);
 
   return (
     <nav aria-label={t('readme.outlineLabel')}>
-      <ul className="max-h-[min(26rem,60svh)] space-y-0.5 overflow-y-auto pr-1">
+      <ul
+        data-readme-outline-scroll={edgeToEdge ? 'rail' : undefined}
+        className={
+          edgeToEdge
+            ? '-mr-3 max-h-[min(26rem,60svh)] space-y-0.5 overflow-y-auto pr-3'
+            : 'max-h-[min(26rem,60svh)] space-y-0.5 overflow-y-auto pr-1'
+        }
+      >
         {renderedItems.map((item) => (
           <li key={item.id}>
             <button
@@ -137,7 +149,7 @@ export function ReadmeOutlineRail(props: ReadmeOutlineProps) {
       className="sticky top-6 hidden max-h-[calc(100svh-7rem)] self-start overflow-hidden rounded-lg border bg-card p-3 @min-[1100px]/readme-workspace:block"
     >
       <p className="mb-2 px-2 text-caption font-semibold">{t('readme.outline')}</p>
-      <OutlineList {...props} />
+      <OutlineList {...props} edgeToEdge />
     </aside>
   );
 }

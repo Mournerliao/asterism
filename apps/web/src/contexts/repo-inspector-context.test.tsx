@@ -3,8 +3,10 @@
 import type { StarredRepoRecord } from '@asterism/db';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
+import { useTranslation } from 'react-i18next';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import i18n from '../i18n';
 import { RepoInspectorProvider, useRepoInspector } from './repo-inspector-context';
 
 const mocks = vi.hoisted(() => ({
@@ -22,6 +24,7 @@ const record = {
 } as StarredRepoRecord;
 
 function Harness() {
+  const { t } = useTranslation();
   const controller = useRepoInspector();
   const location = useLocation();
   const destination = {
@@ -52,9 +55,15 @@ function Harness() {
         data-testid="read"
         onClick={() => controller.requestRoute('/repos/openai/codex/readme', destination)}
       />
-      <button type="button" data-testid="save" onClick={controller.saveAndContinue} />
-      <button type="button" data-testid="discard" onClick={controller.discardAndContinue} />
-      <button type="button" data-testid="keep" onClick={controller.continueEditing} />
+      <button type="button" data-testid="save" onClick={controller.saveAndContinue}>
+        {t('drawer.saveAndContinue')}
+      </button>
+      <button type="button" data-testid="discard" onClick={controller.discardAndContinue}>
+        {t('drawer.discardAndContinue')}
+      </button>
+      <button type="button" data-testid="keep" onClick={controller.continueEditing}>
+        {t('drawer.continueEditing')}
+      </button>
     </div>
   );
 }
@@ -77,6 +86,21 @@ async function prepareDirtyNavigation() {
   await click('read');
   expect(text('confirm')).toBe('true');
   expect(text('path')).toBe('/');
+}
+
+const localeCases = [
+  ['en', 'Save changes', 'Discard changes', 'Keep editing'],
+  ['zh-CN', '保存更改', '放弃更改', '继续编辑'],
+] as const;
+
+async function setLocale(
+  locale: (typeof localeCases)[number][0],
+  labels: readonly [string, string, string],
+) {
+  await act(async () => i18n.changeLanguage(locale));
+  expect(text('save')).toBe(labels[0]);
+  expect(text('discard')).toBe(labels[1]);
+  expect(text('keep')).toBe(labels[2]);
 }
 
 beforeEach(async () => {
@@ -107,7 +131,10 @@ afterEach(async () => {
 });
 
 describe('README navigation with an unsaved note', () => {
-  it('starts navigation only after save succeeds', async () => {
+  it.each(
+    localeCases,
+  )('starts navigation only after save succeeds in %s', async (locale, save, discard, keep) => {
+    await setLocale(locale, [save, discard, keep]);
     await prepareDirtyNavigation();
     await click('save');
 
@@ -115,7 +142,8 @@ describe('README navigation with an unsaved note', () => {
     expect(text('path')).toBe('/repos/openai/codex/readme');
   });
 
-  it('discards the draft before navigating', async () => {
+  it.each(localeCases)('discards the draft before navigating in %s', async (locale, ...labels) => {
+    await setLocale(locale, labels);
     await prepareDirtyNavigation();
     await click('discard');
 
@@ -123,7 +151,8 @@ describe('README navigation with an unsaved note', () => {
     expect(text('path')).toBe('/repos/openai/codex/readme');
   });
 
-  it('continues editing without navigating', async () => {
+  it.each(localeCases)('continues editing without navigating in %s', async (locale, ...labels) => {
+    await setLocale(locale, labels);
     await prepareDirtyNavigation();
     await click('keep');
 
@@ -131,7 +160,10 @@ describe('README navigation with an unsaved note', () => {
     expect(text('path')).toBe('/');
   });
 
-  it('keeps the draft and route in place when save fails', async () => {
+  it.each(
+    localeCases,
+  )('keeps the draft and route in place when save fails in %s', async (locale, ...labels) => {
+    await setLocale(locale, labels);
     mocks.mutateAsync.mockRejectedValueOnce(new Error('save failed'));
     await prepareDirtyNavigation();
     await click('save');

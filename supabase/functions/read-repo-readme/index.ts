@@ -69,7 +69,7 @@ Deno.serve(async (request: Request) => {
     .from('user_stars')
     .select('repo_id, repos!inner(full_name)')
     .eq('user_id', userData.user.id)
-    .ilike('repos.full_name', fullName)
+    .eq('repos.full_name', fullName)
     .limit(1)
     .maybeSingle();
 

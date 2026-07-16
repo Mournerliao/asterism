@@ -5,6 +5,8 @@ import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../i18n';
+import type { ReadmeRouteState } from '../lib/readme-navigation';
+import { RepoBaseRedirect } from './repo-base-redirect';
 import { RepoReadmePage } from './repo-readme';
 
 const mocks = vi.hoisted(() => ({
@@ -23,15 +25,20 @@ vi.mock('../data/use-repo-readme', () => ({
 let container: HTMLDivElement;
 let root: Root;
 
-async function renderPage(locale = 'en') {
+async function renderPage(locale = 'en', state?: ReadmeRouteState) {
   await import('../components/readme-document');
   await i18n.changeLanguage(locale);
   const router = createMemoryRouter(
-    [{ path: '/repos/:owner/:name/readme', element: <RepoReadmePage /> }],
-    { initialEntries: ['/repos/openai/codex/readme'] },
+    [
+      { path: '/', element: <span>Browse destination</span> },
+      { path: '/collections/:id', element: <span>Collection destination</span> },
+      { path: '/repos/:owner/:name/readme', element: <RepoReadmePage /> },
+    ],
+    { initialEntries: [{ pathname: '/repos/openai/codex/readme', state }] },
   );
   await act(async () => root.render(<RouterProvider router={router} />));
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  return router;
 }
 
 beforeEach(() => {
@@ -48,6 +55,20 @@ afterEach(async () => {
 });
 
 describe('README workspace route', () => {
+  it('redirects the readable repository base route to README', async () => {
+    const router = createMemoryRouter(
+      [
+        { path: '/repos/:owner/:name', element: <RepoBaseRedirect /> },
+        { path: '/repos/:owner/:name/readme', element: <span>README destination</span> },
+      ],
+      { initialEntries: ['/repos/openai/codex'] },
+    );
+    await act(async () => root.render(<RouterProvider router={router} />));
+
+    expect(router.state.location.pathname).toBe('/repos/openai/codex/readme');
+    expect(container.textContent).toContain('README destination');
+  });
+
   it.each([
     ['en', 'Back to Browse'],
     ['zh-CN', '返回浏览'],
@@ -79,5 +100,46 @@ describe('README workspace route', () => {
 
     expect(container.textContent).toContain(title);
     expect(container.querySelector('.markdown-body')).toBeNull();
+  });
+
+  it.each([
+    ['en', undefined, 'Back to Browse', '/'],
+    ['zh-CN', undefined, '返回浏览', '/'],
+    [
+      'en',
+      {
+        readme: {
+          repoId: 'repo-1',
+          owner: 'openai',
+          name: 'codex',
+          source: { kind: 'collection' as const, id: 'collection-7', name: 'AI tools' },
+        },
+      },
+      'Back to AI tools',
+      '/collections/collection-7',
+    ],
+    [
+      'zh-CN',
+      {
+        readme: {
+          repoId: 'repo-1',
+          owner: 'openai',
+          name: 'codex',
+          source: { kind: 'collection' as const, id: 'collection-7', name: 'AI 工具' },
+        },
+      },
+      '返回 AI 工具',
+      '/collections/collection-7',
+    ],
+  ] satisfies ReadonlyArray<
+    [string, ReadmeRouteState | undefined, string, string]
+  >)('uses the visible return action for %s entry', async (locale, state, label, destination) => {
+    mocks.result.data = { status: 'retryable_error' };
+    const router = await renderPage(locale, state);
+    const returnLink = container.querySelector<HTMLAnchorElement>('header a');
+
+    expect(returnLink?.textContent).toContain(label);
+    await act(async () => returnLink?.click());
+    expect(router.state.location.pathname).toBe(destination);
   });
 });

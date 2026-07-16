@@ -13,7 +13,6 @@ import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { useRepoReadme } from '../data/use-repo-readme';
 import { type ReadmeRouteState, resolveReadmeReturn } from '../lib/readme-navigation';
-import '../styles/readme.css';
 
 const ReadmeDocument = lazy(() =>
   import('../components/readme-document').then((module) => ({

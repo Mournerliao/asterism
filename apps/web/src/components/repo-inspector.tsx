@@ -29,7 +29,6 @@ import {
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
-  ExternalLinkIcon,
   GitForkIcon,
   PlusIcon,
   StarIcon,
@@ -37,6 +36,7 @@ import {
 } from 'lucide-react';
 import {
   type ReactNode,
+  type PointerEvent as ReactPointerEvent,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -78,6 +78,48 @@ function ControlButton({
 }
 
 const TRIGGER_ATTRIBUTE = 'data-repo-quick-look-trigger';
+const FLOATING_MARGIN = 12;
+
+type FloatingPosition = { left: number; top: number };
+
+type DragState = {
+  active: boolean;
+  pointerId: number;
+  surface: HTMLDivElement;
+  pointerX: number;
+  pointerY: number;
+  originLeft: number;
+  originTop: number;
+  next: FloatingPosition;
+};
+
+function clampFloatingPosition(
+  left: number,
+  top: number,
+  width: number,
+  height: number,
+): FloatingPosition {
+  return {
+    left: Math.min(
+      Math.max(left, FLOATING_MARGIN),
+      Math.max(FLOATING_MARGIN, window.innerWidth - width - FLOATING_MARGIN),
+    ),
+    top: Math.min(
+      Math.max(top, FLOATING_MARGIN),
+      Math.max(FLOATING_MARGIN, window.innerHeight - height - FLOATING_MARGIN),
+    ),
+  };
+}
+
+function setFloatingPosition(frame: HTMLDivElement, position: FloatingPosition) {
+  Object.assign(frame.style, {
+    bottom: 'auto',
+    left: `${position.left}px`,
+    right: 'auto',
+    top: `${position.top}px`,
+    transform: 'none',
+  });
+}
 
 function visibleTrigger(repoId: string): HTMLElement | null {
   const selector = `[${TRIGGER_ATTRIBUTE}="${CSS.escape(repoId)}"]`;
@@ -224,9 +266,14 @@ function FloatingQuickLook({
   onNext: () => void;
   onClose: () => void;
 }) {
+  const frameRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const closingRef = useRef(false);
+  const positionRef = useRef<FloatingPosition | null>(null);
+  const dragRef = useRef<DragState | null>(null);
+  const suppressDragClickRef = useRef(false);
+  const [dragging, setDragging] = useState(false);
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const currentRepoId = useRef(record.repoId);
   const handledCloseSignal = useRef(closeSignal);
@@ -324,8 +371,103 @@ function FloatingQuickLook({
     };
   }, [close, confirmOpen, hasNext, hasPrevious, onNext, onPrevious]);
 
+  const beginDrag = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.button !== 0) return;
+    const target = event.target as Element;
+    if (target.closest('[data-window-control]')) return;
+    const frame = frameRef.current;
+    if (!frame) return;
+    const rect = frame.getBoundingClientRect();
+    const origin = { left: rect.left, top: rect.top };
+    setFloatingPosition(frame, origin);
+    positionRef.current = origin;
+    dragRef.current = {
+      active: false,
+      pointerId: event.pointerId,
+      surface: event.currentTarget,
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      originLeft: origin.left,
+      originTop: origin.top,
+      next: origin,
+    };
+  }, []);
+
+  const moveDrag = useCallback((event: PointerEvent) => {
+    const drag = dragRef.current;
+    const frame = frameRef.current;
+    if (!drag || !frame || drag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - drag.pointerX;
+    const deltaY = event.clientY - drag.pointerY;
+    if (!drag.active && Math.hypot(deltaX, deltaY) < 4) return;
+    if (!drag.active) {
+      drag.active = true;
+      drag.surface.setPointerCapture(event.pointerId);
+      setDragging(true);
+    }
+    event.preventDefault();
+    const rect = frame.getBoundingClientRect();
+    const next = clampFloatingPosition(
+      drag.originLeft + deltaX,
+      drag.originTop + deltaY,
+      rect.width,
+      rect.height,
+    );
+    drag.next = next;
+    frame.style.transform = `translate3d(${next.left - drag.originLeft}px, ${next.top - drag.originTop}px, 0)`;
+  }, []);
+
+  const endDrag = useCallback((event: PointerEvent) => {
+    const drag = dragRef.current;
+    const frame = frameRef.current;
+    if (!drag || !frame || drag.pointerId !== event.pointerId) return;
+    setFloatingPosition(frame, drag.next);
+    positionRef.current = drag.next;
+    suppressDragClickRef.current = drag.active && event.type === 'pointerup';
+    dragRef.current = null;
+    if (drag.surface.hasPointerCapture(event.pointerId)) {
+      drag.surface.releasePointerCapture(event.pointerId);
+    }
+    if (drag.active) setDragging(false);
+  }, []);
+
+  const suppressClickAfterDrag = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!suppressDragClickRef.current) return;
+    suppressDragClickRef.current = false;
+    event.preventDefault();
+    event.stopPropagation();
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('pointermove', moveDrag, { passive: false });
+    window.addEventListener('pointerup', endDrag);
+    window.addEventListener('pointercancel', endDrag);
+    return () => {
+      window.removeEventListener('pointermove', moveDrag);
+      window.removeEventListener('pointerup', endDrag);
+      window.removeEventListener('pointercancel', endDrag);
+    };
+  }, [endDrag, moveDrag]);
+
+  useEffect(() => {
+    const keepInViewport = () => {
+      const frame = frameRef.current;
+      const position = positionRef.current;
+      if (!frame || !position) return;
+      const rect = frame.getBoundingClientRect();
+      const next = clampFloatingPosition(position.left, position.top, rect.width, rect.height);
+      setFloatingPosition(frame, next);
+      positionRef.current = next;
+    };
+    window.addEventListener('resize', keepInViewport);
+    return () => window.removeEventListener('resize', keepInViewport);
+  }, []);
+
   return (
-    <div className="pointer-events-none fixed top-[4.5rem] right-auto left-1/2 z-50 h-[min(46rem,calc(100svh-5.5rem))] w-[min(30rem,calc(100vw-2rem))] -translate-x-1/2 xl:right-6 xl:left-auto xl:translate-x-0">
+    <div
+      ref={frameRef}
+      className="pointer-events-none fixed right-6 bottom-6 left-auto z-50 w-[min(30rem,calc(100vw-2rem))] translate-x-0"
+    >
       <div
         ref={panelRef}
         id="repo-inspector"
@@ -333,7 +475,7 @@ function FloatingQuickLook({
         aria-modal="false"
         aria-labelledby="repo-quick-look-title"
         tabIndex={-1}
-        className="asterism-glass-overlay @container/inspector pointer-events-auto h-full overflow-hidden rounded-xl border text-popover-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+        className="asterism-glass-overlay @container/inspector pointer-events-auto overflow-hidden rounded-xl border text-popover-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
       >
         <InspectorBody
           record={record}
@@ -344,6 +486,11 @@ function FloatingQuickLook({
           onPrevious={onPrevious}
           onNext={onNext}
           onClose={() => void close()}
+          dragSurface={{
+            dragging,
+            onClickCapture: suppressClickAfterDrag,
+            onPointerDown: beginDrag,
+          }}
         />
       </div>
     </div>
@@ -360,6 +507,7 @@ function InspectorBody({
   onPrevious,
   onNext,
   onClose,
+  dragSurface,
 }: {
   record: StarredRepoRecord;
   mobile?: boolean;
@@ -370,6 +518,11 @@ function InspectorBody({
   onPrevious: () => void;
   onNext: () => void;
   onClose: () => void;
+  dragSurface?: {
+    dragging: boolean;
+    onClickCapture: React.ComponentProps<'div'>['onClickCapture'];
+    onPointerDown: React.ComponentProps<'div'>['onPointerDown'];
+  };
 }) {
   const { t } = useTranslation();
   const { repo } = record;
@@ -378,8 +531,8 @@ function InspectorBody({
   return (
     <div
       className={cn(
-        'flex h-full min-h-0 flex-col text-card-foreground',
-        mobile ? 'bg-card' : 'bg-transparent',
+        'flex min-h-0 flex-col text-card-foreground',
+        mobile ? 'h-full bg-card' : 'max-h-[min(46rem,calc(100svh-3rem))] bg-transparent',
       )}
     >
       {mobile ? (
@@ -388,35 +541,41 @@ function InspectorBody({
         </div>
       ) : null}
       <header className="asterism-glass-surface z-10 shrink-0 border-b px-6 py-4">
-        <div className="flex min-w-0 items-start gap-3">
+        <div
+          className={cn(
+            'flex min-w-0 touch-none cursor-grab items-center gap-3 active:cursor-grabbing',
+            dragSurface?.dragging && 'cursor-grabbing [&_*]:cursor-grabbing',
+          )}
+          onClickCapture={dragSurface?.onClickCapture}
+          onPointerDown={dragSurface?.onPointerDown}
+        >
           <div className="min-w-0 flex-1">
-            <p className="truncate text-caption text-muted-foreground">{repo.owner}</p>
-            <div className="mt-1 flex min-w-0 items-center gap-2">
-              <h2
-                id="repo-quick-look-title"
-                className="truncate font-semibold text-repo-name text-foreground"
+            <h2
+              id="repo-quick-look-title"
+              className="flex min-h-8 min-w-0 items-center text-repo-name"
+            >
+              <a
+                href={`https://github.com/${repoFullName(repo)}`}
+                target="_blank"
+                rel="noreferrer noopener"
+                draggable={false}
+                aria-label={t('browse.openOnGitHub', { repo: repoFullName(repo) })}
+                className="group/link min-w-0 cursor-[inherit] truncate rounded-sm font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
               >
-                {repo.name}
-              </h2>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <a
-                    href={`https://github.com/${repoFullName(repo)}`}
-                    target="_blank"
-                    rel="noreferrer noopener"
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    aria-label={t('drawer.openOnGitHub')}
-                  >
-                    <ExternalLinkIcon className="size-4" />
-                  </a>
-                </TooltipTrigger>
-                <TooltipContent sideOffset={6}>{t('drawer.openOnGitHub')}</TooltipContent>
-              </Tooltip>
-            </div>
+                <span className="font-medium text-muted-foreground">{repo.owner}</span>
+                <span className="text-muted-foreground"> / </span>
+                <span className="text-link group-hover/link:underline">{repo.name}</span>
+              </a>
+            </h2>
           </div>
 
           <div className="flex shrink-0 items-center gap-1">
-            <ControlButton label={t('common.cancel')} onClick={onClose}>
+            <ControlButton
+              data-window-control
+              label={t('common.cancel')}
+              className="cursor-pointer"
+              onClick={onClose}
+            >
               <XIcon className="size-4" />
             </ControlButton>
           </div>

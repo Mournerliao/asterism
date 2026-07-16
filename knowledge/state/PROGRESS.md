@@ -8,6 +8,10 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> Repo Quick Look 可移动窗口（2026-07-16，见 `logs/2026-07-16-repo-quick-look-drag.md`）：桌面/平板浮窗默认位于右下角 24px，高度随内容收缩且最多 736px；以完整仓库身份首行为拖动区域且不增加冗余 drag icon，pointer 拖动使用 transform 保持流畅并限制在视口安全边距内，窗口 resize 后自动回收到可见范围，手机 Sheet 不启用拖动。
+
+> Repo Quick Look 仓库链接统一（2026-07-16，见 `logs/2026-07-16-repo-quick-look-link-consistency.md`）：浮窗头部由分行 owner / repo + 独立 external-link 图标收敛为单行 `owner / repo` 主链接；弱化 owner、以链接蓝强调 repo name，并与 Browse 卡片和表格共享“仓库身份离站”的交互模型。
+
 > 未保存笔记弹窗布局修正（2026-07-15，见 `logs/2026-07-15-unsaved-note-dialog-layout.md`）：确认弹窗从通用 512px / 24px 密度收敛为 448px / 20px，并压缩重复说明和动作文案；三个互斥动作取消左右分裂并真正收拢为右对齐决策组，窄屏使用同宽单列。
 
 > 字体层级修正（2026-07-15，见 `logs/2026-07-15-repo-inspector-typography.md`）：Repo Table 与 Repo Inspector 重排为连续的 13px 身份/正文、12px 常规元数据、11px Activity/紧凑元数据；Inspector 仓库名由 22px/Bold 收敛为 18px/SemiBold。数字与日期统一 Geist Mono + tabular numerals；同时修复 `tailwind-merge` 误删自定义语义字号 class 的根因，并以用户 Chrome computed style 验证最终层级。

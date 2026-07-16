@@ -17,7 +17,7 @@
 
 ## TDD 与验证
 
-- 聚焦测试：DB outcome 3、HTML 安全与链接 2、来源解析 5、Repo Inspector 四种草稿决策的双语真实路由交互 8、工作区授权成功/成员拒绝双语 4、基础路由重定向 1、可见返回操作双语 4，共新增 27 个断言场景。
+- 聚焦测试：DB outcome 3、HTML 安全与链接 2、来源解析 5、真实 Quick Look 与 UnsavedNoteDialog 四种草稿决策的双语路由交互 8、工作区授权成功/成员拒绝双语 4、基础路由重定向 1、可见返回操作双语 4，共新增 27 个断言场景。
 - 浏览器：真实登录态检查 Quick Look 与路由；桌面 dark、移动 390×844 dark/light 均无横向溢出，工作区 header 52px，移动返回与 GitHub 外链均为 44×44；基础路由重定向成功。
 - 本轮未部署远端 Edge Function，因此真实浏览器成功内容仍需部署后补验；本地 retryable error 状态符合预期并已记入 BACKLOG。
 - 工程门：lint、typecheck、full test、build（最终结果见提交前验证）。

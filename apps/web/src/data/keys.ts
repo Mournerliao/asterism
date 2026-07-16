@@ -1,6 +1,8 @@
 export const repoKeys = {
   all: ['repos'] as const,
   starred: (userId: string) => ['repos', 'starred', userId] as const,
+  readme: (userId: string, owner: string, name: string) =>
+    ['repos', 'readme', userId, owner.toLowerCase(), name.toLowerCase()] as const,
 };
 
 export const tagKeys = {

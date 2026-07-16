@@ -4,7 +4,7 @@
 
 ## System Architecture · 系统架构
 
-多端客户端共享 `core` / `ui` / `db` 三个包，统一对接 Supabase（Auth / Postgres / Realtime / Edge Functions）；GitHub GraphQL API 是上游数据源。
+多端客户端共享 `core` / `ui` / `db` 三个包，统一对接 Supabase（Auth / Postgres / Realtime / Edge Functions）；GitHub GraphQL / REST API 是上游数据源。
 
 ```mermaid
 flowchart TD
@@ -21,10 +21,10 @@ flowchart TD
   subgraph supabase [Supabase]
     auth[Auth: GitHub OAuth]
     pg[(Postgres + pgvector)]
-    fn[Edge Functions: sync-stars / ai-embed]
+    fn[Edge Functions: sync-stars / read-repo-readme / ai-embed]
     rt[Realtime 多端同步]
   end
-  gh[GitHub GraphQL API]
+  gh[GitHub GraphQL / REST API]
 
   web --> shared
   ext --> shared
@@ -42,7 +42,7 @@ flowchart TD
 - **clients（端）**：各端只负责平台壳与组装，业务逻辑下沉到共享包。
 - **shared（共享包）**：跨端复用的核心；不含任何平台专有 API（见 `conventions.md` 目录边界）。
 - **Supabase（后端）**：Auth 鉴权、Postgres 作为 source-of-truth、Realtime 推送多端同步、Edge Functions 承载同步与 AI 嵌入等服务端逻辑。
-- **GitHub GraphQL API**：上游数据源，由 `core` 与 Edge Functions 调用。
+- **GitHub GraphQL / REST API**：上游数据源；stars 同步走 GraphQL，实时 README HTML 走受保护 Edge Function 调用 REST。
 
 ## Tech Stack · 技术栈
 
@@ -84,7 +84,7 @@ asterism/
 │   └── config/         # 共享工程配置（tsconfig / tailwind / biome 预设等）
 └── supabase/
     ├── migrations/     # 数据库迁移（schema + RLS）
-    └── functions/      # Edge Functions（sync-stars / ai-embed 等）
+    └── functions/      # Edge Functions（sync-stars / read-repo-readme / ai-embed 等）
 ```
 
 包命名遵循 `@asterism/*`；共享包为私有 workspace（不发 npm）。目录边界规则见 `conventions.md`。
@@ -119,6 +119,10 @@ sequenceDiagram
 6. **Dexie 缓存**：客户端本地用 Dexie 缓存，支撑离线浏览与即时读取。
 
 > 把服务端密集型同步（大批量拉取、AI 嵌入）放到 Edge Functions（`sync-stars` / `ai-embed`）：既规避客户端长时占用与速率限制，也满足「全局 `repos` 仅受信路径写」的 RLS 约束。决策与 `provider_token` 局限见 `../decisions/0006-stars-sync-edge-function.md`。
+
+### README 实时读取
+
+README 工作区走独立的非持久化读取链：Web 路由 → TanStack Query → `packages/db` → `read-repo-readme` Edge Function → GitHub REST。函数必须先校验 Supabase JWT，并确认 `user_stars` 中存在当前用户与 owner/name 对应仓库的成员关系，之后才允许发起 GitHub 请求。`provider_token` 仅用于当前上游请求；缺失时可在成员校验后对公开仓库走匿名 GitHub 请求。GitHub 返回的 HTML 不写入 Postgres 或 Dexie，客户端在 `dangerouslySetInnerHTML` 前使用 DOMPurify 与显式允许列表双重清洗。详见 ADR 0011。
 
 ## OAuth & Permissions · 鉴权与权限边界
 

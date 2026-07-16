@@ -26,6 +26,7 @@ import {
 } from '@asterism/ui';
 import {
   ArchiveIcon,
+  BookOpenIcon,
   CheckIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
@@ -55,6 +56,7 @@ import { useCreateTag, useTags } from '../data/use-tags';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
+import { createReadmeDestination } from '../lib/readme-navigation';
 import { adjacentRepo, findRepoIndex, useRepoInspectorStore } from '../stores/repo-inspector';
 import { PendingActionContent } from './pending-action-content';
 import { TagBadge } from './tag-badge';
@@ -148,11 +150,32 @@ export function RepoInspector() {
   const floating = useMediaQuery('(min-width: 768px)');
   const record = useRepoInspectorStore((state) => state.record);
   const context = useRepoInspectorStore((state) => state.context);
-  const { requestNavigate, requestClose, dirty, confirmOpen, openModality, closeSignal } =
-    useRepoInspector();
+  const {
+    requestNavigate,
+    requestClose,
+    requestRoute,
+    dirty,
+    confirmOpen,
+    openModality,
+    closeSignal,
+  } = useRepoInspector();
   const index = findRepoIndex(context, record?.repoId);
   const previous = adjacentRepo(context, record?.repoId, -1);
   const next = adjacentRepo(context, record?.repoId, 1);
+  const readReadme = useCallback(() => {
+    if (!record) return;
+    const sourcePath = context?.sourceKey.startsWith('collection:')
+      ? `/collections/${context.sourceKey.slice('collection:'.length)}`
+      : '/';
+    const destination = createReadmeDestination(
+      record.repo.owner,
+      record.repo.name,
+      record.repoId,
+      sourcePath,
+      context?.sourceName,
+    );
+    requestRoute(destination.to, destination.state);
+  }, [context?.sourceKey, context?.sourceName, record, requestRoute]);
 
   useEffect(() => {
     if (!record || floating) return;
@@ -199,6 +222,7 @@ export function RepoInspector() {
             closeSignal={closeSignal}
             onPrevious={() => requestNavigate(-1)}
             onNext={() => requestNavigate(1)}
+            onReadReadme={readReadme}
             onClose={requestClose}
           />,
           document.body,
@@ -231,6 +255,7 @@ export function RepoInspector() {
             hasNext={Boolean(next)}
             onPrevious={() => requestNavigate(-1)}
             onNext={() => requestNavigate(1)}
+            onReadReadme={readReadme}
             onClose={requestClose}
           />
         ) : null}
@@ -251,6 +276,7 @@ function FloatingQuickLook({
   closeSignal,
   onPrevious,
   onNext,
+  onReadReadme,
   onClose,
 }: {
   record: StarredRepoRecord;
@@ -264,6 +290,7 @@ function FloatingQuickLook({
   closeSignal: number;
   onPrevious: () => void;
   onNext: () => void;
+  onReadReadme: () => void;
   onClose: () => void;
 }) {
   const frameRef = useRef<HTMLDivElement>(null);
@@ -485,6 +512,7 @@ function FloatingQuickLook({
           hasNext={hasNext}
           onPrevious={onPrevious}
           onNext={onNext}
+          onReadReadme={onReadReadme}
           onClose={() => void close()}
           dragSurface={{
             dragging,
@@ -506,6 +534,7 @@ function InspectorBody({
   hasNext,
   onPrevious,
   onNext,
+  onReadReadme,
   onClose,
   dragSurface,
 }: {
@@ -517,6 +546,7 @@ function InspectorBody({
   hasNext: boolean;
   onPrevious: () => void;
   onNext: () => void;
+  onReadReadme: () => void;
   onClose: () => void;
   dragSurface?: {
     dragging: boolean;
@@ -605,7 +635,7 @@ function InspectorBody({
           key={record.repoId}
           className="animate-in fade-in-0 duration-[120ms] motion-reduce:animate-none"
         >
-          <Overview record={record} />
+          <Overview record={record} onReadReadme={onReadReadme} />
           <div className="mt-6 flex flex-col gap-5">
             <TagsSection repoId={record.repoId} />
             <CollectionsSection repoId={record.repoId} />
@@ -618,7 +648,13 @@ function InspectorBody({
   );
 }
 
-function Overview({ record }: { record: StarredRepoRecord }) {
+function Overview({
+  record,
+  onReadReadme,
+}: {
+  record: StarredRepoRecord;
+  onReadReadme: () => void;
+}) {
   const { t, i18n } = useTranslation();
   const { repo } = record;
   const dotColor = languageColor(repo.language);
@@ -677,6 +713,15 @@ function Overview({ record }: { record: StarredRepoRecord }) {
           </span>
         ) : null}
       </div>
+      <button
+        type="button"
+        onClick={onReadReadme}
+        className="mt-4 flex min-h-11 w-full items-center gap-3 rounded-md px-2 text-left text-body font-medium text-foreground transition-colors hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:bg-accent/80"
+      >
+        <BookOpenIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+        <span className="flex-1">{t('drawer.readReadme')}</span>
+        <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+      </button>
     </section>
   );
 }

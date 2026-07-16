@@ -1,6 +1,6 @@
 import { lazy, type ReactNode, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate, useLocation } from 'react-router-dom';
 import { RequireAnon, RequireAuth } from './auth/guards';
 import {
   CollectionDetailRouteLoading,
@@ -13,6 +13,12 @@ import {
 import { AppLayout } from './layouts/app-layout';
 import { BrowsePage } from './pages/browse';
 import { LoginPage } from './pages/login';
+import { RepoReadmePage } from './pages/repo-readme';
+
+function RepoBaseRedirect() {
+  const location = useLocation();
+  return <Navigate to="readme" replace state={location.state} relative="path" />;
+}
 
 const CollectionsPage = lazy(() =>
   import('./pages/collections').then((module) => ({ default: module.CollectionsPage })),
@@ -85,6 +91,8 @@ export const router = createBrowserRouter([
     ),
     children: [
       { index: true, element: <BrowsePage /> },
+      { path: 'repos/:owner/:name', element: <RepoBaseRedirect /> },
+      { path: 'repos/:owner/:name/readme', element: <RepoReadmePage /> },
       { path: 'collections', element: lazyPage(<CollectionsPage />, 'collections') },
       {
         path: 'collections/:id',

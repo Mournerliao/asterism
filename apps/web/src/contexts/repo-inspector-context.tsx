@@ -9,8 +9,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { useBlocker, useLocation } from 'react-router-dom';
+import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import { useSaveNote } from '../data/use-note';
+import type { ReadmeRouteState } from '../lib/readme-navigation';
 import {
   adjacentRepo,
   type RepoOpenModality,
@@ -21,7 +22,8 @@ import {
 type DeferredIntent =
   | { type: 'select'; record: StarredRepoRecord; context: SelectionContext }
   | { type: 'navigate'; direction: -1 | 1 }
-  | { type: 'close' };
+  | { type: 'close' }
+  | { type: 'route'; to: string; state: ReadmeRouteState };
 
 type NoteDraft = {
   repoId: string;
@@ -39,6 +41,7 @@ type RepoInspectorController = {
   registerContext: (context: SelectionContext) => void;
   requestNavigate: (direction: -1 | 1) => void;
   requestClose: () => void;
+  requestRoute: (to: string, state: ReadmeRouteState) => void;
   syncNote: (repoId: string, serverBody: string) => void;
   noteDraft: NoteDraft | null;
   setNoteBody: (body: string) => void;
@@ -60,6 +63,7 @@ const RepoInspectorContext = createContext<RepoInspectorController | null>(null)
 
 export function RepoInspectorProvider({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const navigate = useNavigate();
   const record = useRepoInspectorStore((state) => state.record);
   const context = useRepoInspectorStore((state) => state.context);
   const setSelection = useRepoInspectorStore((state) => state.setSelection);
@@ -72,11 +76,12 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
   const [openModality, setOpenModality] = useState<RepoOpenModality>('pointer');
   const [closeSignal, setCloseSignal] = useState(0);
   const previousPath = useRef(location.pathname);
+  const allowRouteRef = useRef(false);
   const dirty = Boolean(draft && draft.body !== draft.serverBody);
   const blocker = useBlocker(
     useCallback(
       ({ currentLocation, nextLocation }) =>
-        dirty && currentLocation.pathname !== nextLocation.pathname,
+        dirty && !allowRouteRef.current && currentLocation.pathname !== nextLocation.pathname,
       [dirty],
     ),
   );
@@ -100,9 +105,15 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
           close();
           setDraft(null);
           break;
+        case 'route':
+          allowRouteRef.current = true;
+          close();
+          setDraft(null);
+          navigate(intent.to, { state: intent.state });
+          break;
       }
     },
-    [close, context, record?.repoId, setSelection],
+    [close, context, navigate, record?.repoId, setSelection],
   );
 
   const request = useCallback(
@@ -147,6 +158,10 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
     [request],
   );
   const requestClose = useCallback(() => request({ type: 'close' }), [request]);
+  const requestRoute = useCallback(
+    (to: string, state: ReadmeRouteState) => request({ type: 'route', to, state }),
+    [request],
+  );
 
   const syncNote = useCallback((repoId: string, serverBody: string) => {
     setDraft((current) => {
@@ -221,6 +236,7 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const changed = previousPath.current !== location.pathname;
     previousPath.current = location.pathname;
+    allowRouteRef.current = false;
     if (!changed || !record) {
       return;
     }
@@ -246,6 +262,7 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
       registerContext,
       requestNavigate,
       requestClose,
+      requestRoute,
       syncNote,
       noteDraft: draft,
       setNoteBody,
@@ -275,6 +292,7 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
       openModality,
       registerContext,
       requestClose,
+      requestRoute,
       requestNavigate,
       requestOpen,
       saveAndContinue,

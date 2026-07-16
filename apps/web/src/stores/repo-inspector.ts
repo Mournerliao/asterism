@@ -5,6 +5,7 @@ export type RepoOpenModality = 'keyboard' | 'pointer';
 
 export type RepoInspectorContext = {
   sourceKey: string;
+  sourceName?: string;
   records: readonly StarredRepoRecord[];
 };
 

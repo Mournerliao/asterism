@@ -173,6 +173,7 @@
     "outsideSequence": "不在当前结果中",
     "previous": "上一个仓库（K）",
     "next": "下一个仓库（J）",
+    "readReadme": "阅读 README",
     "addCollection": "加入集合",
     "noteSaveError": "无法保存笔记，草稿仍为你保留。",
     "unsavedTitle": "要保存这篇笔记的更改吗？",
@@ -180,6 +181,24 @@
     "continueEditing": "继续编辑",
     "discardAndContinue": "放弃更改",
     "saveAndContinue": "保存更改"
+  },
+  "readme": {
+    "backToBrowse": "返回浏览",
+    "backToCollection": "返回 {{name}}",
+    "openOnGitHub": "在 GitHub 打开",
+    "loading": "正在加载 README…",
+    "documentLabel": "{{repo}} 的 README",
+    "notFoundTitle": "此仓库没有 README",
+    "notFoundDescription": "该仓库位于你的资料库中，但 GitHub 未返回 README。",
+    "notInLibraryTitle": "仓库不在你的资料库中",
+    "notInLibraryDescription": "README 工作区仅适用于已同步到 Star 资料库的仓库。",
+    "rateLimitedTitle": "已达到 GitHub 速率限制",
+    "rateLimitedDescription": "请重新连接 GitHub，或前往 GitHub 继续查看。",
+    "reconnectTitle": "需要重新连接 GitHub",
+    "reconnectDescription": "重新连接 GitHub 后，再尝试加载此 README。",
+    "errorTitle": "无法加载此 README",
+    "errorDescription": "请求暂时失败，你在 Asterism 中的位置不会改变。",
+    "retry": "重试"
   },
   "collections": {
     "title": "集合",

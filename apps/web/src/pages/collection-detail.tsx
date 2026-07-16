@@ -44,8 +44,12 @@ export function CollectionDetailPage() {
     return starredRepos.filter((record) => memberIds.has(record.repoId));
   }, [collection, collectionRepos, starredRepos]);
   const inspectorContext = useMemo(
-    () => ({ sourceKey: `collection:${id ?? 'unknown'}`, records: memberRecords }),
-    [id, memberRecords],
+    () => ({
+      sourceKey: `collection:${id ?? 'unknown'}`,
+      sourceName: collection?.name,
+      records: memberRecords,
+    }),
+    [collection?.name, id, memberRecords],
   );
   const openInspector = useCallback(
     (record: (typeof memberRecords)[number], modality: 'keyboard' | 'pointer') =>

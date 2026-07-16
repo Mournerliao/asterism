@@ -173,6 +173,7 @@
     "outsideSequence": "Not in current results",
     "previous": "Previous repository (K)",
     "next": "Next repository (J)",
+    "readReadme": "Read README",
     "addCollection": "Add to collection",
     "noteSaveError": "Couldn't save this note. Your draft is still here.",
     "unsavedTitle": "Save changes to this note?",
@@ -180,6 +181,24 @@
     "continueEditing": "Keep editing",
     "discardAndContinue": "Discard changes",
     "saveAndContinue": "Save changes"
+  },
+  "readme": {
+    "backToBrowse": "Back to Browse",
+    "backToCollection": "Back to {{name}}",
+    "openOnGitHub": "Open on GitHub",
+    "loading": "Loading README…",
+    "documentLabel": "README for {{repo}}",
+    "notFoundTitle": "This repository has no README",
+    "notFoundDescription": "The repository is in your library, but GitHub did not return a README.",
+    "notInLibraryTitle": "Repository not in your library",
+    "notInLibraryDescription": "README workspaces are available only for repositories synchronized in your starred library.",
+    "rateLimitedTitle": "GitHub rate limit reached",
+    "rateLimitedDescription": "Reconnect GitHub or open the repository on GitHub to continue.",
+    "reconnectTitle": "GitHub access needs reconnecting",
+    "reconnectDescription": "Reconnect GitHub, then try loading this README again.",
+    "errorTitle": "Couldn't load this README",
+    "errorDescription": "The request failed temporarily. Your place in Asterism is unchanged.",
+    "retry": "Try again"
   },
   "collections": {
     "title": "Collections",

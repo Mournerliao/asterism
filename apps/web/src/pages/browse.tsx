@@ -8,7 +8,7 @@ import {
   SearchXIcon,
   StarIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { EmptyState } from '../components/empty-state';
@@ -27,9 +27,12 @@ import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
 import { useBrowseView } from '../hooks/use-browse-view';
+import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
+import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
+import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
 
 function InitialLoadingState({ view }: { view: RepoViewMode }) {
@@ -53,13 +56,17 @@ export function BrowsePage() {
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
   const [stuck, setStuck] = useState(false);
+  const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
 
   useEffect(() => {
     const el = repoScrollElement;
     if (!el) {
       return;
     }
-    const update = () => setStuck(el.scrollTop > 0);
+    const update = () => {
+      setStuck(el.scrollTop > 0);
+      useListScrollStore.getState().setScrollTop('browse', el.scrollTop);
+    };
     update();
     el.addEventListener('scroll', update, { passive: true });
     return () => el.removeEventListener('scroll', update);
@@ -67,9 +74,14 @@ export function BrowsePage() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset scroll after committed view changes
   useEffect(() => {
-    if (repoScrollElement) {
-      repoScrollElement.scrollTop = 0;
+    if (!repoScrollElement) {
+      return;
     }
+    if (skipViewScrollResetRef.current) {
+      skipViewScrollResetRef.current = false;
+      return;
+    }
+    repoScrollElement.scrollTop = 0;
   }, [view, repoScrollElement]);
 
   const records = useMemo(() => data ?? [], [data]);
@@ -105,6 +117,15 @@ export function BrowsePage() {
   useEffect(() => {
     registerContext(inspectorContext);
   }, [inspectorContext, registerContext]);
+
+  useReadmeReturnRestore({
+    sourceKey: 'browse',
+    records: visible,
+    scrollElement: repoScrollElement,
+    inspectorContext,
+    requestOpen,
+    ready: !isLoading,
+  });
 
   const tagsByRepo = useMemo(() => {
     const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));

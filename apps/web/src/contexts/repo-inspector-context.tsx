@@ -12,12 +12,26 @@ import {
 import { useBlocker, useLocation, useNavigate } from 'react-router-dom';
 import { useSaveNote } from '../data/use-note';
 import type { ReadmeRouteState } from '../lib/readme-navigation';
+import { finalizeReadmeDeparture } from '../lib/readme-return-coordinator';
 import {
   adjacentRepo,
   type RepoOpenModality,
   type RepoInspectorContext as SelectionContext,
   useRepoInspectorStore,
 } from '../stores/repo-inspector';
+
+const readmePath = /^\/repos\/([^/]+)\/([^/]+)\/readme\/?$/;
+
+function parseReadmePath(pathname: string) {
+  const match = pathname.match(readmePath);
+  if (!match?.[1] || !match[2]) {
+    return null;
+  }
+  return {
+    owner: decodeURIComponent(match[1]),
+    name: decodeURIComponent(match[2]),
+  };
+}
 
 type DeferredIntent =
   | { type: 'select'; record: StarredRepoRecord; context: SelectionContext }
@@ -234,10 +248,24 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
   }, [blocker]);
 
   useEffect(() => {
-    const changed = previousPath.current !== location.pathname;
+    const previous = previousPath.current;
+    const changed = previous !== location.pathname;
     previousPath.current = location.pathname;
     allowRouteRef.current = false;
-    if (!changed || !record) {
+    if (!changed) {
+      return;
+    }
+
+    const leftReadme = parseReadmePath(previous);
+    if (leftReadme && !parseReadmePath(location.pathname)) {
+      finalizeReadmeDeparture({
+        nextPathname: location.pathname,
+        owner: leftReadme.owner,
+        name: leftReadme.name,
+      });
+    }
+
+    if (!record) {
       return;
     }
     close();

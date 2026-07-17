@@ -10,6 +10,8 @@
 
 > 滚动边界统一（2026-07-17，见 `logs/2026-07-17-scrollbar-edge-alignment.md`）：README 桌面 Outline 的滚动盒跨过卡片右侧 padding，使轨道贴卡片内边缘且标题固定；Browse 将真实 `overflow-y-auto` 提升为页面全宽层，内容继续由 `px-6` + `max-w-6xl` 居中限宽，使列表/空态滚动条贴 App Shell 主内容区右边缘。虚拟列表仍绑定同一真实滚动元素，工具栏固定、scroll margin、视图切换归零与全局细滚动条样式保持不变。
 
+> README 返回恢复来源上下文（2026-07-17，见 `logs/2026-07-17-readme-return-source-context.md`、Issue #8）：进入 README 时记录 Browse 筛选/排序/视图/滚动或 Collection 滚动与身份；可见返回与浏览器 Back 共用协调器，恢复快照后在仓库仍可见时重开 Quick Look，集合缺失回退 Browse，trigger 不可见时不强制滚动。
+
 > README 仓库身份居中（2026-07-17，见 `logs/2026-07-17-readme-header-centered-identity.md`）：工作区 header 从顺序 flex 改为 `1fr / auto / 1fr` 对称三列，返回动作与 Outline / GitHub 操作分别锚定两侧，仓库身份保持几何居中且在窄空间安全截断；44px 移动触控目标、焦点语义与自适应 Outline 行为保持不变。
 
 > README 自适应目录与 section 深链（2026-07-17，见 `logs/2026-07-17-readme-outline-deep-links.md`、ADR 0011）：最终清洗 HTML 经单一 Outline 模块补全稳定 heading target，兼容标题型 h1 排除、真实 h1 section、层级跳跃、GitHub anchor、重复/中文标题与空目录；主容器 `≥1100px` 使用实体 rail、`768–1099px` 使用 header Popover、`<768px` 使用底部 Sheet，长分支围绕 active section 折叠。选择条目更新 hash、滚动并聚焦 heading；自然滚动以 history replace 同步 active hash，复制深链在内容加载后恢复，reduced motion 禁用 smooth scroll。

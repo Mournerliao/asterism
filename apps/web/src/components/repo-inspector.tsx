@@ -56,7 +56,11 @@ import { useCreateTag, useTags } from '../data/use-tags';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
-import { createReadmeDestination } from '../lib/readme-navigation';
+import { createBrowseSourceSnapshot, createReadmeDestination } from '../lib/readme-navigation';
+import { rememberReadmeEntry } from '../lib/readme-return-coordinator';
+import { useBrowseFilters } from '../stores/browse-filters';
+import { getBrowseView } from '../stores/browse-view';
+import { useListScrollStore } from '../stores/list-scroll';
 import { adjacentRepo, findRepoIndex, useRepoInspectorStore } from '../stores/repo-inspector';
 import { PendingActionContent } from './pending-action-content';
 import { TagBadge } from './tag-badge';
@@ -167,13 +171,33 @@ export function RepoInspector() {
     const sourcePath = context?.sourceKey.startsWith('collection:')
       ? `/collections/${context.sourceKey.slice('collection:'.length)}`
       : '/';
+    const scrollTop = useListScrollStore.getState().getScrollTop(context?.sourceKey ?? 'browse');
+    const filters = useBrowseFilters.getState();
     const destination = createReadmeDestination(
       record.repo.owner,
       record.repo.name,
       record.repoId,
       sourcePath,
-      context?.sourceName,
+      context?.sourceKey.startsWith('collection:')
+        ? { collectionName: context.sourceName, scrollTop }
+        : {
+            browseSnapshot: createBrowseSourceSnapshot(
+              {
+                query: filters.query,
+                language: filters.language,
+                topic: filters.topic,
+                tagIds: filters.tagIds,
+                minStars: filters.minStars,
+                pushedWithinDays: filters.pushedWithinDays,
+                status: filters.status,
+                sort: filters.sort,
+              },
+              getBrowseView(),
+              scrollTop,
+            ),
+          },
     );
+    rememberReadmeEntry(destination.state.readme);
     requestRoute(destination.to, destination.state);
   }, [context?.sourceKey, context?.sourceName, record, requestRoute]);
 

@@ -6,6 +6,7 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import i18n from '../i18n';
 import type { ReadmeRouteState } from '../lib/readme-navigation';
+import { clearReadmeReturnState } from '../lib/readme-return-coordinator';
 import { RepoBaseRedirect } from './repo-base-redirect';
 import { RepoReadmePage } from './repo-readme';
 
@@ -23,6 +24,10 @@ vi.mock('../data/use-repo-readme', () => ({
   useRepoReadme: () => mocks.result,
 }));
 
+vi.mock('../data/use-collections', () => ({
+  useCollections: () => ({ data: [{ id: 'collection-7', name: 'AI tools' }] }),
+}));
+
 vi.mock('../auth/use-github-reconnect', () => ({
   useGitHubReconnect: () => ({ reconnect: mocks.reconnect, reconnectPending: false }),
 }));
@@ -32,6 +37,7 @@ let root: Root;
 
 async function renderPage(locale = 'en', state?: ReadmeRouteState, hash = '') {
   await import('../components/readme-document');
+  await import('../components/readme-outline');
   await i18n.changeLanguage(locale);
   const router = createMemoryRouter(
     [
@@ -48,6 +54,7 @@ async function renderPage(locale = 'en', state?: ReadmeRouteState, hash = '') {
 
 beforeEach(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
+  clearReadmeReturnState();
   mocks.result = { isPending: false, isError: false, refetch: vi.fn() };
   mocks.reconnect.mockReset();
   container = document.createElement('div');
@@ -57,6 +64,7 @@ beforeEach(() => {
 
 afterEach(async () => {
   await act(async () => root.unmount());
+  clearReadmeReturnState();
   container.remove();
   vi.restoreAllMocks();
 });
@@ -418,7 +426,12 @@ describe('README workspace route', () => {
           repoId: 'repo-1',
           owner: 'openai',
           name: 'codex',
-          source: { kind: 'collection' as const, id: 'collection-7', name: 'AI tools' },
+          source: {
+            kind: 'collection' as const,
+            id: 'collection-7',
+            name: 'AI tools',
+            scrollTop: 0,
+          },
         },
       },
       'Back to AI tools',
@@ -431,7 +444,12 @@ describe('README workspace route', () => {
           repoId: 'repo-1',
           owner: 'openai',
           name: 'codex',
-          source: { kind: 'collection' as const, id: 'collection-7', name: 'AI 工具' },
+          source: {
+            kind: 'collection' as const,
+            id: 'collection-7',
+            name: 'AI 工具',
+            scrollTop: 0,
+          },
         },
       },
       '返回 AI 工具',
@@ -442,10 +460,10 @@ describe('README workspace route', () => {
   >)('uses the visible return action for %s entry', async (locale, state, label, destination) => {
     mocks.result.data = { status: 'retryable_error' };
     const router = await renderPage(locale, state);
-    const returnLink = container.querySelector<HTMLAnchorElement>('header a');
+    const returnButton = container.querySelector<HTMLButtonElement>('header button');
 
-    expect(returnLink?.textContent).toContain(label);
-    await act(async () => returnLink?.click());
+    expect(returnButton?.textContent).toContain(label);
+    await act(async () => returnButton?.click());
     expect(router.state.location.pathname).toBe(destination);
   });
 });

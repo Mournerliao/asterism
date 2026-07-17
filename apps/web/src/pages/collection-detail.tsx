@@ -13,6 +13,8 @@ import { useCollections } from '../data/use-collections';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useTags } from '../data/use-tags';
+import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
+import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
 
 export function CollectionDetailPage() {
@@ -20,6 +22,7 @@ export function CollectionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { requestOpen, registerContext } = useRepoInspector();
   const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
 
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: starredRepos, isLoading: reposLoading } = useStarredRepos();
@@ -43,13 +46,14 @@ export function CollectionDetailPage() {
     );
     return starredRepos.filter((record) => memberIds.has(record.repoId));
   }, [collection, collectionRepos, starredRepos]);
+  const sourceKey = `collection:${id ?? 'unknown'}`;
   const inspectorContext = useMemo(
     () => ({
-      sourceKey: `collection:${id ?? 'unknown'}`,
+      sourceKey,
       sourceName: collection?.name,
       records: memberRecords,
     }),
-    [collection?.name, id, memberRecords],
+    [collection?.name, memberRecords, sourceKey],
   );
   const openInspector = useCallback(
     (record: (typeof memberRecords)[number], modality: 'keyboard' | 'pointer') =>
@@ -60,6 +64,17 @@ export function CollectionDetailPage() {
   useEffect(() => {
     registerContext(inspectorContext);
   }, [inspectorContext, registerContext]);
+
+  useEffect(() => {
+    const el = scrollElement;
+    if (!el) {
+      return;
+    }
+    const update = () => useListScrollStore.getState().setScrollTop(sourceKey, el.scrollTop);
+    update();
+    el.addEventListener('scroll', update, { passive: true });
+    return () => el.removeEventListener('scroll', update);
+  }, [scrollElement, sourceKey]);
 
   const tagsByRepo = useMemo(() => {
     const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
@@ -82,7 +97,16 @@ export function CollectionDetailPage() {
   const isLoading =
     collectionsLoading || reposLoading || linksLoading || tagsLoading || repoTagsLoading;
   const count = new Intl.NumberFormat(i18n.language).format(memberRecords.length);
-  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+
+  useReadmeReturnRestore({
+    sourceKey,
+    records: memberRecords,
+    scrollElement,
+    inspectorContext,
+    requestOpen,
+    ready: !isLoading,
+    collectionMissing: !isLoading && !collection,
+  });
 
   if (isLoading) {
     return <CollectionDetailRouteLoading label={t('loading.collection')} />;

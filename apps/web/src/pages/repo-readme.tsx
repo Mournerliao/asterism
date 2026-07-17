@@ -13,10 +13,12 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { EmptyState } from '../components/empty-state';
 import { PendingActionContent } from '../components/pending-action-content';
+import { useCollections } from '../data/use-collections';
 import { useRepoReadme } from '../data/use-repo-readme';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { type ReadmeRouteState, resolveReadmeReturn } from '../lib/readme-navigation';
 import type { ReadmeOutlineItem } from '../lib/readme-outline';
+import { prepareReadmeReturn, rememberReadmeEntry } from '../lib/readme-return-coordinator';
 
 const ReadmeDocument = lazy(() =>
   import('../components/readme-document').then((module) => ({
@@ -141,6 +143,7 @@ export function RepoReadmePage() {
   const location = useLocation();
   const navigate = useNavigate();
   const readme = useRepoReadme(owner, name);
+  const { data: collections } = useCollections();
   const reconnect = useGitHubReconnect();
   const reducedMotion = useMediaQuery('(prefers-reduced-motion: reduce)');
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -150,15 +153,33 @@ export function RepoReadmePage() {
   const [activeOutlineId, setActiveOutlineId] = useState<string | null>(null);
   const repo = `${owner ?? ''}/${name ?? ''}`;
   const githubUrl = `https://github.com/${encodeURIComponent(owner ?? '')}/${encodeURIComponent(name ?? '')}`;
-  const returnDestination = resolveReadmeReturn(
-    location.state as ReadmeRouteState | null,
-    owner ?? '',
-    name ?? '',
-  );
-  const returnLabel =
-    returnDestination.source === 'collection' && returnDestination.collectionName
-      ? t('readme.backToCollection', { name: returnDestination.collectionName })
-      : t('readme.backToBrowse');
+  const routeState = location.state as ReadmeRouteState | null;
+  const source = routeState?.readme?.source;
+  const collectionExists =
+    source?.kind === 'collection'
+      ? Boolean(collections?.some((item) => item.id === source.id))
+      : true;
+  const returnDestination = resolveReadmeReturn(routeState, owner ?? '', name ?? '');
+  const showCollectionReturn =
+    returnDestination.source === 'collection' &&
+    returnDestination.collectionName &&
+    collectionExists;
+  const returnLabel = showCollectionReturn
+    ? t('readme.backToCollection', { name: returnDestination.collectionName })
+    : t('readme.backToBrowse');
+  const handleReturn = useCallback(() => {
+    const pending = prepareReadmeReturn({
+      state: routeState,
+      owner: owner ?? '',
+      name: name ?? '',
+      collectionExists,
+    });
+    void navigate(pending.to);
+  }, [collectionExists, name, navigate, owner, routeState]);
+
+  useEffect(() => {
+    rememberReadmeEntry(routeState?.readme);
+  }, [routeState]);
   const state = readme.data?.status;
   const findSectionTarget = useCallback(
     (id: string) =>
@@ -305,16 +326,15 @@ export function RepoReadmePage() {
       >
         <div className="min-w-0 justify-self-start">
           <Button
+            type="button"
             variant="ghost"
             size="sm"
             className="min-h-11 min-w-11 max-w-full gap-2 sm:min-h-8 sm:min-w-0"
-            asChild
+            onClick={handleReturn}
           >
-            <Link to={returnDestination.to}>
-              <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
-              <span className="hidden truncate sm:inline">{returnLabel}</span>
-              <span className="sr-only sm:hidden">{returnLabel}</span>
-            </Link>
+            <ArrowLeftIcon className="size-4 shrink-0" aria-hidden="true" />
+            <span className="hidden truncate sm:inline">{returnLabel}</span>
+            <span className="sr-only sm:hidden">{returnLabel}</span>
           </Button>
         </div>
         <div

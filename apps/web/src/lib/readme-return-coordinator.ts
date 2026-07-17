@@ -1,3 +1,4 @@
+import { create } from 'zustand';
 import { useBrowseFilters } from '../stores/browse-filters';
 import { setBrowseViewPersisted } from '../stores/browse-view';
 import type { BrowseSourceSnapshot, ReadmeReturnPlan, ReadmeRouteState } from './readme-navigation';
@@ -7,20 +8,21 @@ export type PendingReadmeReturn = ReadmeReturnPlan & {
   sourceKey: string;
 };
 
-let remembered: NonNullable<ReadmeRouteState['readme']> | null = null;
-let pending: PendingReadmeReturn | null = null;
+type ReadmeReturnState = {
+  remembered: NonNullable<ReadmeRouteState['readme']> | null;
+  pending: PendingReadmeReturn | null;
+  remember: (entry: ReadmeRouteState['readme'] | null | undefined) => void;
+  clear: () => void;
+  arm: (plan: ReadmeReturnPlan) => PendingReadmeReturn;
+  consume: (sourceKey: string) => PendingReadmeReturn | null;
+};
 
-export function rememberReadmeEntry(entry: ReadmeRouteState['readme'] | null | undefined): void {
-  remembered = entry ?? null;
-}
-
-export function peekRememberedReadmeEntry() {
-  return remembered;
-}
-
-export function clearReadmeReturnState(): void {
-  remembered = null;
-  pending = null;
+function toPending(plan: ReadmeReturnPlan): PendingReadmeReturn {
+  const sourceKey =
+    plan.source === 'collection' && plan.to.startsWith('/collections/')
+      ? `collection:${plan.to.slice('/collections/'.length)}`
+      : 'browse';
+  return { ...plan, sourceKey };
 }
 
 export function applyBrowseSnapshot(snapshot: BrowseSourceSnapshot): void {
@@ -37,21 +39,45 @@ export function applyBrowseSnapshot(snapshot: BrowseSourceSnapshot): void {
   setBrowseViewPersisted(snapshot.view);
 }
 
-function toPending(plan: ReadmeReturnPlan): PendingReadmeReturn {
-  const sourceKey =
-    plan.source === 'collection' && plan.to.startsWith('/collections/')
-      ? `collection:${plan.to.slice('/collections/'.length)}`
-      : 'browse';
-  return { ...plan, sourceKey };
+/** Reactive pending return so late browser-Back arming still wakes source pages. */
+export const useReadmeReturnStore = create<ReadmeReturnState>((set, get) => ({
+  remembered: null,
+  pending: null,
+  remember: (entry) => set({ remembered: entry ?? null }),
+  clear: () => set({ remembered: null, pending: null }),
+  arm: (plan) => {
+    if (plan.restoreBrowse) {
+      applyBrowseSnapshot(plan.restoreBrowse);
+    }
+    const pending = toPending(plan);
+    set({ pending });
+    return pending;
+  },
+  consume: (sourceKey) => {
+    const pending = get().pending;
+    if (!pending || pending.sourceKey !== sourceKey) {
+      return null;
+    }
+    set({ pending: null });
+    return pending;
+  },
+}));
+
+export function rememberReadmeEntry(entry: ReadmeRouteState['readme'] | null | undefined): void {
+  useReadmeReturnStore.getState().remember(entry);
+}
+
+export function peekRememberedReadmeEntry() {
+  return useReadmeReturnStore.getState().remembered;
+}
+
+export function clearReadmeReturnState(): void {
+  useReadmeReturnStore.getState().clear();
 }
 
 /** Arm a pending restore/reopen for the matching source page to consume. */
 export function armReadmeReturn(plan: ReadmeReturnPlan): PendingReadmeReturn {
-  if (plan.restoreBrowse) {
-    applyBrowseSnapshot(plan.restoreBrowse);
-  }
-  pending = toPending(plan);
-  return pending;
+  return useReadmeReturnStore.getState().arm(plan);
 }
 
 /**
@@ -64,6 +90,7 @@ export function prepareReadmeReturn(input: {
   name: string;
   collectionExists?: boolean;
 }): PendingReadmeReturn {
+  const remembered = useReadmeReturnStore.getState().remembered;
   const state = input.state ?? (remembered ? { readme: remembered } : undefined);
   const plan = planReadmeReturn({
     state,
@@ -72,7 +99,7 @@ export function prepareReadmeReturn(input: {
     repoVisible: true,
     collectionExists: input.collectionExists ?? true,
   });
-  remembered = null;
+  useReadmeReturnStore.setState({ remembered: null });
   return armReadmeReturn(plan);
 }
 
@@ -86,6 +113,7 @@ export function finalizeReadmeDeparture(input: {
   name: string;
   collectionExists?: boolean;
 }): PendingReadmeReturn | null {
+  const remembered = useReadmeReturnStore.getState().remembered;
   if (!remembered) {
     return null;
   }
@@ -96,11 +124,11 @@ export function finalizeReadmeDeparture(input: {
     repoVisible: true,
     collectionExists: input.collectionExists ?? true,
   });
-  remembered = null;
+  useReadmeReturnStore.setState({ remembered: null });
   const matchesDestination =
     plan.to === input.nextPathname || (plan.to === '/' && input.nextPathname === '/');
   if (!matchesDestination) {
-    pending = null;
+    useReadmeReturnStore.setState({ pending: null });
     return null;
   }
   return armReadmeReturn(plan);
@@ -108,12 +136,7 @@ export function finalizeReadmeDeparture(input: {
 
 /** Source pages consume a pending plan once for their source key. */
 export function consumePendingReadmeReturn(sourceKey: string): PendingReadmeReturn | null {
-  if (!pending || pending.sourceKey !== sourceKey) {
-    return null;
-  }
-  const current = pending;
-  pending = null;
-  return current;
+  return useReadmeReturnStore.getState().consume(sourceKey);
 }
 
 /** Drop reopen/scroll when the restored source no longer contains the repository. */
@@ -131,5 +154,5 @@ export function resolveReturnVisibility(
 }
 
 export function peekPendingReadmeReturn(): PendingReadmeReturn | null {
-  return pending;
+  return useReadmeReturnStore.getState().pending;
 }

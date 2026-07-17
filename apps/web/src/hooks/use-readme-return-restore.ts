@@ -3,9 +3,8 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   consumePendingReadmeReturn,
-  type PendingReadmeReturn,
-  peekPendingReadmeReturn,
   resolveReturnVisibility,
+  useReadmeReturnStore,
 } from '../lib/readme-return-coordinator';
 import type { RepoInspectorContext } from '../stores/repo-inspector';
 
@@ -29,8 +28,9 @@ type UseReadmeReturnRestoreOptions = {
  * Consumes a pending README return once the source list and scroll element are ready.
  * Reopens Quick Look and restores scroll only when the repository remains visible.
  *
- * Pending is only consumed when settling. Peeking first keeps the module-level
- * intent alive across StrictMode remounts and loading → ready transitions.
+ * Subscribes to the reactive pending store so browser-Back arming after mount still
+ * wakes this hook. Pending is only consumed when settling, so StrictMode remounts
+ * and loading → ready transitions keep the intent alive.
  */
 export function useReadmeReturnRestore({
   sourceKey,
@@ -43,13 +43,14 @@ export function useReadmeReturnRestore({
 }: UseReadmeReturnRestoreOptions) {
   const navigate = useNavigate();
   const settledRef = useRef(false);
+  const pending = useReadmeReturnStore((state) =>
+    state.pending?.sourceKey === sourceKey ? state.pending : null,
+  );
 
   useEffect(() => {
     if (settledRef.current) {
       return;
     }
-
-    const pending = matchPending(sourceKey);
     if (!pending) {
       return;
     }
@@ -82,18 +83,11 @@ export function useReadmeReturnRestore({
     collectionMissing,
     inspectorContext,
     navigate,
+    pending,
     ready,
     records,
     requestOpen,
     scrollElement,
     sourceKey,
   ]);
-}
-
-function matchPending(sourceKey: string): PendingReadmeReturn | null {
-  const pending = peekPendingReadmeReturn();
-  if (!pending || pending.sourceKey !== sourceKey) {
-    return null;
-  }
-  return pending;
 }

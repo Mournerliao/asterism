@@ -22,3 +22,5 @@
 
 - 根因：`useReadmeReturnRestore` 在 loading / 无滚动节点时过早 `consume` 全局 pending；React StrictMode 重挂载清空组件 ref 后 pending 丢失，返回不再重开 Quick Look。
 - 修复：就绪前只 `peek`；真正恢复滚动并 `requestOpen`（或集合缺失回退）时才 `consume`。新增 remount 回归测试。
+- 根因 2（Bugbot）：浏览器 Back 从 Collection 来源 README 返回时，`finalizeReadmeDeparture` 在 Collection 页 effect 之后才 arm 模块级 pending，且无 `applyBrowseSnapshot` 触发重渲染，恢复 hook 不再运行。
+- 修复 2：pending / remembered 改为 Zustand store；hook 订阅 `pending`，晚到的 Back arming 仍会唤醒恢复。新增「页面已挂载后再 arm」回归测试。

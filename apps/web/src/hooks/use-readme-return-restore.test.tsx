@@ -7,7 +7,11 @@ import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RepoInspectorProvider, useRepoInspector } from '../contexts/repo-inspector-context';
 import { createBrowseSourceSnapshot, createReadmeDestination } from '../lib/readme-navigation';
-import { clearReadmeReturnState, prepareReadmeReturn } from '../lib/readme-return-coordinator';
+import {
+  armReadmeReturn,
+  clearReadmeReturnState,
+  prepareReadmeReturn,
+} from '../lib/readme-return-coordinator';
 import { useBrowseFilters } from '../stores/browse-filters';
 import { getBrowseView, useBrowseViewStore } from '../stores/browse-view';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
@@ -115,6 +119,50 @@ function browseSnapshot(overrides: Partial<Parameters<typeof createBrowseSourceS
   );
 }
 
+function CollectionHarness({
+  records,
+  collectionId = 'collection-7',
+}: {
+  records: StarredRepoRecord[];
+  collectionId?: string;
+}) {
+  const { requestOpen } = useRepoInspector();
+  const selected = useRepoInspectorStore((state) => state.record?.repoId);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
+  const sourceKey = `collection:${collectionId}`;
+  const inspectorContext = { sourceKey, sourceName: 'AI tools', records };
+
+  useReadmeReturnRestore({
+    sourceKey,
+    records,
+    scrollElement,
+    inspectorContext,
+    requestOpen,
+    ready: true,
+  });
+
+  return (
+    <div>
+      <span data-testid="selected">{selected ?? ''}</span>
+      <div
+        data-scroll
+        ref={(node) => {
+          if (node) {
+            Object.defineProperty(node, 'scrollTop', {
+              configurable: true,
+              get: () => (node as HTMLDivElement & { _scrollTop?: number })._scrollTop ?? 0,
+              set: (value: number) => {
+                (node as HTMLDivElement & { _scrollTop?: number })._scrollTop = value;
+              },
+            });
+          }
+          setScrollElement(node);
+        }}
+      />
+    </div>
+  );
+}
+
 async function renderBrowse(
   records: StarredRepoRecord[],
   options?: { ready?: boolean; attachScroll?: boolean },
@@ -135,6 +183,25 @@ async function renderBrowse(
       },
     ],
     { initialEntries: ['/'] },
+  );
+  await act(async () => root.render(<RouterProvider router={router} />));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  return router;
+}
+
+async function renderCollection(records: StarredRepoRecord[], collectionId = 'collection-7') {
+  const router = createMemoryRouter(
+    [
+      {
+        path: `/collections/${collectionId}`,
+        element: (
+          <RepoInspectorProvider>
+            <CollectionHarness records={records} collectionId={collectionId} />
+          </RepoInspectorProvider>
+        ),
+      },
+    ],
+    { initialEntries: [`/collections/${collectionId}`] },
   );
   await act(async () => root.render(<RouterProvider router={router} />));
   await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
@@ -208,5 +275,27 @@ describe('README return restore on Browse', () => {
     expect(container.querySelector('[data-testid="query"]')?.textContent).toBe('missing');
     expect(container.querySelector('[data-testid="selected"]')?.textContent).toBe('');
     expect(document.querySelector<HTMLElement>('[data-scroll]')?.scrollTop ?? 0).toBe(0);
+  });
+});
+
+describe('README return restore on Collection', () => {
+  it('reopens Quick Look when pending is armed after the page has already mounted', async () => {
+    await renderCollection([record]);
+    expect(container.querySelector('[data-testid="selected"]')?.textContent).toBe('');
+
+    await act(async () => {
+      armReadmeReturn({
+        to: '/collections/collection-7',
+        source: 'collection',
+        collectionName: 'AI tools',
+        restoreBrowse: null,
+        reopenRepoId: 'repo-1',
+        scrollTop: 90,
+      });
+    });
+    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+
+    expect(container.querySelector('[data-testid="selected"]')?.textContent).toBe('repo-1');
+    expect(document.querySelector<HTMLElement>('[data-scroll]')?.scrollTop).toBe(90);
   });
 });

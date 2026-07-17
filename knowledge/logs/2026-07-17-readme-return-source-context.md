@@ -17,3 +17,8 @@
 - 纯逻辑：navigation planner 6 + 既有路由解析；coordinator 3；Browse restore hook 2（可见重开 / 不可见跳过）。
 - 回归：可见返回双语、未保存笔记导航、README 工作区全套（含 outline）。
 - 工程门：`pnpm lint`、web typecheck（既有 `closeLabel` 类型问题仍在 main）、`pnpm test` 全绿。
+
+## 修复（同日）
+
+- 根因：`useReadmeReturnRestore` 在 loading / 无滚动节点时过早 `consume` 全局 pending；React StrictMode 重挂载清空组件 ref 后 pending 丢失，返回不再重开 Quick Look。
+- 修复：就绪前只 `peek`；真正恢复滚动并 `requestOpen`（或集合缺失回退）时才 `consume`。新增 remount 回归测试。

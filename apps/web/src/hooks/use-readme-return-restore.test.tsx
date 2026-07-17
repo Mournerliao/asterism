@@ -47,7 +47,15 @@ const record = {
   starredAt: '2026-01-01T00:00:00Z',
 } as StarredRepoRecord;
 
-function BrowseHarness({ records }: { records: StarredRepoRecord[] }) {
+function BrowseHarness({
+  records,
+  ready = true,
+  attachScroll = true,
+}: {
+  records: StarredRepoRecord[];
+  ready?: boolean;
+  attachScroll?: boolean;
+}) {
   const { requestOpen } = useRepoInspector();
   const selected = useRepoInspectorStore((state) => state.record?.repoId);
   const query = useBrowseFilters((state) => state.query);
@@ -57,10 +65,10 @@ function BrowseHarness({ records }: { records: StarredRepoRecord[] }) {
   useReadmeReturnRestore({
     sourceKey: 'browse',
     records,
-    scrollElement,
+    scrollElement: attachScroll ? scrollElement : null,
     inspectorContext,
     requestOpen,
-    ready: true,
+    ready,
   });
 
   return (
@@ -68,23 +76,69 @@ function BrowseHarness({ records }: { records: StarredRepoRecord[] }) {
       <span data-testid="selected">{selected ?? ''}</span>
       <span data-testid="query">{query}</span>
       <span data-testid="view">{getBrowseView()}</span>
-      <div
-        data-scroll
-        ref={(node) => {
-          if (node) {
-            Object.defineProperty(node, 'scrollTop', {
-              configurable: true,
-              get: () => (node as HTMLDivElement & { _scrollTop?: number })._scrollTop ?? 0,
-              set: (value: number) => {
-                (node as HTMLDivElement & { _scrollTop?: number })._scrollTop = value;
-              },
-            });
-          }
-          setScrollElement(node);
-        }}
-      />
+      {attachScroll ? (
+        <div
+          data-scroll
+          ref={(node) => {
+            if (node) {
+              Object.defineProperty(node, 'scrollTop', {
+                configurable: true,
+                get: () => (node as HTMLDivElement & { _scrollTop?: number })._scrollTop ?? 0,
+                set: (value: number) => {
+                  (node as HTMLDivElement & { _scrollTop?: number })._scrollTop = value;
+                },
+              });
+            }
+            setScrollElement(node);
+          }}
+        />
+      ) : null}
     </div>
   );
+}
+
+function browseSnapshot(overrides: Partial<Parameters<typeof createBrowseSourceSnapshot>[0]> = {}) {
+  return createBrowseSourceSnapshot(
+    {
+      query: 'codex',
+      language: 'TypeScript',
+      topic: null,
+      tagIds: [],
+      minStars: 0,
+      pushedWithinDays: null,
+      status: 'all',
+      sort: 'name',
+      ...overrides,
+    },
+    'list',
+    240,
+  );
+}
+
+async function renderBrowse(
+  records: StarredRepoRecord[],
+  options?: { ready?: boolean; attachScroll?: boolean },
+) {
+  const router = createMemoryRouter(
+    [
+      {
+        path: '/',
+        element: (
+          <RepoInspectorProvider>
+            <BrowseHarness
+              records={records}
+              ready={options?.ready}
+              attachScroll={options?.attachScroll}
+            />
+          </RepoInspectorProvider>
+        ),
+      },
+    ],
+    { initialEntries: ['/'] },
+  );
+  await act(async () => root.render(<RouterProvider router={router} />));
+  await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+  return router;
 }
 
 let container: HTMLDivElement;
@@ -112,42 +166,12 @@ afterEach(async () => {
 
 describe('README return restore on Browse', () => {
   it('restores filters/view and reopens Quick Look when the repository is still visible', async () => {
-    const snapshot = createBrowseSourceSnapshot(
-      {
-        query: 'codex',
-        language: 'TypeScript',
-        topic: null,
-        tagIds: [],
-        minStars: 0,
-        pushedWithinDays: null,
-        status: 'all',
-        sort: 'name',
-      },
-      'list',
-      240,
-    );
     const state = createReadmeDestination('openai', 'codex', 'repo-1', '/', {
-      browseSnapshot: snapshot,
+      browseSnapshot: browseSnapshot(),
     }).state;
 
     prepareReadmeReturn({ state, owner: 'openai', name: 'codex' });
-
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/',
-          element: (
-            <RepoInspectorProvider>
-              <BrowseHarness records={[record]} />
-            </RepoInspectorProvider>
-          ),
-        },
-      ],
-      { initialEntries: ['/'] },
-    );
-
-    await act(async () => root.render(<RouterProvider router={router} />));
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+    await renderBrowse([record]);
 
     expect(container.querySelector('[data-testid="query"]')?.textContent).toBe('codex');
     expect(container.querySelector('[data-testid="view"]')?.textContent).toBe('list');
@@ -155,43 +179,31 @@ describe('README return restore on Browse', () => {
     expect(document.querySelector<HTMLElement>('[data-scroll]')?.scrollTop).toBe(240);
   });
 
-  it('skips reopen and forced scroll when the repository is no longer visible', async () => {
-    const snapshot = createBrowseSourceSnapshot(
-      {
-        query: 'missing',
-        language: null,
-        topic: null,
-        tagIds: [],
-        minStars: 0,
-        pushedWithinDays: null,
-        status: 'all',
-        sort: 'starred',
-      },
-      'grid',
-      240,
-    );
+  it('keeps pending across an early not-ready pass and remount so Quick Look still reopens', async () => {
     const state = createReadmeDestination('openai', 'codex', 'repo-1', '/', {
-      browseSnapshot: snapshot,
+      browseSnapshot: browseSnapshot(),
     }).state;
 
     prepareReadmeReturn({ state, owner: 'openai', name: 'codex' });
+    await renderBrowse([record], { ready: false, attachScroll: false });
+    expect(container.querySelector('[data-testid="selected"]')?.textContent).toBe('');
 
-    const router = createMemoryRouter(
-      [
-        {
-          path: '/',
-          element: (
-            <RepoInspectorProvider>
-              <BrowseHarness records={[]} />
-            </RepoInspectorProvider>
-          ),
-        },
-      ],
-      { initialEntries: ['/'] },
-    );
+    await act(async () => root.unmount());
+    root = createRoot(container);
+    useRepoInspectorStore.setState({ record: null, context: null });
+    await renderBrowse([record], { ready: true, attachScroll: true });
 
-    await act(async () => root.render(<RouterProvider router={router} />));
-    await act(async () => new Promise((resolve) => setTimeout(resolve, 0)));
+    expect(container.querySelector('[data-testid="selected"]')?.textContent).toBe('repo-1');
+    expect(document.querySelector<HTMLElement>('[data-scroll]')?.scrollTop).toBe(240);
+  });
+
+  it('skips reopen and forced scroll when the repository is no longer visible', async () => {
+    const state = createReadmeDestination('openai', 'codex', 'repo-1', '/', {
+      browseSnapshot: browseSnapshot({ query: 'missing', language: null, sort: 'starred' }),
+    }).state;
+
+    prepareReadmeReturn({ state, owner: 'openai', name: 'codex' });
+    await renderBrowse([]);
 
     expect(container.querySelector('[data-testid="query"]')?.textContent).toBe('missing');
     expect(container.querySelector('[data-testid="selected"]')?.textContent).toBe('');

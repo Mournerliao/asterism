@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   consumePendingReadmeReturn,
   type PendingReadmeReturn,
+  peekPendingReadmeReturn,
   resolveReturnVisibility,
 } from '../lib/readme-return-coordinator';
 import type { RepoInspectorContext } from '../stores/repo-inspector';
@@ -27,6 +28,9 @@ type UseReadmeReturnRestoreOptions = {
 /**
  * Consumes a pending README return once the source list and scroll element are ready.
  * Reopens Quick Look and restores scroll only when the repository remains visible.
+ *
+ * Pending is only consumed when settling. Peeking first keeps the module-level
+ * intent alive across StrictMode remounts and loading → ready transitions.
  */
 export function useReadmeReturnRestore({
   sourceKey,
@@ -38,24 +42,21 @@ export function useReadmeReturnRestore({
   collectionMissing = false,
 }: UseReadmeReturnRestoreOptions) {
   const navigate = useNavigate();
-  const pendingRef = useRef<PendingReadmeReturn | null>(null);
   const settledRef = useRef(false);
 
   useEffect(() => {
     if (settledRef.current) {
       return;
     }
-    if (!pendingRef.current) {
-      pendingRef.current = consumePendingReadmeReturn(sourceKey);
-    }
-    const pending = pendingRef.current;
+
+    const pending = matchPending(sourceKey);
     if (!pending) {
       return;
     }
 
     if (collectionMissing) {
       settledRef.current = true;
-      pendingRef.current = null;
+      consumePendingReadmeReturn(sourceKey);
       void navigate('/', { replace: true });
       return;
     }
@@ -65,7 +66,7 @@ export function useReadmeReturnRestore({
     }
 
     settledRef.current = true;
-    pendingRef.current = null;
+    consumePendingReadmeReturn(sourceKey);
 
     const record = pending.reopenRepoId
       ? (records.find((item) => item.repoId === pending.reopenRepoId) ?? null)
@@ -87,4 +88,12 @@ export function useReadmeReturnRestore({
     scrollElement,
     sourceKey,
   ]);
+}
+
+function matchPending(sourceKey: string): PendingReadmeReturn | null {
+  const pending = peekPendingReadmeReturn();
+  if (!pending || pending.sourceKey !== sourceKey) {
+    return null;
+  }
+  return pending;
 }

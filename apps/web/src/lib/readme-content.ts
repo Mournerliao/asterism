@@ -102,6 +102,26 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
+const REPO_RELATIVE_BASE = 'https://repository.local/repo/';
+
+/** Resolve a repo-relative path; returns null when the path escapes above the repo root. */
+function resolveRepoRelative(path: string): URL | null {
+  try {
+    const resolved = new URL(path, REPO_RELATIVE_BASE);
+    if (!resolved.pathname.startsWith('/repo/')) {
+      return null;
+    }
+    return resolved;
+  } catch {
+    return null;
+  }
+}
+
+function repoRelativePath(resolved: URL): string | null {
+  const path = resolved.pathname.slice('/repo/'.length);
+  return path || null;
+}
+
 function externalLink(href: string, owner: string, name: string): string | null {
   if (href.startsWith('#')) {
     return href;
@@ -124,17 +144,16 @@ function externalLink(href: string, owner: string, name: string): string | null 
   if (/^[a-z][a-z\d+.-]*:/i.test(href)) {
     return null;
   }
-  try {
-    const resolved = new URL(href, 'https://repository.local/');
-    const path = resolved.pathname.slice(1);
-    if (!path) {
-      return null;
-    }
-    const route = resolved.pathname.endsWith('/') ? 'tree' : 'blob';
-    return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${route}/HEAD/${path}${resolved.search}${resolved.hash}`;
-  } catch {
+  const resolved = resolveRepoRelative(href);
+  if (!resolved) {
     return null;
   }
+  const path = repoRelativePath(resolved);
+  if (!path) {
+    return null;
+  }
+  const route = resolved.pathname.endsWith('/') ? 'tree' : 'blob';
+  return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/${route}/HEAD/${path}${resolved.search}${resolved.hash}`;
 }
 
 function imageSource(src: string, owner: string, name: string): string | null {
@@ -148,7 +167,15 @@ function imageSource(src: string, owner: string, name: string): string | null {
   if (src.startsWith('/') || /^[a-z][a-z\d+.-]*:/i.test(src)) {
     return null;
   }
-  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/HEAD/${src.replace(/^\.\//, '')}`;
+  const resolved = resolveRepoRelative(src);
+  if (!resolved) {
+    return null;
+  }
+  const path = repoRelativePath(resolved);
+  if (!path) {
+    return null;
+  }
+  return `https://raw.githubusercontent.com/${encodeURIComponent(owner)}/${encodeURIComponent(name)}/HEAD/${path}${resolved.search}`;
 }
 
 export function sanitizeReadmeHtml(

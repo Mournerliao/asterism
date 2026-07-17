@@ -202,7 +202,16 @@
     "errorTitle": "Couldn't load this README",
     "errorDescription": "The request failed temporarily. Your place in Asterism is unchanged.",
     "retry": "Try again",
-    "checkAgain": "Check again"
+    "checkAgain": "Check again",
+    "corpusLab": {
+      "title": "README corpus lab",
+      "fixture": "Fixture",
+      "themeLight": "Light",
+      "themeDark": "Dark",
+      "skeleton": "Skeleton",
+      "skeletonLabel": "Loading README corpus fixture",
+      "documentLabel": "{{title}} document"
+    }
   },
   "collections": {
     "title": "Collections",

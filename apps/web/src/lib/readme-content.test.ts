@@ -121,4 +121,21 @@ describe('sanitizeReadmeHtml', () => {
     expect(html).toContain('<img alt="Malformed image">');
     expect(html).toContain('<img alt="Unsupported root image">');
   });
+
+  it('normalizes parent-relative image paths and drops escapes above the repo root', () => {
+    const html = sanitize(`
+      <img src="../shared/logo.png" alt="Parent">
+      <img src="docs/../assets/hero.png" alt="Normalized">
+      <a href="../outside.md">Escape</a>
+      <a href="docs/../guide.md">Normalized link</a>
+    `);
+    expect(html).toContain(
+      'src="https://raw.githubusercontent.com/openai/codex/HEAD/assets/hero.png"',
+    );
+    expect(html).toContain('<img alt="Parent">');
+    expect(html).not.toContain('../shared/logo.png');
+    expect(html).toContain('href="https://github.com/openai/codex/blob/HEAD/guide.md"');
+    expect(html).toContain('>Escape</a>');
+    expect(html).not.toContain('../outside.md');
+  });
 });

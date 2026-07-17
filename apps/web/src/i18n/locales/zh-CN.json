@@ -202,7 +202,16 @@
     "errorTitle": "无法加载此 README",
     "errorDescription": "请求暂时失败，你在 Asterism 中的位置不会改变。",
     "retry": "重试",
-    "checkAgain": "再次检查"
+    "checkAgain": "再次检查",
+    "corpusLab": {
+      "title": "README corpus 实验室",
+      "fixture": "样本",
+      "themeLight": "浅色",
+      "themeDark": "深色",
+      "skeleton": "骨架屏",
+      "skeletonLabel": "正在加载 README corpus 样本",
+      "documentLabel": "{{title}} 文档"
+    }
   },
   "collections": {
     "title": "集合",

@@ -1,0 +1,13 @@
+<article class="markdown-body">
+  <h1>Rich Content Fallbacks</h1>
+  <p>Unsupported embeds must degrade safely without executable content.</p>
+  <video controls src="https://example.com/demo.mp4"></video>
+  <iframe src="https://example.com/embed" title="Embed"></iframe>
+  <object data="https://example.com/plugin"></object>
+  <embed src="https://example.com/plugin">
+  <form action="https://example.com/submit"><input name="q" value="secret"><button type="submit">Go</button></form>
+  <p onclick="alert(1)">Clickable paragraph should lose handlers.</p>
+  <h2>Kept structure</h2>
+  <p>Paragraphs, lists, and headings remain after sanitization.</p>
+  <ul><li>Safe item</li></ul>
+</article>

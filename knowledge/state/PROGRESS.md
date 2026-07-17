@@ -10,6 +10,8 @@
 
 > 滚动边界统一（2026-07-17，见 `logs/2026-07-17-scrollbar-edge-alignment.md`）：README 桌面 Outline 的滚动盒跨过卡片右侧 padding，使轨道贴卡片内边缘且标题固定；Browse 将真实 `overflow-y-auto` 提升为页面全宽层，内容继续由 `px-6` + `max-w-6xl` 居中限宽，使列表/空态滚动条贴 App Shell 主内容区右边缘。虚拟列表仍绑定同一真实滚动元素，工具栏固定、scroll margin、视图切换归零与全局细滚动条样式保持不变。
 
+> README corpus fidelity gate（2026-07-17，见 `logs/2026-07-17-readme-corpus-fidelity.md`、Issue #10）：固定 corpus 覆盖普通 GFM / 深目录 / badge 居中 / 宽表与代码 / 多语言代码块 / 相对媒体 / details / 富内容降级 / 中文 / 无 README；Vitest 清洗与 outline 门禁 + DEV `/dev/readme-corpus` lab；相对图片路径按仓库根 URL 规范化，越界 `../` 丢弃 `src`；Cursor 内置浏览器完成 light/dark 与 390/900/1200 视觉与 a11y 抽查。父 epic Issue #2 随 #10 关闭。
+
 > Quick Look ↔ README progressive motion（2026-07-17，见 `logs/2026-07-17-readme-workspace-motion.md`、Issue #9）：浮窗 Quick Look 进入 README 时测量实际位置并以 Web Animations FLIP + ease-out 展开到主阅读区，仓库身份保持锚点、框体与正文 crossfade 分离；返回仅在来源恢复且同一仓库 trigger / Quick Look 可见时收缩，否则克制 crossfade。动画缺失/失败/reduced-motion 不阻挡路由与加载；手机 Sheet 不伪造空间展开。
 
 > README 返回恢复来源上下文（2026-07-17，见 `logs/2026-07-17-readme-return-source-context.md`、Issue #8）：进入 README 时记录 Browse 筛选/排序/视图/滚动或 Collection 滚动与身份；可见返回与浏览器 Back 共用协调器，恢复快照后在仓库仍可见时重开 Quick Look，集合缺失回退 Browse，trigger 不可见时不强制滚动。

@@ -16,6 +16,12 @@ import { LoginPage } from './pages/login';
 import { RepoBaseRedirect } from './pages/repo-base-redirect';
 import { RepoReadmePage } from './pages/repo-readme';
 
+const ReadmeCorpusLabPage = lazy(() =>
+  import('./pages/readme-corpus-lab').then((module) => ({
+    default: module.ReadmeCorpusLabPage,
+  })),
+);
+
 const CollectionsPage = lazy(() =>
   import('./pages/collections').then((module) => ({ default: module.CollectionsPage })),
 );
@@ -69,6 +75,11 @@ function lazyPage(element: ReactNode, kind: RouteLoadingKind) {
   return <Suspense fallback={<PageFallback kind={kind} />}>{element}</Suspense>;
 }
 
+function CorpusLabFallback() {
+  const { t } = useTranslation();
+  return <div className="p-6 text-sm text-muted-foreground">{t('loading.page')}</div>;
+}
+
 export const router = createBrowserRouter([
   {
     path: '/login',
@@ -78,6 +89,18 @@ export const router = createBrowserRouter([
       </RequireAnon>
     ),
   },
+  ...(import.meta.env.DEV
+    ? [
+        {
+          path: '/dev/readme-corpus',
+          element: (
+            <Suspense fallback={<CorpusLabFallback />}>
+              <ReadmeCorpusLabPage />
+            </Suspense>
+          ),
+        },
+      ]
+    : []),
   {
     path: '/',
     element: (

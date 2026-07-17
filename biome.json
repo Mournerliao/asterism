@@ -11,6 +11,18 @@
     {
       "includes": ["supabase/functions/**"],
       "linter": { "rules": { "suspicious": { "noUndeclaredEnvVars": "off" } } }
+    },
+    {
+      "includes": ["apps/web/src/fixtures/readme-corpus/**"],
+      "linter": {
+        "rules": {
+          "a11y": {
+            "useMediaCaption": "off",
+            "useAltText": "off",
+            "useKeyWithClickEvents": "off"
+          }
+        }
+      }
     }
   ]
 }

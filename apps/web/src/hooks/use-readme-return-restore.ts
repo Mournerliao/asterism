@@ -6,6 +6,7 @@ import {
   resolveReturnVisibility,
   useReadmeReturnStore,
 } from '../lib/readme-return-coordinator';
+import { consumeWorkspaceMotion } from '../lib/readme-workspace-motion-store';
 import type { RepoInspectorContext } from '../stores/repo-inspector';
 
 type UseReadmeReturnRestoreOptions = {
@@ -78,6 +79,8 @@ export function useReadmeReturnRestore({
     }
     if (record && visibility.reopenRepoId) {
       requestOpen(record, inspectorContext, 'pointer');
+    } else {
+      consumeWorkspaceMotion('reverse');
     }
   }, [
     collectionMissing,

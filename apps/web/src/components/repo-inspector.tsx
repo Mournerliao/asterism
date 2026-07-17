@@ -58,6 +58,18 @@ import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } fr
 import { languageColor } from '../lib/language-colors';
 import { createBrowseSourceSnapshot, createReadmeDestination } from '../lib/readme-navigation';
 import { rememberReadmeEntry } from '../lib/readme-return-coordinator';
+import {
+  measureElementRect,
+  planReverseWorkspaceMotion,
+  runWorkspaceFrameAnimation,
+  WORKSPACE_MOTION_EASING,
+} from '../lib/readme-workspace-motion';
+import {
+  armForwardWorkspaceMotion,
+  consumeWorkspaceMotion,
+  peekPendingWorkspaceMotion,
+  recordWorkspaceMotionMode,
+} from '../lib/readme-workspace-motion-store';
 import { useBrowseFilters } from '../stores/browse-filters';
 import { getBrowseView } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
@@ -198,8 +210,17 @@ export function RepoInspector() {
           },
     );
     rememberReadmeEntry(destination.state.readme);
+    // Mobile Sheet (and any non-floating path) arms a non-spatial crossfade intent.
+    if (!floating) {
+      armForwardWorkspaceMotion({
+        direction: 'forward',
+        repoId: record.repoId,
+        sourceRect: { left: 0, top: 0, width: 1, height: 1 },
+        floatingQuickLook: false,
+      });
+    }
     requestRoute(destination.to, destination.state);
-  }, [context?.sourceKey, context?.sourceName, record, requestRoute]);
+  }, [context?.sourceKey, context?.sourceName, floating, record, requestRoute]);
 
   useEffect(() => {
     if (!record || floating) return;
@@ -335,19 +356,68 @@ function FloatingQuickLook({
     if (!panel) return;
     const source = visibleTrigger(currentRepoId.current);
     returnFocusRef.current = source;
+
+    const pending = peekPendingWorkspaceMotion();
+    if (pending?.direction === 'reverse' && pending.repoId === currentRepoId.current) {
+      const consumed = consumeWorkspaceMotion('reverse');
+      if (consumed?.direction === 'reverse') {
+        const targetRect = measureElementRect(panel);
+        const mode = planReverseWorkspaceMotion({
+          reducedMotion,
+          sourceRestored: true,
+          sameRepo: true,
+          triggerVisible: Boolean(source),
+          quickLookVisible: Boolean(targetRect),
+          sourceRect: consumed.sourceRect,
+          targetRect,
+        });
+        recordWorkspaceMotionMode(mode);
+        panel.dataset.workspaceMotion = mode;
+        if (mode === 'contract' && targetRect) {
+          void runWorkspaceFrameAnimation({
+            element: panel,
+            mode,
+            from: consumed.sourceRect,
+            to: targetRect,
+          });
+        } else if (mode === 'crossfade' && typeof panel.animate === 'function') {
+          const fade = panel.animate([{ opacity: 0 }, { opacity: 1 }], {
+            duration: 120,
+            easing: WORKSPACE_MOTION_EASING,
+          });
+          void fade.finished.catch(() => undefined);
+        }
+        if (openModality === 'keyboard') {
+          panel.focus({ preventScroll: true });
+        }
+        return;
+      }
+    }
+
     if (!reducedMotion) {
       panel.animate(
         [
           { opacity: 0, transform: sourceTransform(source, panel) },
           { opacity: 1, transform: 'none' },
         ],
-        { duration: 220, easing: 'cubic-bezier(0.25, 1, 0.5, 1)' },
+        { duration: 220, easing: WORKSPACE_MOTION_EASING },
       );
     }
     if (openModality === 'keyboard') {
       panel.focus({ preventScroll: true });
     }
   }, [openModality, reducedMotion]);
+
+  const handleReadReadme = useCallback(() => {
+    const rect = measureElementRect(frameRef.current) ?? measureElementRect(panelRef.current);
+    armForwardWorkspaceMotion({
+      direction: 'forward',
+      repoId: record.repoId,
+      sourceRect: rect ?? { left: 0, top: 0, width: 1, height: 1 },
+      floatingQuickLook: Boolean(rect),
+    });
+    onReadReadme();
+  }, [onReadReadme, record.repoId]);
 
   const close = useCallback(async () => {
     if (closingRef.current || confirmOpen) return;
@@ -517,6 +587,7 @@ function FloatingQuickLook({
   return (
     <div
       ref={frameRef}
+      data-quick-look-frame
       className="pointer-events-none fixed right-6 bottom-6 left-auto z-50 w-[min(30rem,calc(100vw-2rem))] translate-x-0"
     >
       <div
@@ -536,7 +607,7 @@ function FloatingQuickLook({
           hasNext={hasNext}
           onPrevious={onPrevious}
           onNext={onNext}
-          onReadReadme={onReadReadme}
+          onReadReadme={handleReadReadme}
           onClose={() => void close()}
           dragSurface={{
             dragging,

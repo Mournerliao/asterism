@@ -3,6 +3,12 @@ import { useBrowseFilters } from '../stores/browse-filters';
 import { setBrowseViewPersisted } from '../stores/browse-view';
 import type { BrowseSourceSnapshot, ReadmeReturnPlan, ReadmeRouteState } from './readme-navigation';
 import { planReadmeReturn } from './readme-navigation';
+import { measureElementRect } from './readme-workspace-motion';
+import {
+  armReverseWorkspaceMotion,
+  clearWorkspaceMotionState,
+  consumeWorkspaceMotion,
+} from './readme-workspace-motion-store';
 
 export type PendingReadmeReturn = ReadmeReturnPlan & {
   sourceKey: string;
@@ -73,6 +79,7 @@ export function peekRememberedReadmeEntry() {
 
 export function clearReadmeReturnState(): void {
   useReadmeReturnStore.getState().clear();
+  clearWorkspaceMotionState();
 }
 
 /** Arm a pending restore/reopen for the matching source page to consume. */
@@ -129,8 +136,23 @@ export function finalizeReadmeDeparture(input: {
     plan.to === input.nextPathname || (plan.to === '/' && input.nextPathname === '/');
   if (!matchesDestination) {
     useReadmeReturnStore.setState({ pending: null });
+    consumeWorkspaceMotion('reverse');
     return null;
   }
+
+  const reducedMotion =
+    typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const workspaceRect = measureElementRect(
+    typeof document === 'undefined' ? null : document.querySelector('[data-readme-workspace]'),
+  );
+  if (!reducedMotion && workspaceRect) {
+    armReverseWorkspaceMotion({
+      direction: 'reverse',
+      repoId: remembered.repoId,
+      sourceRect: workspaceRect,
+    });
+  }
+
   return armReadmeReturn(plan);
 }
 

@@ -466,4 +466,171 @@ describe('README workspace route', () => {
     await act(async () => returnButton?.click());
     expect(router.state.location.pathname).toBe(destination);
   });
+
+  it('expands from a measured floating Quick Look without blocking the route', async () => {
+    const { armForwardWorkspaceMotion, useWorkspaceMotionStore } = await import(
+      '../lib/readme-workspace-motion-store'
+    );
+    armForwardWorkspaceMotion({
+      direction: 'forward',
+      repoId: 'repo-1',
+      sourceRect: { left: 800, top: 200, width: 480, height: 640 },
+      floatingQuickLook: true,
+    });
+    mocks.result.data = { status: 'retryable_error' };
+
+    const originalRect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function getBoundingClientRect() {
+      if ((this as HTMLElement).dataset.readmeWorkspace != null) {
+        return {
+          left: 240,
+          top: 64,
+          width: 960,
+          height: 800,
+          right: 1200,
+          bottom: 864,
+          x: 240,
+          y: 64,
+          toJSON() {
+            return {};
+          },
+        } as DOMRect;
+      }
+      return originalRect.call(this);
+    };
+
+    try {
+      const router = await renderPage('en', {
+        readme: {
+          repoId: 'repo-1',
+          owner: 'openai',
+          name: 'codex',
+          source: {
+            kind: 'browse',
+            snapshot: {
+              query: '',
+              language: null,
+              topic: null,
+              tagIds: [],
+              minStars: 0,
+              pushedWithinDays: null,
+              status: 'all',
+              sort: 'starred',
+              view: 'grid',
+              scrollTop: 0,
+            },
+          },
+        },
+      });
+
+      expect(router.state.location.pathname).toBe('/repos/openai/codex/readme');
+      expect(container.textContent).toContain('openai / codex');
+      expect(useWorkspaceMotionStore.getState().lastMode).toBe('expand');
+      expect(
+        container.querySelector('[data-readme-workspace]')?.getAttribute('data-workspace-motion'),
+      ).toBe('expand');
+    } finally {
+      HTMLElement.prototype.getBoundingClientRect = originalRect;
+    }
+  });
+
+  it('keeps navigation successful when Web Animations rejects', async () => {
+    const { armForwardWorkspaceMotion } = await import('../lib/readme-workspace-motion-store');
+    armForwardWorkspaceMotion({
+      direction: 'forward',
+      repoId: 'repo-1',
+      sourceRect: { left: 10, top: 20, width: 400, height: 500 },
+      floatingQuickLook: true,
+    });
+    mocks.result.data = { status: 'retryable_error' };
+
+    const animate = HTMLElement.prototype.animate;
+    HTMLElement.prototype.animate = vi.fn(() => ({
+      finished: Promise.reject(new DOMException('Aborted', 'AbortError')),
+    })) as unknown as typeof HTMLElement.prototype.animate;
+
+    try {
+      const router = await renderPage('en', {
+        readme: {
+          repoId: 'repo-1',
+          owner: 'openai',
+          name: 'codex',
+          source: {
+            kind: 'browse',
+            snapshot: {
+              query: '',
+              language: null,
+              topic: null,
+              tagIds: [],
+              minStars: 0,
+              pushedWithinDays: null,
+              status: 'all',
+              sort: 'starred',
+              view: 'grid',
+              scrollTop: 0,
+            },
+          },
+        },
+      });
+      expect(router.state.location.pathname).toBe('/repos/openai/codex/readme');
+      expect(container.textContent).toContain('openai / codex');
+      expect(container.textContent).toMatch(/Try again|重试/);
+    } finally {
+      HTMLElement.prototype.animate = animate;
+    }
+  });
+
+  it('records immediate motion under reduced preference instead of spatial expand', async () => {
+    vi.spyOn(window, 'matchMedia').mockImplementation(
+      (query) =>
+        ({
+          matches: String(query).includes('prefers-reduced-motion'),
+          media: String(query),
+          onchange: null,
+          addListener: vi.fn(),
+          removeListener: vi.fn(),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+          dispatchEvent: vi.fn(),
+        }) as MediaQueryList,
+    );
+    const { armForwardWorkspaceMotion, useWorkspaceMotionStore } = await import(
+      '../lib/readme-workspace-motion-store'
+    );
+    armForwardWorkspaceMotion({
+      direction: 'forward',
+      repoId: 'repo-1',
+      sourceRect: { left: 10, top: 20, width: 400, height: 500 },
+      floatingQuickLook: true,
+    });
+    mocks.result.data = { status: 'retryable_error' };
+
+    await renderPage('en', {
+      readme: {
+        repoId: 'repo-1',
+        owner: 'openai',
+        name: 'codex',
+        source: {
+          kind: 'browse',
+          snapshot: {
+            query: '',
+            language: null,
+            topic: null,
+            tagIds: [],
+            minStars: 0,
+            pushedWithinDays: null,
+            status: 'all',
+            sort: 'starred',
+            view: 'grid',
+            scrollTop: 0,
+          },
+        },
+      },
+    });
+
+    expect(useWorkspaceMotionStore.getState().lastMode).toBe('immediate');
+    expect(
+      container.querySelector('[data-readme-workspace]')?.getAttribute('data-workspace-motion'),
+    ).toBe('immediate');
+  });
 });

@@ -15,10 +15,13 @@ import { EmptyState } from '../components/empty-state';
 import { PendingActionContent } from '../components/pending-action-content';
 import { useCollections } from '../data/use-collections';
 import { useRepoReadme } from '../data/use-repo-readme';
+import { useForwardWorkspaceMotion } from '../hooks/use-forward-workspace-motion';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { type ReadmeRouteState, resolveReadmeReturn } from '../lib/readme-navigation';
 import type { ReadmeOutlineItem } from '../lib/readme-outline';
 import { prepareReadmeReturn, rememberReadmeEntry } from '../lib/readme-return-coordinator';
+import { measureElementRect } from '../lib/readme-workspace-motion';
+import { armReverseWorkspaceMotion } from '../lib/readme-workspace-motion-store';
 
 const ReadmeDocument = lazy(() =>
   import('../components/readme-document').then((module) => ({
@@ -167,7 +170,17 @@ export function RepoReadmePage() {
   const returnLabel = showCollectionReturn
     ? t('readme.backToCollection', { name: returnDestination.collectionName })
     : t('readme.backToBrowse');
+  const { workspaceRef, contentRef } = useForwardWorkspaceMotion(routeState?.readme?.repoId);
   const handleReturn = useCallback(() => {
+    const workspaceRect = measureElementRect(workspaceRef.current);
+    const repoId = routeState?.readme?.repoId;
+    if (workspaceRect && repoId && !reducedMotion) {
+      armReverseWorkspaceMotion({
+        direction: 'reverse',
+        repoId,
+        sourceRect: workspaceRect,
+      });
+    }
     const pending = prepareReadmeReturn({
       state: routeState,
       owner: owner ?? '',
@@ -175,7 +188,7 @@ export function RepoReadmePage() {
       collectionExists,
     });
     void navigate(pending.to);
-  }, [collectionExists, name, navigate, owner, routeState]);
+  }, [collectionExists, name, navigate, owner, reducedMotion, routeState, workspaceRef]);
 
   useEffect(() => {
     rememberReadmeEntry(routeState?.readme);
@@ -319,7 +332,11 @@ export function RepoReadmePage() {
   }
 
   return (
-    <div className="@container/readme-workspace -m-6 flex min-h-0 flex-1 flex-col bg-background">
+    <div
+      ref={workspaceRef}
+      data-readme-workspace
+      className="@container/readme-workspace -m-6 flex min-h-0 flex-1 flex-col bg-background"
+    >
       <header
         data-readme-header
         className="asterism-glass-surface z-10 grid min-h-13 shrink-0 grid-cols-[minmax(0,1fr)_minmax(0,auto)_minmax(0,1fr)] items-center gap-3 border-b px-4 sm:px-6"
@@ -371,8 +388,12 @@ export function RepoReadmePage() {
       </header>
 
       <div
-        ref={scrollContainerRef}
+        ref={(node) => {
+          scrollContainerRef.current = node;
+          contentRef.current = node;
+        }}
         data-readme-scroll-container
+        data-readme-motion-content
         className="min-h-0 flex-1 overflow-y-auto"
       >
         {readme.isPending ? (

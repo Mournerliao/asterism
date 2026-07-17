@@ -40,15 +40,21 @@ export function ConfirmDialog({
       }}
     >
       <DialogContent>
-        <DialogHeader>
+        <DialogHeader className="pr-10">
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
         </DialogHeader>
         <DialogFooter>
-          <Button variant="ghost" disabled={pending} onClick={() => onOpenChange(false)}>
+          <Button variant="ghost" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>
             {t('common.cancel')}
           </Button>
-          <Button variant="destructive" disabled={pending} aria-busy={pending} onClick={onConfirm}>
+          <Button
+            variant="destructive"
+            size="sm"
+            disabled={pending}
+            aria-busy={pending}
+            onClick={onConfirm}
+          >
             <PendingActionContent
               pending={pending}
               idleLabel={confirmLabel}

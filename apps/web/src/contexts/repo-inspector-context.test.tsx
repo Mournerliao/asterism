@@ -91,6 +91,12 @@ async function clickVisibleButton(label: string) {
   await act(async () => button?.click());
 }
 
+async function clickLabeledControl(label: string) {
+  const control = document.querySelector<HTMLButtonElement>(`button[aria-label="${label}"]`);
+  expect(control, `control aria-label "${label}"`).toBeDefined();
+  await act(async () => control?.click());
+}
+
 async function prepareDirtyNavigation(readLabel: string) {
   await clickTestButton('prepare');
   await clickVisibleButton(readLabel);
@@ -160,7 +166,7 @@ describe('README navigation with an unsaved note', () => {
   it.each(localeCases)('continues editing without navigating in %s', async (locale, ...labels) => {
     await setLocale(locale);
     await prepareDirtyNavigation(labels[0]);
-    await clickVisibleButton(labels[3]);
+    await clickLabeledControl(labels[3]);
 
     expect(document.body.textContent).not.toContain(labels[1]);
     expect(text('path')).toBe('/');

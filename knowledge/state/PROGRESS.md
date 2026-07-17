@@ -8,6 +8,12 @@
 
 **阶段：Phase 1 Web MVP — 已完成（2026-07-02 验收）；UI 像素级还原已完成（2026-07-02）。** Phase 0 脚手架已验收（2026-06-29）；Phase 1 按切片 UI + 功能同步推进，Slice 0–8 全部落地，含 Slice 6 补完（按标签筛选 / 集合详情 / 重名校验）、统计仪表盘（Slice 7）、导入导出（Slice 8）与路由懒加载。
 
+> 未保存笔记弹窗用关闭代替「继续编辑」（2026-07-17，见 `logs/2026-07-17-unsaved-note-close-affordance.md`）：确认层恢复与 Quick Look 一致的关闭按钮，语义等同继续编辑；页脚只保留放弃 / 保存。
+
+> Dialog 密度与标题关闭对齐（2026-07-17，见 `logs/2026-07-17-dialog-density-alignment.md`）：共享 Dialog 默认收敛为 448px / 20px，关闭按钮与标题同顶边垂直居中；标签 / 集合 / 确认弹窗页脚改用 `size="sm"`，与未保存笔记确认层一致。
+
+> Quick Look 新建标签误关闭（2026-07-17，见 `logs/2026-07-17-quick-look-create-tag-dismiss.md`）：浮窗 `pointerdown` 窗外关闭此前未豁免 Radix Portal 的 menu / dialog，导致「添加标签 → 新建标签」时窗口先卸载、表单无法出现；现与键盘路径共用 portaled overlay 豁免，真实窗外点击仍关闭。
+
 > 滚动边界统一（2026-07-17，见 `logs/2026-07-17-scrollbar-edge-alignment.md`）：README 桌面 Outline 的滚动盒跨过卡片右侧 padding，使轨道贴卡片内边缘且标题固定；Browse 将真实 `overflow-y-auto` 提升为页面全宽层，内容继续由 `px-6` + `max-w-6xl` 居中限宽，使列表/空态滚动条贴 App Shell 主内容区右边缘。虚拟列表仍绑定同一真实滚动元素，工具栏固定、scroll margin、视图切换归零与全局细滚动条样式保持不变。
 
 > README corpus fidelity gate（2026-07-17，见 `logs/2026-07-17-readme-corpus-fidelity.md`、Issue #10）：固定 corpus 覆盖普通 GFM / 深目录 / badge 居中 / 宽表与代码 / 多语言代码块 / 相对媒体 / details / 富内容降级 / 中文 / 无 README；Vitest 清洗与 outline 门禁 + DEV `/dev/readme-corpus` lab；相对图片路径按仓库根 URL 规范化，越界 `../` 丢弃 `src`；Cursor 内置浏览器完成 light/dark 与 390/900/1200 视觉与 a11y 抽查。父 epic Issue #2 随 #10 关闭。

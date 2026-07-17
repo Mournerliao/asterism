@@ -87,8 +87,8 @@ export function CollectionFormDialog({
       }}
     >
       <DialogContent>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" aria-busy={pending}>
-          <DialogHeader>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5" aria-busy={pending}>
+          <DialogHeader className="pr-10">
             <DialogTitle>{title}</DialogTitle>
           </DialogHeader>
           <div className="flex flex-col gap-2">
@@ -123,6 +123,7 @@ export function CollectionFormDialog({
             <Button
               type="button"
               variant="ghost"
+              size="sm"
               disabled={pending}
               onClick={() => onOpenChange(false)}
             >
@@ -130,6 +131,7 @@ export function CollectionFormDialog({
             </Button>
             <Button
               type="submit"
+              size="sm"
               disabled={pending || name.trim().length === 0}
               aria-busy={pending}
             >

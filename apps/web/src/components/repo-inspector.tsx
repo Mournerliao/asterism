@@ -98,6 +98,13 @@ function ControlButton({
 const TRIGGER_ATTRIBUTE = 'data-repo-quick-look-trigger';
 const FLOATING_MARGIN = 12;
 
+/** Portaled overlays (Radix menu / dialog) live outside the Quick Look panel DOM. */
+function isPortaledOverlayTarget(target: Element | null): boolean {
+  return Boolean(
+    target?.closest('[role="menu"], [role="listbox"], [role="dialog"]:not(#repo-inspector)'),
+  );
+}
+
 type FloatingPosition = { left: number; top: number };
 
 type DragState = {
@@ -228,8 +235,8 @@ export function RepoInspector() {
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as Element | null;
       if (
-        target?.closest('input, textarea, select, [contenteditable="true"], [role="menu"]') ||
-        target?.closest('[role="dialog"]:not(#repo-inspector)')
+        target?.closest('input, textarea, select, [contenteditable="true"]') ||
+        isPortaledOverlayTarget(target)
       ) {
         return;
       }
@@ -458,6 +465,7 @@ function FloatingQuickLook({
         confirmOpen ||
         panelRef.current?.contains(target) ||
         target?.closest(`[${TRIGGER_ATTRIBUTE}]`) ||
+        isPortaledOverlayTarget(target) ||
         followsInternalRoute
       ) {
         return;
@@ -468,8 +476,8 @@ function FloatingQuickLook({
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as Element | null;
       if (
-        target?.closest('input, textarea, select, [contenteditable="true"], [role="menu"]') ||
-        target?.closest('[role="dialog"]:not(#repo-inspector)')
+        target?.closest('input, textarea, select, [contenteditable="true"]') ||
+        isPortaledOverlayTarget(target)
       ) {
         return;
       }
@@ -1099,8 +1107,8 @@ function UnsavedNoteDialog() {
       }}
     >
       <DialogContent
-        showCloseButton={false}
-        className="gap-5 p-5 sm:max-w-[28rem]"
+        closeLabel={t('drawer.continueEditing')}
+        closeDisabled={confirmPending}
         onEscapeKeyDown={(event) => {
           if (confirmPending) event.preventDefault();
         }}
@@ -1108,7 +1116,7 @@ function UnsavedNoteDialog() {
           if (confirmPending) event.preventDefault();
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="pr-10">
           <DialogTitle>{t('drawer.unsavedTitle')}</DialogTitle>
           <DialogDescription>{t('drawer.unsavedDescription')}</DialogDescription>
           {confirmError ? (
@@ -1118,15 +1126,6 @@ function UnsavedNoteDialog() {
           ) : null}
         </DialogHeader>
         <DialogFooter className="flex-col sm:justify-end">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full sm:w-auto"
-            disabled={confirmPending}
-            onClick={continueEditing}
-          >
-            {t('drawer.continueEditing')}
-          </Button>
           <Button
             variant="outline"
             size="sm"

@@ -13,6 +13,7 @@ import {
 import { LoaderCircleIcon, MenuIcon, RefreshCwIcon, UnplugIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useLocation } from 'react-router-dom';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useBrowseFilters } from '../stores/browse-filters';
 import { LanguageToggle } from './language-toggle';
@@ -23,6 +24,7 @@ import { UserMenu } from './user-menu';
 
 export function AppTopbar() {
   const { t } = useTranslation();
+  const { pathname } = useLocation();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const sync = useSyncStars();
   const query = useBrowseFilters((state) => state.query);
@@ -55,32 +57,34 @@ export function AppTopbar() {
         </SheetContent>
       </Sheet>
 
-      <div className="relative w-full max-w-[400px]">
-        <SearchInputIcon className="left-2.5" />
-        <Input
-          className="h-8 px-9"
-          aria-label={t('topbar.searchPlaceholder')}
-          placeholder={t('topbar.searchPlaceholder')}
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        {query ? (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon"
-            aria-label={t('topbar.clearSearch')}
-            className="-translate-y-1/2 absolute top-1/2 right-2 size-6 text-muted-foreground hover:bg-accent hover:text-foreground"
-            onClick={() => setQuery('')}
-          >
-            <XIcon className="size-4" />
-          </Button>
-        ) : (
-          <kbd className="-translate-y-1/2 absolute top-1/2 right-2 flex h-5 items-center rounded-sm bg-background px-1.5 font-mono text-[11px] text-muted-foreground">
-            /
-          </kbd>
-        )}
-      </div>
+      {pathname === '/' ? (
+        <div className="relative w-full max-w-[400px]">
+          <SearchInputIcon className="left-2.5" />
+          <Input
+            className="h-8 px-9"
+            aria-label={t('topbar.searchPlaceholder')}
+            placeholder={t('topbar.searchPlaceholder')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+          {query ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              aria-label={t('topbar.clearSearch')}
+              className="-translate-y-1/2 absolute top-1/2 right-2 size-6 text-muted-foreground hover:bg-accent hover:text-foreground"
+              onClick={() => setQuery('')}
+            >
+              <XIcon className="size-4" />
+            </Button>
+          ) : (
+            <kbd className="-translate-y-1/2 absolute top-1/2 right-2 flex h-5 items-center rounded-sm bg-background px-1.5 font-mono text-[11px] text-muted-foreground">
+              /
+            </kbd>
+          )}
+        </div>
+      ) : null}
 
       <div className="ml-auto flex items-center gap-3">
         <Tooltip>

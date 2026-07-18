@@ -2,15 +2,17 @@
 
 > Chart your stars. A whole sky of GitHub stars, finally in constellations.
 
-**Asterism** is an open-source, self-hostable manager for your GitHub Stars. It
+**Asterism** is an open-source, self-deployable manager for your GitHub Stars. It
 turns a sprawling, unsearchable list of starred repositories into an organized
-sky — tag them, group them into collections, take notes, and search across
-everything. Responsive web first, with a browser extension and a desktop app to
-follow.
+sky — tag them, group them into collections, take notes, and find repositories
+through keyword search and structured filters. Responsive web first; AI-assisted
+organization and bulk workflows are planned before the browser extension and
+desktop app.
 
-> Status: **early / initializing.** This repository currently contains only the
-> project knowledge base and root configuration — there is no application code
-> yet. Architecture and roadmap live as long-term knowledge in [`knowledge/`](knowledge/).
+> Status: **Phase 1 Web MVP complete.** The responsive Web application and its
+> real Supabase flows are implemented and environment-tested. Remaining closure
+> work is tracked in [`knowledge/state/BACKLOG.md`](knowledge/state/BACKLOG.md);
+> contracts and roadmap live in [`knowledge/`](knowledge/).
 
 ---
 
@@ -30,18 +32,19 @@ for the authoritative feature scope and acceptance criteria.
 - **Sync your stars** from GitHub and keep them up to date.
 - **Tags & collections** to organize repositories your way.
 - **Notes** on any repository, kept private to you.
-- **Powerful search & filtering** across name, language, topics, tags, and notes.
+- **Search & filtering** across repository name/description, language, topics,
+  tags, star count, update time, and archive status.
 - **Stats dashboard** to understand your stars at a glance.
 - **Import / export** so your data stays yours.
-- **AI (planned, BYOK)** — semantic search and auto-tagging using your own API key.
+- **AI (planned, BYOK)** — reviewable organization suggestions using your own API key.
 - **i18n** — English by default, with built-in Simplified Chinese (`zh-CN`).
 
 ## Tech stack
 
 - **Language:** TypeScript (strict)
 - **UI:** React + Tailwind CSS + shadcn/ui, `react-i18next`
-- **State / data:** TanStack Query, Zustand, Dexie (local cache)
-- **Backend:** Supabase (Auth + Postgres + `pgvector` + Edge Functions + Realtime)
+- **State / data:** TanStack Query, Zustand, Supabase Postgres
+- **Backend:** Supabase (Auth + Postgres + Edge Functions)
 - **Web:** Vite + React + React Router
 - **Extension (later):** WXT (MV3)
 - **Desktop (later):** Tauri 2
@@ -52,8 +55,8 @@ for the full architecture contract.
 
 ## Monorepo layout
 
-A Turborepo + pnpm workspace. The blueprint below is the target shape; only root
-configuration exists today.
+A Turborepo + pnpm workspace. The current repository contains the Web app,
+shared packages, future platform shells, migrations, and deployed-function source.
 
 ```text
 asterism/
@@ -64,9 +67,9 @@ asterism/
 ├── packages/
 │   ├── core/         # Business logic: GitHub API, sync, domain models
 │   ├── ui/           # Shared UI components (shadcn/ui + Tailwind)
-│   ├── db/           # Data access: Supabase client + queries + Dexie cache
+│   ├── db/           # Data access: Supabase client + queries
 │   └── config/       # Shared config
-├── supabase/         # Migrations + Edge Functions (later)
+├── supabase/         # Migrations + Edge Functions
 └── knowledge/        # Single source of truth: contracts, decisions, loops, state, logs
 ```
 
@@ -82,18 +85,18 @@ asterism/
 
 ## License
 
-[MIT](LICENSE) © 2026 Asher Liao
+[MIT](LICENSE) © 2026 Mournerliao
 
 ---
 
 ## 中文简介
 
-**Asterism** 是一个开源、可自托管的 GitHub Star 管理器。它把杂乱、难以检索的
-star 列表整理成一片有序的星空：打标签、归集合、写笔记，并在全部内容中检索。
-优先做响应式 Web，随后推出浏览器扩展与桌面端。
+**Asterism** 是一个开源、可自部署的 GitHub Star 管理器。它把杂乱、难以检索的
+star 列表整理成一片有序的星空：打标签、归集合、写笔记，并通过关键词和结构化筛选查找仓库。
+优先完成响应式 Web，随后交付 AI（BYOK）与批量整理，再推出浏览器扩展与桌面端。
 
-> 当前状态：**早期 / 初始化中。** 仓库目前只包含项目知识库与根配置，尚无业务
-> 代码。架构与路线图作为长期知识沉淀在 [`knowledge/`](knowledge/)。
+> 当前状态：**Phase 1 Web MVP 已完成。** 响应式 Web、真实 Supabase 核心链路与工程门禁均已验收；
+> 下一阶段为 AI（BYOK）+ 批量整理，架构与路线图见 [`knowledge/`](knowledge/)。
 
 - 功能、技术栈与目录结构详见上文英文部分，权威功能范围见
   [`knowledge/contracts/product.md`](knowledge/contracts/product.md)。

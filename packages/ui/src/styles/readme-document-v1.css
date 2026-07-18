@@ -71,7 +71,7 @@
   margin-block: 0 calc(var(--spacing-unit) * 4);
 }
 
-.markdown-body [align='center'] {
+.markdown-body [align="center"] {
   text-align: center;
 }
 
@@ -126,7 +126,7 @@
   vertical-align: middle;
 }
 
-.markdown-body img[align='center'] {
+.markdown-body img[align="center"] {
   display: block;
   margin-inline: auto;
 }

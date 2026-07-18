@@ -36,6 +36,7 @@ export function CollectionFormDialog({
   initialDescription = '',
   existingNames = [],
   pending = false,
+  errorMessage,
   onSubmit,
 }: {
   open: boolean;
@@ -46,6 +47,7 @@ export function CollectionFormDialog({
   initialDescription?: string;
   existingNames?: string[];
   pending?: boolean;
+  errorMessage?: string;
   onSubmit: (values: { name: string; description: string }) => void;
 }) {
   const { t } = useTranslation();
@@ -90,6 +92,11 @@ export function CollectionFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-5" aria-busy={pending}>
           <DialogHeader className="pr-10">
             <DialogTitle>{title}</DialogTitle>
+            {errorMessage ? (
+              <p role="alert" className="text-caption text-destructive">
+                {errorMessage}
+              </p>
+            ) : null}
           </DialogHeader>
           <div className="flex flex-col gap-2">
             <Label htmlFor="collection-name">{t('collections.nameLabel')}</Label>

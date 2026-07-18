@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-06-29
 
+> 2026-07-18：第 4 项“Biome 不处理 CSS”及其 Stylelint 备选已由 ADR 0019 废止。项目当前 Biome 2.5.1 可解析 Tailwind v4 指令，Phase 1 收尾将 CSS 纳入同一 lint/format 门禁，不引入 Stylelint。其余 Phase 0 工程取舍保持有效。
+
 ## Context（背景）
 
 Phase 0 要把 `contracts/architecture.md` 的 monorepo 蓝图变成**最小可构建骨架**：

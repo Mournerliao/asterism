@@ -51,7 +51,12 @@ export function CollectionsPage() {
         description={isLoading ? undefined : subtitle}
         actions={
           list.length > 0 ? (
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button
+              onClick={() => {
+                createCollection.reset();
+                setCreateOpen(true);
+              }}
+            >
               <PlusIcon className="size-4" />
               {t('collections.create')}
             </Button>
@@ -69,7 +74,12 @@ export function CollectionsPage() {
           title={t('collections.emptyTitle')}
           description={t('collections.emptyDescription')}
           action={
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button
+              onClick={() => {
+                createCollection.reset();
+                setCreateOpen(true);
+              }}
+            >
               <PlusIcon className="size-4" />
               {t('collections.create')}
             </Button>
@@ -115,13 +125,21 @@ export function CollectionsPage() {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" onClick={(event) => event.stopPropagation()}>
-                      <DropdownMenuItem onSelect={() => setEditing(collection)}>
+                      <DropdownMenuItem
+                        onSelect={() => {
+                          updateCollection.reset();
+                          setEditing(collection);
+                        }}
+                      >
                         <PencilIcon className="size-4" />
                         {t('common.edit')}
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         variant="destructive"
-                        onSelect={() => setDeleting(collection)}
+                        onSelect={() => {
+                          deleteCollection.reset();
+                          setDeleting(collection);
+                        }}
                       >
                         <Trash2Icon className="size-4" />
                         {t('common.delete')}
@@ -152,6 +170,7 @@ export function CollectionsPage() {
         submitLabel={t('collections.create')}
         existingNames={collectionNames}
         pending={createCollection.isPending}
+        errorMessage={createCollection.isError ? t('collections.saveError') : undefined}
         onSubmit={(values) => {
           createCollection.mutate(values, { onSuccess: () => setCreateOpen(false) });
         }}
@@ -171,6 +190,7 @@ export function CollectionsPage() {
         initialDescription={editing?.description ?? ''}
         existingNames={collectionNames}
         pending={updateCollection.isPending}
+        errorMessage={updateCollection.isError ? t('collections.saveError') : undefined}
         onSubmit={(values) => {
           if (!editing) {
             return;
@@ -193,6 +213,7 @@ export function CollectionsPage() {
         description={t('collections.deleteDescription')}
         confirmLabel={t('common.delete')}
         pending={deleteCollection.isPending}
+        errorMessage={deleteCollection.isError ? t('collections.deleteError') : undefined}
         onConfirm={() => {
           if (!deleting) {
             return;

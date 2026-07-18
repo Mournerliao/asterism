@@ -3,6 +3,8 @@
 - Status: Accepted
 - Date: 2026-06-29
 
+> 2026-07-18 后续裁决：ADR 0012 废止业务 Realtime；ADR 0014 将 Phase 1 部署边界收敛为 Supabase Cloud + 静态托管，不承诺项目维护 Docker Compose；ADR 0015 将 AI 调整到 Phase 2、扩展调整到 Phase 3；ADR 0022 移除 Embedding 与 pgvector 语义搜索。下文保留 2026-06-29 的历史背景，冲突处以后续 ADR 与当前契约为准；Supabase Auth、Postgres、Edge Functions 与 RLS 的核心选型仍有效。
+
 ## Context（背景）
 
 Asterism 是一个开源、可自部署的多端 GitHub Star 管理器（Web → 浏览器扩展 → 桌面），需要：

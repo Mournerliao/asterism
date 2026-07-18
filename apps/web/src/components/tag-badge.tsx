@@ -12,12 +12,14 @@ export function TagBadge({
   color,
   onRemove,
   removeLabel,
+  removeDisabled = false,
   className,
 }: {
   name: string;
   color?: string | null;
   onRemove?: () => void;
   removeLabel?: string;
+  removeDisabled?: boolean;
   className?: string;
 }) {
   const dotColor = color ?? 'var(--muted-foreground)';
@@ -36,6 +38,7 @@ export function TagBadge({
           variant="ghost"
           size="icon"
           aria-label={removeLabel}
+          disabled={removeDisabled}
           onClick={onRemove}
           className="size-4 rounded-sm text-muted-foreground hover:text-foreground"
         >

@@ -6,6 +6,8 @@
 
 Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。它把开发者杂乱无章、随手点下的成百上千个 starred 仓库，重新组织成一个**可检索、可标注、可分类、可洞察**的个人知识星图。
 
+**可自部署（self-deployable）**指用户可使用自己控制的 Supabase Cloud 项目与静态托管环境完成完整部署；**完全自托管（fully self-hosted）**指自行运行完整 Supabase 基础设施。Phase 1 只承诺前者，不维护项目自有 Docker Compose。
+
 名字 "Asterism"（星群）即取意于此：把零散的星标连成有意义的星座。
 
 ## Target Users · 目标用户
@@ -17,10 +19,10 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 
 ## Scope · 范围
 
-- **多端**：响应式 Web（首要）→ 浏览器扩展 → 桌面（Tauri），共享 `core` / `ui` / `db`。
+- **阶段顺序**：响应式 Web → AI（BYOK）+ 批量整理 → 浏览器扩展 → 桌面（Tauri），各端共享 `core` / `ui` / `db`。
 - **数据源**：用户自己的 GitHub starred 仓库（通过 GitHub GraphQL API 拉取）。
-- **后端**：Supabase（Auth + Postgres source-of-truth + Realtime 多端同步），客户端本地用 Dexie 缓存。
-- **AI 能力**：Phase 3 起，采用 BYOK（用户自带 OpenAI / 兼容 key，密钥加密存储），非必选。
+- **后端**：Supabase（Auth + Postgres source-of-truth + Edge Functions），TanStack Query 提供会话内请求缓存。当前不承诺离线浏览；多个客户端会话不主动推送收敛，进入页面、查询刷新、完成本地操作或重新连接后读取最新状态。
+- **AI 能力**：Phase 2 起采用 BYOK，非必选，仅用于生成可审阅的整理建议。服务端通过类型化 Generation Provider Registry 接入上游，不把所有供应商压成单一 OpenAI-compatible 接口；凭据持久化加密。首批内置 OpenAI、Google Gemini、Anthropic 与 OpenRouter，并提供受控的自定义 OpenAI-compatible Connection；DeepSeek 等兼容服务由用户填写 endpoint、credential 与模型 ID 接入，无需逐一内置。Phase 2 不包含 Embedding、pgvector 语义搜索或相关模型设置。
 
 各阶段交付节奏见 `../roadmap.md`。
 
@@ -29,6 +31,12 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 ## MVP Features · 核心功能与验收标准
 
 以下为 MVP（对应 Phase 1 Web）必须交付的能力。每项以 checklist 形式给出 Definition of Done，**全部勾选方可视为完成**。
+
+**Phase 1 收尾（Phase 1 closure）**：指下列验收项全部兑现，而不只是用户可见主流程已经可用。任何未勾选项都是进入 Phase 2 前必须关闭的 **Phase 1 阻断项**；不得仅通过缩减既有契约把它延期到后续阶段。
+
+除功能 checklist 外，Phase 1 还必须在干净检出中通过 `lint / typecheck / test / build` 四道跨平台工程门禁。
+
+Phase 1 必须提供可执行的 self-deployment runbook，覆盖 migrations、GitHub OAuth、`sync-stars` / `read-repo-readme` Edge Functions、环境变量和 Web 静态部署；完整 Supabase Docker 自托管不属于本阶段。
 
 ### 1. GitHub OAuth 登录
 
@@ -42,7 +50,7 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 - [x] 首次登录后可全量拉取用户的 starred 仓库。
 - [x] 支持**增量同步**：再次同步时仅拉取自上次同步后新增 / 变更的项，不重复全量。
 - [x] 同步过程有可见进度反馈（进行中 / 完成 / 失败）。
-- [x] 同步结果写入 Postgres（source-of-truth），并下行到本地 Dexie 缓存。
+- [x] 同步结果写入 Postgres（source-of-truth），客户端通过 `packages/db` 查询最新状态。
 - [x] 同步失败可重试，不产生重复或脏数据。
 
 ### 3. 响应式浏览（卡片 / 列表 + 虚拟滚动）
@@ -67,6 +75,8 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 - [x] 搜索与筛选可叠加生效。
 - [x] 搜索为即时反馈（输入即更新结果）。
 
+Phase 2 继续使用这一关键词搜索能力，不新增 Semantic 模式或搜索索引。
+
 ### 6. 标签（Tags）
 
 - [x] 用户可创建 / 重命名 / 删除自定义标签。
@@ -84,8 +94,26 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 ### 8. 笔记（Notes）
 
 - [x] 用户可为单个仓库撰写 / 编辑 / 删除笔记。
-- [x] 笔记持久化并在多端同步。
+- [x] 笔记持久化到 Postgres，并在后续查询时从 source-of-truth 读取最新状态。
 - [x] 笔记数据按 `user_id` 隔离。
+
+### 9. 统计仪表盘
+
+- [x] 可查看语言、topic、star 时间等维度的可视化统计。
+- [x] 统计只基于当前用户经 RLS 可见的数据。
+
+### 10. 导入 / 导出
+
+- [x] JSON 支持完整备份与恢复。
+- [x] CSV 可导出仓库清单，Markdown 可按集合、标签与笔记形成可读归档。
+- [x] CSV / Markdown 明确为只导出格式，不承诺恢复。
+
+### 11. 写失败恢复（Write Failure Recovery）
+
+- [x] 创建、重命名与删除标签/集合失败时，操作目标与表单输入保持可见，提供双语错误反馈并允许原位重试或取消。
+- [x] 笔记保存失败时保留草稿与 Inspector 上下文，不关闭面板，并提供双语错误反馈与重试路径。
+- [x] 标签/集合关联失败时恢复服务器状态并明确通告失败；不得让界面暗示未持久化的关系已经成功。
+- [x] 写操作 pending 期间阻止重复提交与误关闭。Phase 1 不采用 optimistic mutation，不要求通用 rollback 框架。
 
 ---
 
@@ -93,12 +121,11 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 
 以下能力不属于 MVP，按路线图分阶段交付，验收标准在对应阶段细化。
 
-- **AI 语义搜索 / 自动分类**（Phase 3，BYOK）：基于 pgvector 向量化，按语义而非关键词检索；AI 辅助自动打标签 / 归类。密钥由用户自带并加密存储。
-- **统计仪表盘**：按语言 / topic / star 时间分布等维度的可视化洞察（shadcn Charts）。
-- **导入 / 导出**：JSON 支持完整备份与恢复；CSV 导出仓库清单供表格处理；Markdown 导出按集合、标签与笔记组织的可读归档。CSV / Markdown 不支持恢复。
+- **AI 整理建议**（Phase 2，BYOK）：AI 只处理用户明确手动选择的仓库或用户执行“全选当前筛选结果”得到的集合；调用前显示仓库数量，不得后台扫描或自动整理整个库。AI 可建议添加或移除标签 / 集合关系，也可建议新建分类，但所有结果都只是可审阅的**整理建议草稿**；添加与移除必须视觉区分，用户可逐项取消并明确确认，之后才通过批量整理写入。未确认草稿按 `user_id` 持久化，刷新或离开页面后可继续；确认、主动丢弃或重新生成后删除旧草稿。建议必须优先复用用户已有标签与集合；新分类经过名称规范化与大小写、空白、近似名称检查后，作为“建议新建”独立呈现，只有用户单独确认才创建。Phase 2 不允许模型无人值守地直接修改用户组织数据。服务端以类型化 Generation Provider Adapter 统一内部调用；用户凭据经 Edge Function 持久化加密并支持验证、启用/停用、替换、删除与 master key 轮换。分类输入包含仓库 owner/name、描述、语言、GitHub topics、现有标签 / 集合，并可在用户明确同意后包含当前用户笔记；首次分类前必须展示将发送的字段与目标 Provider，用户可关闭笔记发送。README、API credential 与其他用户私有数据不进入草稿或发送给 AI Provider。
 - **失效仓库检测**：识别已删除 / 已归档 / 长期无更新的仓库并提示。
-- **批量操作**：多选仓库后批量打标签 / 加入集合 / 导出等（涉及 unstar/star 写操作需 `public_repo` scope）。
-- **相似推荐**：基于向量相似度，为某仓库推荐相似的已 star 项。
+- **批量整理**（Phase 2）：多选仓库后批量添加/移除标签、加入/移出集合、导出选中仓库；只修改 Asterism 私有数据，不执行 GitHub star/unstar，也不申请 `public_repo` scope。
+- **保存视图 / 查询历史**（Phase 2 之后按需评估）：Phase 2 的批量整理只作用于当前手动选择或当前筛选结果，不持久化命名筛选，也不保存关键词或语义查询历史。
+- **语义搜索 / 相似推荐 / 自动聚类**：当前路线图不包含 Embedding 或向量能力；未来只有在出现明确用户价值且能提供无需理解底层模型的一键方案时，才重新立项。
 
 ---
 
@@ -116,4 +143,6 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 - **不管理他人的 star**：只管理登录用户自己的 starred 仓库，不做社交 / 公共分享星单（至少 MVP 与近期路线图内不做）。
 - **不做通用书签管理器**：范围限定在 GitHub 仓库，不扩展到任意 URL 收藏。
 - **不内置 AI 模型 / 不代付费用**：AI 一律 BYOK，项目不托管模型、不承担推理费用。
+- **不做通用 AI Gateway**：Phase 2 不提供多 key 排序、跨 Provider 自动 fallback、预算、限流或 ZDR 路由；调用失败不得回退到 Asterism 付费的系统额度。自定义 OpenAI-compatible Connection 是受控 Adapter，不会改变原生 Provider 的类型化集成，也不会把任意 URL 直接交给服务端访问。
 - **不做实时协作 / 团队工作区**：MVP 与近期路线图聚焦个人使用，不做多人协作。
+- **不采集匿名产品遥测**：当前不加入自建或第三方产品行为采集。未来若出现明确分析需求，必须重新定义采集范围、关闭机制、自部署行为与隐私说明。

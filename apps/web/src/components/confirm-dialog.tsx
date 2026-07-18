@@ -18,6 +18,7 @@ export function ConfirmDialog({
   description,
   confirmLabel,
   pending = false,
+  errorMessage,
   onConfirm,
 }: {
   open: boolean;
@@ -26,6 +27,7 @@ export function ConfirmDialog({
   description?: string;
   confirmLabel: string;
   pending?: boolean;
+  errorMessage?: string;
   onConfirm: () => void;
 }) {
   const { t } = useTranslation();
@@ -43,6 +45,11 @@ export function ConfirmDialog({
         <DialogHeader className="pr-10">
           <DialogTitle>{title}</DialogTitle>
           {description ? <DialogDescription>{description}</DialogDescription> : null}
+          {errorMessage ? (
+            <p role="alert" className="text-caption text-destructive">
+              {errorMessage}
+            </p>
+          ) : null}
         </DialogHeader>
         <DialogFooter>
           <Button variant="ghost" size="sm" disabled={pending} onClick={() => onOpenChange(false)}>

@@ -7,28 +7,37 @@
 ## 待确认 / 开放问题
 
 - [x] **品牌配色 / 圆角已定稿**：2026-07-10 配色升级为 **Asterism Graphite Glass**（见 ADR 0009），保留 8px 圆角、Geist 字体与 4px 间距栅格。
-- [ ] **公共实例域名待定**：当前占位 `asterism.dev`，最终域名待确认后同步 `README.md` 与 `runbooks/self-host.md`。
+- [ ] **自定义公共域名（非 Phase 1 阻断）**：当前维护者实例使用 Vercel 生产地址；未来确认并绑定品牌域名时，同步 README、runbook 与 Supabase Auth Site URL / Redirect URLs。
 - [x] **a11y 目标确认**：以 **WCAG 2.1 AA** 为 UI 验收目标；Graphite Glass 核心文字/状态组合已计算通过。
-- [ ] **是否加入匿名遥测**：默认**不加**（隐私优先）；如要加，需明确采集范围、可关闭开关与隐私说明，先讨论再实现。
-- [ ] **LICENSE 署名确认**：MIT，版权年份 2026，**署名占位待确认**（个人/组织名）。
-- [ ] **测试策略深度**：需明确单测/集成/E2E 的边界与覆盖目标（Vitest 已选为基线），写入 `contracts/conventions.md`。
+- [x] **匿名遥测不纳入当前计划**（2026-07-18）：隐私优先，不采集产品行为。未来若有明确分析需求，重新定义采集范围、关闭机制、自部署行为与隐私说明。
+- [x] **LICENSE 署名已确认**（2026-07-18）：MIT，版权年份 2026，使用 GitHub 名 `Mournerliao`；`LICENSE` 与 README 已统一。
+- [x] **测试策略深度已明确**（2026-07-18）：Phase 1 以 Vitest 单元/集成测试 + 真实环境 smoke test 验收；不新增 E2E 工具、不设覆盖率百分比。重复核心旅程回归或进入跨端阶段时再评估自动化 E2E。详见 `contracts/conventions.md`。
 
 ## 未落地的工作项（基础设施）
 
 - [x] **CI（GitHub Actions）已建**：`.github/workflows/ci.yml` 跑 lint / typecheck / test / build（pnpm + Node 22，纯 Node）。2026-06-29 落地。
-- [ ] **部署 `read-repo-readme` Edge Function**：Issue #3–#6 的授权路径、typed outcomes、ETag/304、不受信 README 清洗/链接边界与响应式 canvas 已落地，但当前 Supabase 环境尚未部署该函数；逐环境执行 `supabase functions deploy read-repo-readme` 后，再用真实授权仓库完成 authenticated / public fallback / 304 及真实复杂 README 浏览器验收。
-- [ ] **发布工程细化**：Changesets 已配根，但发布流程（版本、changelog、tag）待 Phase 0+ 跑通。
-- [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化按计划留到 **Phase 2**（见 `decisions/0004`）。
-- [ ] **Biome 不约束 CSS**：因 Tailwind v4 语法，`*.css` 已排除出 Biome；如需 CSS 规范后续再决策（见 `decisions/0004`）。
+- [x] **Phase 1 阻断项 — 跨平台四道门禁全绿**：2026-07-18 已增加 `.gitattributes`、将文本规范化为 LF，并确认 `pnpm lint / typecheck / test / build` 全部成功（代码评审回归测试补齐后 121 tests）。
+- [x] **Phase 1 阻断项 — 可执行的 self-deployment runbook**：2026-07-18 已按用户自有 Supabase Cloud + 静态托管重写，覆盖 migrations、GitHub OAuth、两个 Edge Functions、环境变量、Web 部署与 smoke test；完整 Supabase Docker 栈不在 Phase 1。
+- [x] **Phase 1 阻断项 — 清理已取消的 Dexie 空壳**：2026-07-18 已删除 cache、公共导出、依赖与 lockfile 记录；持久数据仍只经 `packages/db` 访问 Postgres。
+- [x] **部署并验收 `read-repo-readme` Edge Function**：2026-07-18 确认当前 Supabase 环境已部署；authenticated / public fallback / no README / not in library / rate limit / ETag 304 及真实复杂 README 路径均已验收。
+- [ ] **首个公开版本的发布工程（非 Phase 1 阻断）**：Changesets 已配根；准备 `v0.1.0` 前再设计并验收 semver、Changelog、Git tag 与 release notes 流程。当前生产部署以 Git commit / Vercel deployment 追溯。
+- [ ] **扩展专属 i18n**：`apps/extension` popup 当前为最小硬编码英文文案，MV3 `_locales` 国际化随路线调整移到 **Phase 3**（见 ADR 0015）。
+- [x] **Phase 1 阻断项 — Biome 纳入 Tailwind v4 CSS**：2026-07-18 已启用 Tailwind directives parser、移除 CSS 排除并为 reduced-motion 的 4 处必要 `!important` 添加精确抑制；未引入 Stylelint。
 - [x] **`globals.css` 同步 Graphite Glass token**（2026-07-10）：light/dark、单色 brand、语义状态、蓝色阶图表与限定交互层玻璃已落地；见 ADR 0009 与对应日志。
 - [x] **同步进度必须来自真实状态**（2026-07-15）：Edge Function 尚未暴露 processed/total，因此 Browse 已改为 indeterminate 同步状态，不再用已有记录数推算伪精确计数；未来后端提供真实进度后再升级为 determinate。
-- [ ] **Topbar Search 作用域需收敛**：Search 在全部路由显示但只写 Browse filter store。后续需裁决为 Browse/collection scoped search，或升级为真正的全局搜索/command surface，避免跨页隐藏筛选状态。
-- [ ] **写操作失败恢复需统一**：标签、集合与笔记 mutations 的 pending、错误、重试、草稿保留和 optimistic rollback 尚未形成一致契约；后续需统一交互与数据恢复策略，并验证错误通告后的焦点路径。
+- [x] **Phase 1 阻断项 — Browse Search 路由收敛**：2026-07-18 Topbar Search 已只在 Browse 的实际根索引路由 `/` 显示，不升级为全局搜索或其他页面搜索；代码评审后补充路由级回归测试。
+- [x] **Phase 1 阻断项 — 写失败恢复**：2026-07-18 标签、集合、笔记与关联均保留目标/输入或服务器状态，提供双语错误与原位重试/取消；未引入 optimistic mutation 或通用 rollback。
+- [x] **Phase 1 阻断项 — 对外文案与真实能力对齐**：2026-07-18 登录页双语文案已改为名称/描述关键词搜索，并增加双语断言。
 - [x] **Browse 筛选层级精简**（2026-07-14）：主栏保留语言 / Topic / 标签 / 更多筛选 / 排序，Star 阈值、更新时间与状态收进带 active count 的次级弹层；高基数 facets 使用固定结果窗口与搜索，见 `logs/2026-07-14-browse-filter-hierarchy-and-facet-performance.md`。
-- [ ] **重度用户批量整理路径**：上千 stars 仍以单仓库 Drawer 操作为主；Phase 2/后续需设计 bulk select + 批量 tags/collections，并考虑保存筛选与 recent query。
+- [ ] **Phase 2 批量整理**：设计 bulk select、对当前手动选择或当前筛选结果批量添加/移除 tags、加入/移出 collections、导出选中仓库、部分失败结果与重试；只写 Asterism 私有数据，不执行 GitHub star/unstar。AI 自动分类只接受手动选择或“全选当前筛选结果”，调用前显示数量，不扫描整个库；可建议添加或移除关系，但只生成可逐项取消的整理建议草稿，并优先复用现有标签 / 集合。未确认草稿按用户持久化，确认、丢弃或重新生成后清理。新分类经规范化和近似名称检查后单独确认创建，所有添加与移除最终由用户明确确认才复用批量整理写入，不提供无人值守自动修改。
+- [x] **Phase 2 不做 Saved View / Query History**（2026-07-18）：不持久化命名筛选，也不记录关键词或语义查询历史；未来出现明确复用需求时作为独立能力设计。
+- [x] **Embedding 与语义搜索已移出路线图**（2026-07-18，ADR 0022）：不实现 pgvector 向量表、索引任务、Semantic 模式、相似推荐或自动聚类；Browse 继续使用现有关键词搜索。未来只有在出现明确价值且能提供无需理解底层模型的一键、多语言方案时重新立项。
+- [x] **AI 笔记数据边界已明确**（2026-07-18）：首次分类前展示发送字段与目标 Generation Provider；当前用户笔记只有在明确启用后才发送。关闭后不发送笔记；README 与其他用户私有数据永远不可访问。
+- [x] **Phase 2 Generation Provider 架构边界已明确**（2026-07-18）：首批内置 OpenAI、Google Gemini、Anthropic、OpenRouter，并支持具名自定义 OpenAI-compatible Connection。自定义模型允许手填；每个 Connection 一个 credential，不做完整 Gateway 的 key 池、fallback、预算或限流，也不回退到 Asterism 付费额度。见 ADR 0018、0022。
+- [ ] **Phase 2 技术验证 — 自定义 endpoint 安全**：实现前验证 DNS、重定向与私网地址拦截在目标 Supabase Edge Runtime 中可可靠实现；若无法满足 SSRF 合同，自定义 Connection 必须收敛为部署者 allowlist，不能带风险上线。
 - [x] **DB 强类型查询**（2026-06-30，Slice 3）：`packages/db` 已收紧为 `SupabaseClient<Database>`，新增 `listStarredRepos`/`getLatestStarredAt` 强类型读查询。当前 `database.types.ts` 为**手写**（7 表 Row/Insert/Update + 关系）作为过渡；待 Supabase CLI 流程统一后用 `supabase gen types typescript` 生成版替换（保留此指针）。见 `logs/2026-06-30-phase1-slice3-stars-sync.md`。
-- [ ] **迁移版本管理**：迁移文件用时间戳前缀（兼容 `supabase db push`）。若团队统一改用 Supabase CLI 流程，需在 ADR 固化「迁移即源、禁止手改线上」纪律。
-- [ ] **Web 首屏 chunk 偏大**：2026-07-02 已通过路由 `React.lazy` 拆分（主 chunk ~395KB，Dashboard ~160KB）；`use-session`/Supabase 仍较大，后续可再拆 auth 层。
+- [x] **迁移版本纪律已明确**（2026-07-18）：`supabase/migrations/*.sql` 是 schema/RLS 唯一来源；禁止只在 Dashboard 手改线上，紧急修复必须补等价 migration。手写 database types 可暂时保留，不阻断 Phase 1。
+- [ ] **Web 主 chunk 性能观察项（非 Phase 1 阻断）**：2026-07-18 构建主 JS 约 815KB / gzip 241KB，Vite 发出默认 500KB warning；Dashboard 约 160KB。暂不抬高阈值或盲目拆包，待 Core Web Vitals、低端设备加载时间、流量或平台成本指标证明问题后再优化。
 - [x] **按标签筛选维度**（2026-07-02）：`RepoFilterBar` 已加 tag 多选 DropdownMenu，`filterStarredRepos` 支持 `tagIds` OR 语义。
 - [x] **集合详情页**（2026-07-02）：`/collections/:id` + `CollectionDetailPage`，列表卡片可点击进入。
 - [x] **标签/集合重名前端校验**（2026-07-02）：表单提交前 case-insensitive 去重 + toast/inline 错误。
@@ -38,7 +47,7 @@
 详见 `knowledge/roadmap.md` 的阶段拆分：
 
 - [x] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均已完成；2026-06-29 迁移已应用 + 登录端到端验证通过，验收达成
-- [x] **Phase 1 · Web MVP**：同步 stars、卡片/列表 + 虚拟滚动、多维筛选与搜索、标签、集合、笔记、统计仪表盘、导入导出 — 2026-07-02 验收完成
-- [ ] **Phase 2 · 扩展**：WXT popup 快搜 + content-script 页内操作、共享会话
-- [ ] **Phase 3 · AI（BYOK）**：pgvector 向量化、语义搜索、AI 自动分类、Edge Functions
+- [x] **Phase 1 · Web MVP**：2026-07-18 用户可见主流程、真实 Supabase 链路与七项最终收尾全部验收，四道工程门禁全绿；进入 Phase 2。
+- [ ] **Phase 2 · AI（BYOK）+ 批量整理**：Generation 整理建议、类型化 Provider Registry、加密 BYOK，以及仅写 Asterism 私有数据的批量 tags/collections/export；不包含 Embedding 或语义搜索
+- [ ] **Phase 3 · 扩展**：WXT popup 快搜 + content-script 页内操作、共享会话、扩展 i18n
 - [ ] **Phase 4 · 桌面**：Tauri 2 套壳

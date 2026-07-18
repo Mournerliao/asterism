@@ -45,7 +45,12 @@ export function TagsPage() {
         description={isLoading ? undefined : subtitle}
         actions={
           list.length > 0 ? (
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button
+              onClick={() => {
+                createTag.reset();
+                setCreateOpen(true);
+              }}
+            >
               <PlusIcon className="size-4" />
               {t('tags.create')}
             </Button>
@@ -77,7 +82,12 @@ export function TagsPage() {
           title={t('tags.emptyTitle')}
           description={t('tags.emptyDescription')}
           action={
-            <Button onClick={() => setCreateOpen(true)}>
+            <Button
+              onClick={() => {
+                createTag.reset();
+                setCreateOpen(true);
+              }}
+            >
               <PlusIcon className="size-4" />
               {t('tags.create')}
             </Button>
@@ -112,7 +122,10 @@ export function TagsPage() {
                   size="icon"
                   className="size-10 text-muted-foreground sm:size-7"
                   aria-label={t('tags.edit')}
-                  onClick={() => setEditing(tag)}
+                  onClick={() => {
+                    updateTag.reset();
+                    setEditing(tag);
+                  }}
                 >
                   <PencilIcon className="size-3.5" />
                 </Button>
@@ -121,7 +134,10 @@ export function TagsPage() {
                   size="icon"
                   className="size-10 text-muted-foreground hover:text-destructive sm:size-7"
                   aria-label={t('tags.delete')}
-                  onClick={() => setDeleting(tag)}
+                  onClick={() => {
+                    deleteTag.reset();
+                    setDeleting(tag);
+                  }}
                 >
                   <XIcon className="size-4" />
                 </Button>
@@ -138,6 +154,7 @@ export function TagsPage() {
         submitLabel={t('tags.create')}
         existingNames={tagNames}
         pending={createTag.isPending}
+        errorMessage={createTag.isError ? t('tags.saveError') : undefined}
         onSubmit={(values) => {
           createTag.mutate(
             { name: values.name, color: values.color, seed: list.length },
@@ -160,6 +177,7 @@ export function TagsPage() {
         initialColor={editing?.color ?? undefined}
         existingNames={tagNames}
         pending={updateTag.isPending}
+        errorMessage={updateTag.isError ? t('tags.saveError') : undefined}
         onSubmit={(values) => {
           if (!editing) {
             return;
@@ -182,6 +200,7 @@ export function TagsPage() {
         description={t('tags.deleteDescription')}
         confirmLabel={t('tags.delete')}
         pending={deleteTag.isPending}
+        errorMessage={deleteTag.isError ? t('tags.deleteError') : undefined}
         onConfirm={() => {
           if (!deleting) {
             return;

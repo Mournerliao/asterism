@@ -22,6 +22,7 @@
     "done": "Done",
     "delete": "Delete",
     "deleting": "Deleting…",
+    "retry": "Retry",
     "actions": "Actions"
   },
   "loading": {
@@ -45,7 +46,7 @@
     "brandSubtitle": "Turn hundreds of scattered GitHub stars into a searchable, tagged, and categorized personal knowledge base.",
     "features": {
       "tagging": "Smart tagging & collections",
-      "search": "Full-text search across repos",
+      "search": "Search repository names and descriptions",
       "insights": "Insights & analytics dashboard",
       "privacy": "Self-hosted, open source, privacy-first"
     },
@@ -176,6 +177,8 @@
     "readReadme": "Read README",
     "addCollection": "Add to collection",
     "noteSaveError": "Couldn't save this note. Your draft is still here.",
+    "tagUpdateError": "Couldn't update this tag. The server state was kept.",
+    "collectionUpdateError": "Couldn't update this collection. The server state was kept.",
     "unsavedTitle": "Save changes to this note?",
     "unsavedDescription": "Your note has unsaved changes.",
     "continueEditing": "Keep editing",
@@ -228,7 +231,9 @@
     "emptyDescription": "Group your starred repos by project or topic to find them faster.",
     "deleteTitle": "Delete \"{{name}}\"?",
     "deleteDescription": "This removes the collection. Your repositories and stars are not affected.",
-    "duplicateName": "A collection with this name already exists."
+    "duplicateName": "A collection with this name already exists.",
+    "saveError": "Couldn't save this collection. Your changes are still here; try again or cancel.",
+    "deleteError": "Couldn't delete this collection. Try again or cancel."
   },
   "collectionDetail": {
     "back": "Back to collections",
@@ -256,7 +261,9 @@
     "noResults": "No tags match your search.",
     "deleteTitle": "Delete \"{{name}}\"?",
     "deleteDescription": "This removes the tag from all repositories. Your stars are not affected.",
-    "duplicateName": "A tag with this name already exists."
+    "duplicateName": "A tag with this name already exists.",
+    "saveError": "Couldn't save this tag. Your changes are still here; try again or cancel.",
+    "deleteError": "Couldn't delete this tag. Try again or cancel."
   },
   "dashboard": {
     "title": "Insights",

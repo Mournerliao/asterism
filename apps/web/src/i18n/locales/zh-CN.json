@@ -22,6 +22,7 @@
     "done": "完成",
     "delete": "删除",
     "deleting": "删除中…",
+    "retry": "重试",
     "actions": "操作"
   },
   "loading": {
@@ -45,7 +46,7 @@
     "brandSubtitle": "把数百个杂乱的 GitHub star 整理成可搜索、可打标签、可分类的个人知识库。",
     "features": {
       "tagging": "智能标签与集合",
-      "search": "跨仓库全文搜索",
+      "search": "按仓库名称和描述搜索",
       "insights": "洞察与统计仪表盘",
       "privacy": "自托管、开源、隐私优先"
     },
@@ -176,6 +177,8 @@
     "readReadme": "阅读 README",
     "addCollection": "加入集合",
     "noteSaveError": "无法保存笔记，草稿仍为你保留。",
+    "tagUpdateError": "无法更新此标签，已保留服务器状态。",
+    "collectionUpdateError": "无法更新此集合，已保留服务器状态。",
     "unsavedTitle": "要保存这篇笔记的更改吗？",
     "unsavedDescription": "这篇笔记还有未保存的更改。",
     "continueEditing": "继续编辑",
@@ -228,7 +231,9 @@
     "emptyDescription": "按项目或主题把 star 仓库分组，便于更快找到它们。",
     "deleteTitle": "删除「{{name}}」？",
     "deleteDescription": "仅删除该集合，不影响你的仓库与 star。",
-    "duplicateName": "已存在同名集合。"
+    "duplicateName": "已存在同名集合。",
+    "saveError": "无法保存此集合，你的修改仍在。请重试或取消。",
+    "deleteError": "无法删除此集合，请重试或取消。"
   },
   "collectionDetail": {
     "back": "返回集合列表",
@@ -256,7 +261,9 @@
     "noResults": "没有匹配的标签。",
     "deleteTitle": "删除「{{name}}」？",
     "deleteDescription": "将从所有仓库移除该标签，不影响你的 star。",
-    "duplicateName": "已存在同名标签。"
+    "duplicateName": "已存在同名标签。",
+    "saveError": "无法保存此标签，你的修改仍在。请重试或取消。",
+    "deleteError": "无法删除此标签，请重试或取消。"
   },
   "dashboard": {
     "title": "洞察",

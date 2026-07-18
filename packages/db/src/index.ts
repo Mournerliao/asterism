@@ -1,7 +1,5 @@
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
-export type { CachedRepo } from './cache';
-export { AsterismCache } from './cache';
 export type { SupabaseClient, SupabaseClientOptions } from './client';
 export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';

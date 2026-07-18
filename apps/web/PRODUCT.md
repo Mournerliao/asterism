@@ -11,7 +11,7 @@ product
 - **重度 star 用户**：starred 仓库数以百计甚至上千，靠 GitHub 原生功能已无法有效管理。
 - **技术内容整理者**：需要给收藏打标签、写笔记、按主题归集，沉淀为个人技术资料库。
 - **跨设备 / 跨端用户**：希望在浏览器、扩展、桌面之间共享同一份组织好的收藏。
-- **注重数据自主**：偏好开源、可自托管、数据可导出的方案。
+- **注重数据自主**：偏好开源、可自部署、数据可导出的方案。
 
 Context: developers, at their desk, mid-workflow — searching for a repo they starred months ago, or triaging a fresh batch of stars into tags/collections. The job is retrieval and organization, not discovery/browsing for pleasure.
 
@@ -19,7 +19,7 @@ Context: developers, at their desk, mid-workflow — searching for a repo they s
 
 Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。它把开发者杂乱无章、随手点下的成百上千个 starred 仓库，重新组织成一个**可检索、可标注、可分类、可洞察**的个人知识星图（"Asterism" = 星群：把零散的星标连成有意义的星座）。
 
-`apps/web` is the primary surface (响应式 Web，MVP 优先端)，覆盖登录、同步、浏览（卡片/列表 + 虚拟滚动）、多维筛选、搜索、标签、集合、笔记；后续追加统计仪表盘、导入导出、AI 语义搜索（BYOK）。success = 用户能在几秒内从上千个 star 里找到/归类想要的仓库，而不是在原生 GitHub star 列表里无限下拉。
+`apps/web` is the primary surface (响应式 Web，MVP 优先端)，覆盖登录、同步、浏览（卡片/列表 + 虚拟滚动）、多维筛选、关键词搜索、标签、集合、笔记、统计仪表盘与导入导出；Phase 2 追加 AI 整理建议（BYOK）和批量整理。success = 用户能在几秒内从上千个 star 里找到/归类想要的仓库，而不是在原生 GitHub star 列表里无限下拉。
 
 ## Brand Personality
 
@@ -36,9 +36,9 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 
 1. **工具感而非营销感**：产品服务用户效率，不靠视觉噱头说服；克制优先于炫技。
 2. **多端一致的视觉语言**：web / extension / desktop 共享 `packages/ui` 的同一套组件与 tokens，平台差异留在各端壳层。
-3. **状态透明**：同步中 / 完成 / 失败 / 离线缓存等状态要清晰可见，用户始终知道数据处于什么阶段、来自哪里。
+3. **状态透明**：同步中 / 完成 / 失败等状态要清晰可见，用户始终知道数据处于什么阶段、来自哪里。
 4. **隐喻服务功能，不喧宾夺主**："星座"主题词可用但不能让操作路径或信息层级变得含糊。
-5. **数据自主与开源优先**：可自托管、数据可导出，视觉与交互不应制造"锁定感"（如隐藏导出入口、模糊数据归属）。
+5. **数据自主与开源优先**：可自部署、数据可导出，视觉与交互不应制造"锁定感"（如隐藏导出入口、模糊数据归属）。
 
 ## Accessibility & Inclusion
 

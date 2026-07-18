@@ -833,6 +833,32 @@ function SectionLabel({ children }: { children: ReactNode }) {
   return <h3 className="font-semibold text-caption text-foreground">{children}</h3>;
 }
 
+function WriteRecovery({
+  message,
+  pending,
+  onRetry,
+  onCancel,
+}: {
+  message: string;
+  pending: boolean;
+  onRetry: () => void;
+  onCancel: () => void;
+}) {
+  const { t } = useTranslation();
+
+  return (
+    <div className="flex flex-wrap items-center gap-2" role="alert">
+      <p className="min-w-0 flex-1 text-caption text-destructive">{message}</p>
+      <Button type="button" variant="ghost" size="xs" disabled={pending} onClick={onCancel}>
+        {t('common.cancel')}
+      </Button>
+      <Button type="button" variant="outline" size="xs" disabled={pending} onClick={onRetry}>
+        {t('common.retry')}
+      </Button>
+    </div>
+  );
+}
+
 function TagsSection({ repoId }: { repoId: string }) {
   const { t } = useTranslation();
   const { data: tags = [] } = useTags();
@@ -852,8 +878,8 @@ function TagsSection({ repoId }: { repoId: string }) {
       color: values.color,
       seed: tags.length,
     });
-    await toggle.mutateAsync({ repoId, tagId: created.id, assigned: false });
     setCreateOpen(false);
+    toggle.mutate({ repoId, tagId: created.id, assigned: false });
   };
 
   return (
@@ -866,6 +892,7 @@ function TagsSection({ repoId }: { repoId: string }) {
             name={tag.name}
             color={tag.color}
             removeLabel={t('drawer.removeTag', { name: tag.name })}
+            removeDisabled={toggle.isPending}
             onRemove={() => toggle.mutate({ repoId, tagId: tag.id, assigned: true })}
           />
         ))}
@@ -881,6 +908,7 @@ function TagsSection({ repoId }: { repoId: string }) {
               <DropdownMenuCheckboxItem
                 key={tag.id}
                 checked={assignedIds.has(tag.id)}
+                disabled={toggle.isPending}
                 onSelect={(event) => event.preventDefault()}
                 onCheckedChange={() =>
                   toggle.mutate({ repoId, tagId: tag.id, assigned: assignedIds.has(tag.id) })
@@ -894,13 +922,26 @@ function TagsSection({ repoId }: { repoId: string }) {
               </DropdownMenuCheckboxItem>
             ))}
             {tags.length > 0 ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuItem onSelect={() => setCreateOpen(true)}>
+            <DropdownMenuItem
+              onSelect={() => {
+                createTag.reset();
+                setCreateOpen(true);
+              }}
+            >
               <PlusIcon className="size-4" />
               {t('drawer.createTag')}
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      {toggle.isError && toggle.variables ? (
+        <WriteRecovery
+          message={t('drawer.tagUpdateError')}
+          pending={toggle.isPending}
+          onRetry={() => toggle.mutate(toggle.variables)}
+          onCancel={() => toggle.reset()}
+        />
+      ) : null}
       <TagFormDialog
         open={createOpen}
         onOpenChange={setCreateOpen}
@@ -908,6 +949,7 @@ function TagsSection({ repoId }: { repoId: string }) {
         submitLabel={t('tags.create')}
         existingNames={tags.map((tag) => tag.name)}
         pending={createTag.isPending}
+        errorMessage={createTag.isError ? t('tags.saveError') : undefined}
         onSubmit={handleCreate}
       />
     </section>
@@ -964,7 +1006,7 @@ function CollectionsSection({ repoId }: { repoId: string }) {
                 key={collection.id}
                 type="button"
                 variant="ghost"
-                disabled={!editing}
+                disabled={!editing || toggle.isPending}
                 onClick={() => toggle.mutate({ collectionId: collection.id, repoId, member })}
                 className={cn(
                   'h-8 w-full justify-between rounded-sm px-2 text-left text-body',
@@ -980,6 +1022,14 @@ function CollectionsSection({ repoId }: { repoId: string }) {
           })}
         </div>
       )}
+      {toggle.isError && toggle.variables ? (
+        <WriteRecovery
+          message={t('drawer.collectionUpdateError')}
+          pending={toggle.isPending}
+          onRetry={() => toggle.mutate(toggle.variables)}
+          onCancel={() => toggle.reset()}
+        />
+      ) : null}
     </section>
   );
 }

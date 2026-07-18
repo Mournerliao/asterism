@@ -3,7 +3,7 @@
 -- 幂等：使用 if not exists / create or replace，可重复执行。
 -- 注意：RLS 策略在 20260629120100_row_level_security.sql 中单独启用。
 
--- pgvector 预备（Phase 3 的 repo_embeddings 才会真正建表使用向量列）。
+-- 历史预启用：ADR 0022 已移除 Asterism 向量能力；保留已应用迁移，不自动删除可能被同项目其他对象使用的扩展。
 create extension if not exists "vector" with schema "extensions";
 
 -- 自动维护 updated_at 的触发器函数。

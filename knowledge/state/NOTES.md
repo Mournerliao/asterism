@@ -11,11 +11,16 @@
 ## 关键指针（决策与契约在哪）
 
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。
-  - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + pgvector + Edge Functions + Realtime）
+  - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + Edge Functions）；Realtime 部分由 ADR 0012 废止，pgvector 产品用途由 ADR 0022 移除
+  - `0012-remove-realtime-from-product-scope.md`：业务数据不做主动推送收敛，按查询边界读取 Postgres 最新状态
+  - `0013-remove-dexie-offline-cache.md`：当前不承诺离线浏览；Postgres 是唯一持久化权威源，TanStack Query 只做会话内缓存
   - `0002-pnpm-over-bun.md`：工具链选 pnpm（而非 Bun）的取舍
   - `0003-commitlint-lefthook.md`：提交规范 + git 钩子方案
   - `0005-design-tokens-github-primer.md`：历史 Primer 配色（已被 ADR 0009 supersede；8px 圆角仍保留）
   - `0009-graphite-glass-visual-system.md`：当前石墨磨砂配色、玻璃边界与动效规则
+  - `0018-typed-ai-provider-registry.md`：类型化 Generation Provider Registry，不把 Phase 2 做成完整 AI Gateway
+  - `0022-remove-embedding-and-semantic-search.md`：移除 Embedding、pgvector 语义搜索与相关设置，Phase 2 只保留 Generation 整理建议
+  - `0019-biome-tailwind-v4-css.md`：Biome 2.5.1 统一检查 Tailwind v4 CSS，不引入 Stylelint
 - **契约（什么是"对/完成"）**：`knowledge/contracts/*` —— `product` / `architecture` / `data-model` / `conventions` / `ui-ux`。
 - **设计源（Design Source）**：`contracts/ui-ux.md` + ADR 0009 是当前视觉与 token 权威；Ardot 文件 `698428420561751` 仅保留为历史布局/间距参考。
 - **路线图**：`knowledge/roadmap.md`（Phase 0–4）。
@@ -24,7 +29,7 @@
 
 ## 技术栈一句话
 
-开源、可自部署的多端 GitHub Star 管理器：**TypeScript + React + Tailwind/shadcn-ui** 前端，**Supabase**（Auth/Postgres/pgvector/Edge Functions/Realtime）后端，**pnpm + Turborepo + Vite + Vitest + Biome** 工具链，端顺序 Web → 扩展 → 桌面（共享 `core`/`ui`/`db`）。
+开源、可自部署的多端 GitHub Star 管理器：**TypeScript + React + Tailwind/shadcn-ui** 前端，**Supabase**（Auth/Postgres/Edge Functions）后端，TanStack Query 提供会话内请求缓存，**pnpm + Turborepo + Vite + Vitest + Biome** 为工具链；阶段顺序 Web → AI（BYOK）+ 批量整理 → 扩展 → 桌面（共享 `core`/`ui`/`db`）。
 
 ## Phase 0 脚手架便签
 
@@ -37,5 +42,5 @@
 - **当前设计系统**（2026-07-10）：配色已从 Primer 改为 Graphite Glass（ADR 0009）；8px 圆角、Geist 字体与 4px 间距栅格不变。玻璃只用于交互层，背景无噪点，Logo 为单色电光蓝。
 - **工作区根目录未迁移**：本次初始化**未执行 `move_agent_to_root`**，当前会话仍以原工作区根为准，仓库位于 `/Users/asherliao/Projects/asterism`。后续若需以该仓库为工作区根，再单独切换。
 - **Edge Function 部署是「每环境手工一次」**（2026-06-30）：`sync-stars` 之前没部署导致 Sync 报 404，已 `supabase functions deploy sync-stars`（项目 `hqtrmulypxwdqvzlkhke`，现 `ACTIVE v1`）。换项目 / 新部署者必须重跑该命令，否则同步必报错。`supabase functions list/deploy --project-ref` 会生成 `supabase/.temp/`（已 gitignore）。`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` 由平台自动注入，无需手配 secret。
-- **README Edge Function 尚待逐环境部署**（2026-07-16）：代码位于 `supabase/functions/read-repo-readme/`；本轮未扩大授权做远端部署。本地浏览器因此按预期显示 retryable error，部署后才会形成真实 GitHub README 成功链。部署命令和边界见函数 README 与 ADR 0011。
+- **README Edge Function 已部署并验收**（2026-07-18）：当前 Supabase 环境已具备 `read-repo-readme`；授权、公开 fallback、无 README、非成员、限流、ETag 304 与真实复杂 README 路径均已验收。换项目 / 新环境仍需逐环境部署，边界见函数 README 与 ADR 0011。
 - **Impeccable v3.9.1 项目级安装**（2026-07-10）：Codex skill 位于 `.agents/skills/impeccable/`，设计检测 hook 位于 `.codex/hooks.json`；由官方 CLI 管理。`apps/web/PRODUCT.md` / `DESIGN.md` 是对齐层，`knowledge/contracts/*` 仍为权威。

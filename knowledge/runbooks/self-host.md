@@ -1,68 +1,132 @@
-# Runbook · 自托管 / 本地起步
+# Runbook · 自部署 Asterism Phase 1
 
-> **状态：STARTER / 占位（待 Phase 0 展开）。** 当前 Asterism 尚无业务代码，本文档先固化两条部署路径与所需环境变量的骨架，待脚手架与 Supabase schema 落地后再补全可执行步骤。
-> 凡标注 `TODO` 处均为 Phase 0+ 待补的实际命令/配置。
+本手册用于把 Asterism 部署到你自己控制的 **Supabase Cloud 项目 + 静态 Web 托管**。Phase 1 不提供或维护完整 Supabase Docker 自托管栈。
 
-## 两条部署路径
+## 前置条件
 
-### 路径 A：维护者（公共实例）
+- Node.js 22、pnpm 8
+- Git、Supabase CLI
+- 一个 Supabase Cloud 项目
+- 一个 GitHub OAuth App
+- 一个支持 Vite 单页应用的静态托管平台（Vercel、Netlify、Cloudflare Pages 等）
 
-面向想直接体验、无需自己跑后端的用户。
+不要把 Publishable key 以外的密钥提交到仓库，也不要把 Supabase Secret / service-role key 放入前端环境变量。
 
-- 后端：**Supabase 免费实例**（Auth + Postgres + pgvector + Edge Functions + Realtime）。
-- 前端：**静态托管 Web**（Vercel / Netlify / Cloudflare Pages 之一）。
-- 提供一个**公共体验地址**（占位 `asterism.dev`，最终域名待定；当前 Vercel 生产实例：`https://asterism-xcm1115s-projects.vercel.app`）。
-
-> 该路径由项目维护者运维；普通用户访问公共地址即可，无需配置环境变量。
-
-`TODO（Phase 0）`：
-
-- [ ] 确认公共实例域名（替换占位 `asterism.dev`；当前临时域名为 Vercel 分配的 `asterism-xcm1115s-projects.vercel.app`）
-- [x] 记录 Supabase schema/RLS 初始化步骤 —— 见 `supabase/README.md`（迁移文件对齐 `contracts/data-model.md`）
-- [x] 记录静态托管的构建命令与产物目录 —— Vercel：`framework=vite`，构建 `turbo run build --filter=@asterism/web`，产物 `apps/web/dist`，详见仓库根 `vercel.json` 与 `decisions/0008-vercel-web-hosting.md`
-- [x] 记录 GitHub OAuth App 的回调 URL 配置 —— 见 `supabase/README.md`
-
-### 路径 B：自部署者（自有实例）
-
-面向想完全掌控数据、在自己环境运行的用户。
-
-1. **用 `docker-compose` 跑 Supabase**（自托管 Supabase 栈：Postgres / Auth / Realtime / Edge Functions 等）。
-2. **环境变量指向自有实例**（见下方环境变量清单）。
-3. **自注册 GitHub OAuth App**：在 GitHub 创建 OAuth App，拿到 client id / secret，并把**回调 URL** 填成自有 Supabase Auth 的 callback 地址。
-
-`TODO（Phase 0）`：
-
-- [ ] 提供 `docker-compose.yml`（或引用官方 Supabase self-host compose）与最小配置说明
-- [x] 提供数据库迁移/初始化命令（schema + RLS + pgvector 扩展）—— 见 `supabase/README.md` 与 `supabase/migrations/`
-- [x] 写明 GitHub OAuth App 注册步骤与回调 URL 格式 —— 见 `supabase/README.md`
-- [ ] 写明前端如何指向自有后端（构建期/运行期环境变量注入）
-- [ ] 说明 BYOK 密钥加密存储所需配置（Phase 3）
-
-## 所需环境变量（占位 / 待定稿）
-
-> 以下为骨架占位，变量名以最终代码实现为准；**切勿把真实密钥提交进仓库**，使用 `.env`（已被 `.gitignore` 忽略）。
+## 1. 获取代码并安装依赖
 
 ```bash
-# Supabase —— 前端访问后端所需（Vite 客户端变量，见仓库根 .env.example）
-VITE_SUPABASE_URL=               # Supabase 实例 URL，例如 https://xxxx.supabase.co 或自托管地址
-VITE_SUPABASE_PUBLISHABLE_KEY=   # Publishable key（sb_publishable_...，取代旧 anon key，前端使用）
-# Secret key（sb_secret_...，取代 service_role）仅服务端/Edge Functions 使用，切勿暴露给前端
-
-# GitHub OAuth App —— 在 Supabase 后台 Authentication → Providers → GitHub 配置（非前端 .env）
-#   GitHub OAuth App 的 Client ID / Secret 填入 Supabase 后台
-#   回调 URL：{SUPABASE_URL}/auth/v1/callback（在 GitHub OAuth App 中配置）
+git clone https://github.com/Mournerliao/asterism.git
+cd asterism
+pnpm install --frozen-lockfile
 ```
 
-`TODO（Phase 0）`：
+## 2. 关联 Supabase 并应用 migrations
 
-- [ ] 与实际代码对齐最终变量名（含前端构建期 vs 运行期注入方式）
-- [ ] 补充 Phase 3 BYOK 相关变量（用户自带 AI key 的加密存储所需配置）
-- [ ] 提供 `.env.example` 模板文件
+从 Supabase Dashboard 的项目 URL 中找到 project ref，然后在仓库根目录执行：
 
-## 相关参考
+```bash
+supabase login
+supabase link --project-ref <your-project-ref>
+supabase db push
+```
 
-- Supabase 迁移应用 + GitHub OAuth 配置步骤：`supabase/README.md`
-- 架构与 OAuth/权限：`knowledge/contracts/architecture.md`
-- 数据模型与 RLS：`knowledge/contracts/data-model.md`
-- 决策（为何选 Supabase）：`knowledge/decisions/0001-supabase-baas.md`
-- 路线图：`knowledge/roadmap.md`
+`supabase/migrations/` 是 schema、索引、触发器和 RLS policy 的唯一来源。不要只在 Dashboard 中手工修改线上 schema；紧急修改也应补一份等价 migration。
+
+在 SQL Editor 中确认核心表存在且 RLS 已开启：
+
+```sql
+select tablename, rowsecurity
+from pg_tables
+where schemaname = 'public'
+order by tablename;
+```
+
+`repos`、`user_stars`、`tags`、`repo_tags`、`collections`、`collection_repos`、`notes` 应全部显示 `rowsecurity = true`。
+
+## 3. 配置 GitHub OAuth
+
+在 GitHub 打开 **Settings → Developer settings → OAuth Apps → New OAuth App**：
+
+- Homepage URL：你的最终 Web 地址；本地验证可先用 `http://localhost:5173`
+- Authorization callback URL：`https://<your-project-ref>.supabase.co/auth/v1/callback`
+
+创建后，把 GitHub Client ID 和 Client Secret 填入 Supabase Dashboard 的 **Authentication → Providers → GitHub** 并启用该 Provider。
+
+在 Supabase **Authentication → URL Configuration** 中设置：
+
+- Site URL：生产 Web 地址
+- Redirect URLs：加入生产地址和 `http://localhost:5173`
+
+Asterism 只读取公开 Star、公开仓库元数据与公开资料，不申请 `public_repo`，也不会替用户执行 star/unstar。
+
+## 4. 部署 Edge Functions
+
+保持 CLI 已关联目标项目，然后执行：
+
+```bash
+supabase functions deploy sync-stars
+supabase functions deploy read-repo-readme
+```
+
+两项函数都使用 Supabase 运行时自动注入的 `SUPABASE_URL` 与 `SUPABASE_SERVICE_ROLE_KEY`；不需要把它们写进仓库或 Web 环境变量。
+
+- `sync-stars`：验证当前 Supabase 用户后，使用其 GitHub provider token 增量同步公开 Star。
+- `read-repo-readme`：先验证仓库属于当前用户的 Star 库，再从 GitHub 读取 README；README 不持久化到数据库。
+
+## 5. 配置并验证本地 Web
+
+复制 `.env.example` 为 `.env`，填写 Supabase Dashboard **Project Settings → API Keys** 中的项目 URL 与 Publishable key：
+
+```dotenv
+VITE_SUPABASE_URL=https://<your-project-ref>.supabase.co
+VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+```
+
+Publishable key 可以进入浏览器，数据访问仍受 RLS 保护。不要在任何 `VITE_` 变量中放 Secret / service-role key。
+
+启动本地应用：
+
+```bash
+pnpm --filter @asterism/web dev
+```
+
+打开 `http://localhost:5173`，完成 GitHub 登录并执行一次 Stars 同步。
+
+## 6. 部署静态 Web
+
+托管平台需要设置同样两个构建期环境变量：
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+
+仓库根目录的 `vercel.json` 已给出 Vercel 配置：
+
+- Framework：Vite
+- Install：`pnpm install`
+- Build：`turbo run build --filter=@asterism/web`
+- Output：`apps/web/dist`
+- SPA fallback：所有应用路由回写到 `/index.html`
+
+其他平台使用相同构建命令与产物目录，并配置等价的 SPA fallback。部署 URL 确定后，回到 Supabase Auth 更新 Site URL 与 Redirect URLs。
+
+## 7. 部署后验收
+
+按顺序完成以下 smoke test：
+
+1. GitHub OAuth 能登录、刷新页面后会话仍在、退出登录有效。
+2. 首次同步能导入 Star；再次同步能增量更新且不会产生重复数据。
+3. 标签、集合和笔记可以创建、修改、删除，另一用户不可读取这些数据。
+4. Browse 能按名称/描述关键词搜索并组合筛选。
+5. README 能覆盖正常读取、无 README、非当前用户 Star、GitHub rate limit 与重试路径。
+6. JSON 备份可恢复；CSV 与 Markdown 可下载。
+7. 在部署所对应的源码版本运行 `pnpm lint`、`pnpm typecheck`、`pnpm test`、`pnpm build`，四项全部通过。
+
+## 故障定位
+
+- OAuth 回调失败：核对 GitHub callback URL、Supabase Site URL / Redirect URLs 和浏览器实际 origin。
+- Function 404：确认两个函数都部署到了 Web 所连接的同一个 Supabase project ref。
+- Function 401：重新登录；确认前端使用 Publishable key，函数请求由 Supabase session 自动携带访问令牌。
+- 数据写入被拒绝：确认 migrations 已完整应用、RLS 已开启且当前 session 用户与记录 `user_id` 一致。
+- 页面直达 404：为静态托管配置 SPA fallback 到 `index.html`。
+
+Phase 2 的 BYOK credential 加密与相关 secret 不属于本手册的 Phase 1 部署面；实现时将另行补充迁移与运维步骤。

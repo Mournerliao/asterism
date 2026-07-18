@@ -37,6 +37,7 @@ export function TagFormDialog({
   initialColor = TAG_COLORS[0],
   existingNames = [],
   pending = false,
+  errorMessage,
   onSubmit,
 }: {
   open: boolean;
@@ -47,6 +48,7 @@ export function TagFormDialog({
   initialColor?: string;
   existingNames?: string[];
   pending?: boolean;
+  errorMessage?: string;
   onSubmit: (values: { name: string; color: string }) => void;
 }) {
   const { t } = useTranslation();
@@ -91,6 +93,11 @@ export function TagFormDialog({
         <form onSubmit={handleSubmit} className="flex flex-col gap-5" aria-busy={pending}>
           <DialogHeader className="pr-10">
             <DialogTitle>{title}</DialogTitle>
+            {errorMessage ? (
+              <p role="alert" className="text-caption text-destructive">
+                {errorMessage}
+              </p>
+            ) : null}
           </DialogHeader>
           <div className="flex flex-col gap-2">
             <Label htmlFor="tag-name">{t('tags.nameLabel')}</Label>

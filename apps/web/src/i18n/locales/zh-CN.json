@@ -14,6 +14,11 @@
   "actions": {
     "toggleLanguage": "切换语言"
   },
+  "languageNames": {
+    "english": "English",
+    "simplifiedChinese": "简体中文",
+    "currentShort": "中"
+  },
   "common": {
     "cancel": "取消",
     "save": "保存",
@@ -43,7 +48,7 @@
   },
   "login": {
     "brandTagline": "你的 Star 仓库，\n终于井然有序。",
-    "brandSubtitle": "把数百个杂乱的 GitHub star 整理成可搜索、可打标签、可分类的个人知识库。",
+    "brandSubtitle": "把数百个杂乱的 GitHub Star 整理成可搜索、可打标签、可分类的个人知识库。",
     "features": {
       "tagging": "智能标签与集合",
       "search": "按仓库名称和描述搜索",
@@ -51,11 +56,11 @@
       "privacy": "自托管、开源、隐私优先"
     },
     "getStarted": "开始使用",
-    "connectPrompt": "连接你的 GitHub 账号以同步 star 仓库。",
+    "connectPrompt": "连接你的 GitHub 账号以同步 Star 仓库。",
     "continueWithGitHub": "使用 GitHub 继续",
     "minimalPermissions": "仅需最小权限",
     "scopesTitle": "我们仅请求以下只读权限：",
-    "scopeStars": "你的 star 仓库列表",
+    "scopeStars": "你的 Star 仓库列表",
     "scopeMetadata": "公开仓库的元数据",
     "scopeProfile": "你的公开资料信息",
     "privacyNote": "无写权限，无私有仓库。数据留在你自己的服务器上。"
@@ -106,7 +111,7 @@
   },
   "sync": {
     "syncing": "同步中…",
-    "success": "已同步 {{count}} 个 star 仓库",
+    "success": "已同步 {{count}} 个 Star 仓库",
     "error": "同步失败，请重试。",
     "noToken": "GitHub 会话已过期，请重新登录后再同步。",
     "reconnectAction": "重新连接 GitHub",
@@ -118,7 +123,7 @@
   },
   "browse": {
     "title": "全部仓库",
-    "count": "{{total}} 个 star 仓库",
+    "count": "{{total}} 个 Star 仓库",
     "viewMode": "仓库视图模式",
     "viewGrid": "卡片视图",
     "viewList": "列表视图",
@@ -135,11 +140,11 @@
     "updated": "更新于 {{time}}",
     "updatedShort": "更新于",
     "updatedCompact": "更新 {{time}}",
-    "starred": "{{time}}收藏",
+    "starred": "收藏于 {{time}}",
     "starredShort": "收藏于",
     "starredCompact": "收藏 {{time}}",
-    "emptyTitle": "还没有 star 仓库",
-    "emptyDescription": "同步你的 GitHub star 即可开始。我们会拉取你所有的 star 仓库并在此整理。",
+    "emptyTitle": "还没有 Star 仓库",
+    "emptyDescription": "同步你的 GitHub Star 即可开始。我们会拉取你所有的 Star 仓库并在此整理。",
     "syncAction": "同步 GitHub Stars",
     "errorTitle": "无法加载仓库",
     "errorDescription": "加载你的仓库时出现问题。",
@@ -228,9 +233,9 @@
     "descriptionLabel": "描述",
     "descriptionPlaceholder": "这个集合是关于什么的？",
     "emptyTitle": "还没有集合",
-    "emptyDescription": "按项目或主题把 star 仓库分组，便于更快找到它们。",
+    "emptyDescription": "按项目或主题把 Star 仓库分组，便于更快找到它们。",
     "deleteTitle": "删除「{{name}}」？",
-    "deleteDescription": "仅删除该集合，不影响你的仓库与 star。",
+    "deleteDescription": "仅删除该集合，不影响你的仓库与 Star。",
     "duplicateName": "已存在同名集合。",
     "saveError": "无法保存此集合，你的修改仍在。请重试或取消。",
     "deleteError": "无法删除此集合，请重试或取消。"
@@ -245,7 +250,7 @@
   },
   "tags": {
     "title": "标签",
-    "subtitle": "{{total}} 个标签 · 整理你的 star 仓库",
+    "subtitle": "{{total}} 个标签 · 整理你的 Star 仓库",
     "create": "新建标签",
     "createTitle": "新建标签",
     "editTitle": "编辑标签",
@@ -257,17 +262,17 @@
     "namePlaceholder": "例如：frontend",
     "colorLabel": "颜色",
     "emptyTitle": "还没有标签",
-    "emptyDescription": "创建标签来标注并分组你的 star 仓库。",
+    "emptyDescription": "创建标签来标注并分组你的 Star 仓库。",
     "noResults": "没有匹配的标签。",
     "deleteTitle": "删除「{{name}}」？",
-    "deleteDescription": "将从所有仓库移除该标签，不影响你的 star。",
+    "deleteDescription": "将从所有仓库移除该标签，不影响你的 Star。",
     "duplicateName": "已存在同名标签。",
     "saveError": "无法保存此标签，你的修改仍在。请重试或取消。",
     "deleteError": "无法删除此标签，请重试或取消。"
   },
   "dashboard": {
     "title": "洞察",
-    "subtitle": "star 仓库的可视化概览",
+    "subtitle": "Star 仓库的可视化概览",
     "totalStars": "Star 总数",
     "languages": "语言数",
     "taggedRepos": "已打标签",
@@ -279,8 +284,8 @@
     "topTags": "标签使用 Top 5",
     "noData": "数据不足",
     "noTags": "暂无标签使用",
-    "emptyTitle": "暂无 star 可分析",
-    "emptyDescription": "同步 GitHub stars 后即可查看统计。",
+    "emptyTitle": "暂无 Star 可分析",
+    "emptyDescription": "同步 GitHub Stars 后即可查看统计。",
     "errorTitle": "无法加载洞察",
     "errorDescription": "加载数据时出错，请稍后重试。"
   },
@@ -290,7 +295,7 @@
     "exportTitle": "导出数据",
     "exportDescription": "根据文件的后续用途选择导出格式。",
     "importTitle": "恢复备份",
-    "importDescription": "为当前账号已同步的仓库恢复标签、集合与笔记，不会新增 star 或仓库。",
+    "importDescription": "为当前账号已同步的仓库恢复标签、集合与笔记，不会新增 Star 或仓库。",
     "format": {
       "json": "JSON",
       "csv": "CSV",
@@ -306,7 +311,7 @@
     "uploadHint": "或拖拽到此处 · Asterism v1 导出（.json）",
     "restoring": "正在恢复备份…",
     "emptyTitle": "暂无可导出数据",
-    "emptyDescription": "请先同步 stars，再导出标签、集合与笔记。",
+    "emptyDescription": "请先同步 Stars，再导出标签、集合与笔记。",
     "invalidFile": "请上传 JSON 文件",
     "importSuccess": "导入完成",
     "importSummary": "{{tags}} 个标签、{{collections}} 个集合、{{links}} 条关联、{{notes}} 条笔记",

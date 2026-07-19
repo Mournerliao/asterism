@@ -14,6 +14,11 @@
   "actions": {
     "toggleLanguage": "Switch language"
   },
+  "languageNames": {
+    "english": "English",
+    "simplifiedChinese": "Simplified Chinese",
+    "currentShort": "EN"
+  },
   "common": {
     "cancel": "Cancel",
     "save": "Save",

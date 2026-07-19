@@ -75,6 +75,8 @@
 
 ### Typography · 字体（定稿 · 取自设计稿）
 
+简体中文界面的自然语言混排遵循 `conventions.md`：汉字与拉丁术语 / 缩写 / 拉丁插值之间保留一个半角空格；不得对仓库名、URL、代码或 README 原文做全局自动插空格。
+
 | Token | 用途 | 值 |
 | --- | --- | --- |
 | `--font-sans` | 正文无衬线字体栈 | `"Geist Variable", ui-sans-serif, system-ui, sans-serif` |

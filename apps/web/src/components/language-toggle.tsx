@@ -13,7 +13,7 @@ export function LanguageToggle() {
       onClick={() => void i18n.changeLanguage(isZh ? 'en' : 'zh-CN')}
       aria-label={t('actions.toggleLanguage')}
     >
-      {isZh ? '中' : 'EN'}
+      {t('languageNames.currentShort')}
     </Button>
   );
 }

@@ -107,8 +107,8 @@ export function SettingsPage() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="zh-CN">简体中文</SelectItem>
+                <SelectItem value="en">{t('languageNames.english')}</SelectItem>
+                <SelectItem value="zh-CN">{t('languageNames.simplifiedChinese')}</SelectItem>
               </SelectContent>
             </Select>
           }

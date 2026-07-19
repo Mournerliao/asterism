@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> 简体中文混排可读性规范化（2026-07-20，见 `logs/2026-07-20-zh-cn-mixed-text-spacing.md`）：明确汉字与拉丁术语 / 缩写 / 拉丁插值之间使用半角空格，统一中文界面的 `Star` / `GitHub Stars` 大小写，并把动态收藏时间改为自然的“收藏于 …”；语言名称全部外部化，切换 locale 时同步 HTML `lang`。新增全量 zh-CN 资源回归扫描，保护未来文案不再出现中英粘连；不改写仓库名、URL、代码与 README 原文，数字和中文量词继续遵循 locale 原生格式。`pnpm lint / typecheck / test / build` 全部通过（Web 130 tests）。
+
 > 批量卡片点击语义修复（2026-07-20）：进入 Browse 批量选择模式时先关闭已有 Quick Look（未保存笔记继续走保护确认）；选择模式内仅项目名保留 GitHub 外链，描述及卡片其他区域统一切换选择，不再触发或残留 Quick Look。新增真实 `RepoCard` DOM 回归测试并先红后绿。
 
 > 批量表格选中态降噪（2026-07-20）：Browse 列表在批量模式下改由 primary checkbox + 轻量整行 surface 表达选中，移除每个已选行重复的完整 inset ring，避免全选时形成高密度蓝色线条；Quick Look 的单行选中 ring、键盘焦点与 ARIA 语义保持不变。

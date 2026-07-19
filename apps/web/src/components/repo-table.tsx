@@ -166,7 +166,11 @@ export const RepoTableRow = memo(function RepoTableRow({
     : undefined;
   const bulkSelected = bulkSelection?.repoIds.has(record.repoId) ?? false;
   const handleRowClick = bulkSelection
-    ? () => bulkSelection.onToggle(record.repoId)
+    ? (event: MouseEvent<HTMLTableRowElement>) => {
+        const target = event.target as Element;
+        if (target.closest('a, button, [role="button"]')) return;
+        bulkSelection.onToggle(record.repoId);
+      }
     : handleOpen
       ? (event: MouseEvent<HTMLTableRowElement>) => {
           const target = event.target as Element;
@@ -220,7 +224,7 @@ export const RepoTableRow = memo(function RepoTableRow({
         layout === 'mobile'
           ? 'min-h-[104px] gap-x-3 gap-y-2 px-3 py-3'
           : 'h-16 min-h-16 gap-0 px-0 py-0',
-        'group border-border/50 border-b transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
+        'group relative border-border/50 border-b transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
         (selected || bulkSelected) && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
         (handleOpen || bulkSelection) && 'cursor-pointer',
       )}
@@ -242,19 +246,27 @@ export const RepoTableRow = memo(function RepoTableRow({
         )}
       >
         <div className="flex min-w-0 items-center gap-1.5">
-          <a
-            href={`https://github.com/${repo.fullName}`}
-            target="_blank"
-            rel="noreferrer noopener"
-            aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
-            className="group/link min-w-0 truncate rounded-sm text-caption focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span className="font-normal text-muted-foreground">{repo.owner}</span>
-            <span className="text-muted-foreground"> / </span>
-            <span className="font-semibold text-body text-link group-hover/link:underline">
-              {repo.name}
+          {bulkSelection ? (
+            <span className="min-w-0 truncate text-caption">
+              <span className="font-normal text-muted-foreground">{repo.owner}</span>
+              <span className="text-muted-foreground"> / </span>
+              <span className="font-semibold text-body text-link">{repo.name}</span>
             </span>
-          </a>
+          ) : (
+            <a
+              href={`https://github.com/${repo.fullName}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
+              className="group/link min-w-0 truncate rounded-sm text-caption focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="font-normal text-muted-foreground">{repo.owner}</span>
+              <span className="text-muted-foreground"> / </span>
+              <span className="font-semibold text-body text-link group-hover/link:underline">
+                {repo.name}
+              </span>
+            </a>
+          )}
           {repo.archived ? (
             <Badge
               variant="outline"

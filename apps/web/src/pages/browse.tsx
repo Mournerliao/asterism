@@ -1,4 +1,10 @@
-import { deriveRepoFacets, filterStarredRepos, sortStarredRepos, type Tag } from '@asterism/core';
+import {
+  deriveRepoFacets,
+  filterStarredRepos,
+  hasActiveFilter,
+  sortStarredRepos,
+  type Tag,
+} from '@asterism/core';
 import { Button, GlassControlRow } from '@asterism/ui';
 import {
   AlertTriangleIcon,
@@ -31,7 +37,12 @@ import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
 import { useBrowseView } from '../hooks/use-browse-view';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
-import { clearSelection, selectAllSnapshot, toggleSelection } from '../lib/bulk-selection';
+import {
+  addSelection,
+  clearSelection,
+  removeSelection,
+  toggleSelection,
+} from '../lib/bulk-selection';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
@@ -122,6 +133,7 @@ export function BrowsePage() {
       ),
     [records, filters, tagsByRepoId],
   );
+  const visibleRepoIds = useMemo(() => visible.map((record) => record.repoId), [visible]);
   const inspectorContext = useMemo(() => ({ sourceKey: 'browse', records: visible }), [visible]);
   const openInspector = useCallback(
     (record: (typeof visible)[number], modality: 'keyboard' | 'pointer') =>
@@ -168,7 +180,30 @@ export function BrowsePage() {
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
   const activeBulkOperation = bulkOperations?.find((operation) => operation.status !== 'completed');
+  const activeFilter = hasActiveFilter(toRepoFilter(filters));
+  const selectedVisibleCount = useMemo(() => {
+    let count = 0;
+    for (const repoId of visibleRepoIds) {
+      if (selectedRepoIds.has(repoId)) count += 1;
+    }
+    return count;
+  }, [selectedRepoIds, visibleRepoIds]);
+  const hiddenSelectedCount = selectedRepoIds.size - selectedVisibleCount;
   const selectedCount = new Intl.NumberFormat(i18n.language).format(selectedRepoIds.size);
+  const hiddenSelectedCountLabel = new Intl.NumberFormat(i18n.language).format(hiddenSelectedCount);
+  const allVisibleSelected =
+    visibleRepoIds.length > 0 && selectedVisibleCount === visibleRepoIds.length;
+  const scopeActionKey = allVisibleSelected
+    ? activeFilter
+      ? 'bulk.deselectAllFiltered'
+      : 'bulk.deselectAll'
+    : selectedRepoIds.size > 0
+      ? activeFilter
+        ? 'bulk.addAllFiltered'
+        : 'bulk.addAll'
+      : activeFilter
+        ? 'bulk.selectAllFiltered'
+        : 'bulk.selectAll';
   const selectionController = bulkSelectionMode
     ? {
         repoIds: selectedRepoIds,
@@ -285,60 +320,89 @@ export function BrowsePage() {
                   title={t('browse.title')}
                   description={!isError ? t('browse.count', { total }) : undefined}
                 />
-                <div className="flex flex-wrap items-center justify-end gap-2">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2">
                   {bulkSelectionMode ? (
+                    <section
+                      aria-label={t('bulk.toolbarLabel')}
+                      className="flex w-full min-w-0 flex-col gap-2 rounded-lg border border-primary/20 bg-primary/5 p-2.5 lg:w-auto lg:flex-row lg:items-center"
+                    >
+                      <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 px-1">
+                        <span className="font-medium text-caption text-foreground">
+                          {t('bulk.modeTitle')}
+                        </span>
+                        <span
+                          aria-live="polite"
+                          className="rounded-full bg-primary/10 px-2 py-0.5 font-medium text-caption text-primary"
+                        >
+                          {t('bulk.selectedCount', { count: selectedCount })}
+                        </span>
+                        {hiddenSelectedCount > 0 ? (
+                          <span className="text-caption text-muted-foreground">
+                            {t('bulk.hiddenSelectedCount', { count: hiddenSelectedCountLabel })}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="flex w-full flex-wrap items-center gap-1.5 lg:w-auto lg:justify-end">
+                        <Button
+                          variant={selectedRepoIds.size === 0 ? 'default' : 'outline'}
+                          size="sm"
+                          disabled={visibleRepoIds.length === 0}
+                          onClick={() =>
+                            setSelectedRepoIds((current) => {
+                              const includesAllVisible = visibleRepoIds.every((repoId) =>
+                                current.has(repoId),
+                              );
+                              return includesAllVisible
+                                ? removeSelection(current, visibleRepoIds)
+                                : addSelection(current, visibleRepoIds);
+                            })
+                          }
+                        >
+                          {t(scopeActionKey, { count: total })}
+                        </Button>
+                        {selectedRepoIds.size > 0 ? (
+                          <>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setSelectedRepoIds(clearSelection())}
+                            >
+                              {t('bulk.clear')}
+                            </Button>
+                            <Button
+                              size="sm"
+                              disabled={Boolean(activeBulkOperation)}
+                              onClick={() => setBulkDialogOpen(true)}
+                            >
+                              {t('bulk.organize')}
+                            </Button>
+                          </>
+                        ) : null}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setBulkSelectionMode(false);
+                            setSelectedRepoIds(clearSelection());
+                          }}
+                        >
+                          {t('common.cancel')}
+                        </Button>
+                      </div>
+                    </section>
+                  ) : (
                     <>
-                      <span aria-live="polite" className="text-caption text-muted-foreground">
-                        {t('bulk.selectedCount', { count: selectedCount })}
-                      </span>
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() =>
-                          setSelectedRepoIds(
-                            selectAllSnapshot(visible.map((record) => record.repoId)),
-                          )
-                        }
+                        disabled={Boolean(activeBulkOperation)}
+                        onClick={() => setBulkSelectionMode(true)}
                       >
-                        {t('bulk.selectAllFiltered', { count: total })}
+                        {t('bulk.select')}
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        disabled={selectedRepoIds.size === 0}
-                        onClick={() => setSelectedRepoIds(clearSelection())}
-                      >
-                        {t('bulk.clear')}
-                      </Button>
-                      <Button
-                        size="sm"
-                        disabled={selectedRepoIds.size === 0 || Boolean(activeBulkOperation)}
-                        onClick={() => setBulkDialogOpen(true)}
-                      >
-                        {t('bulk.organize')}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setBulkSelectionMode(false);
-                          setSelectedRepoIds(clearSelection());
-                        }}
-                      >
-                        {t('common.cancel')}
-                      </Button>
+                      <RepoViewToggle committedView={view} onSelect={transitionTo} />
                     </>
-                  ) : (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={Boolean(activeBulkOperation)}
-                      onClick={() => setBulkSelectionMode(true)}
-                    >
-                      {t('bulk.select')}
-                    </Button>
                   )}
-                  <RepoViewToggle committedView={view} onSelect={transitionTo} />
                 </div>
               </div>
               <RepoFilterBar facets={facets} tags={tags ?? []} />

@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { clearSelection, selectAllSnapshot, toggleSelection } from './bulk-selection';
+import {
+  addSelection,
+  clearSelection,
+  removeSelection,
+  selectAllSnapshot,
+  toggleSelection,
+} from './bulk-selection';
 
 describe('bulk repository selection snapshot', () => {
   it('supports manual selection and clearing without mutating previous state', () => {
@@ -17,5 +23,15 @@ describe('bulk repository selection snapshot', () => {
 
     expect([...snapshot]).toEqual(['repo-1', 'repo-2']);
     expect([...snapshot]).not.toEqual(laterFilteredResults);
+  });
+
+  it('adds and removes a filtered scope without dropping hidden selections', () => {
+    const initial = new Set(['hidden-repo', 'visible-repo-1']);
+    const added = addSelection(initial, ['visible-repo-1', 'visible-repo-2']);
+    const removed = removeSelection(added, ['visible-repo-1', 'visible-repo-2']);
+
+    expect([...initial]).toEqual(['hidden-repo', 'visible-repo-1']);
+    expect([...added]).toEqual(['hidden-repo', 'visible-repo-1', 'visible-repo-2']);
+    expect([...removed]).toEqual(['hidden-repo']);
   });
 });

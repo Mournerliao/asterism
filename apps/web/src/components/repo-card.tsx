@@ -24,14 +24,18 @@ import { TruncatedDescription } from './truncated-description';
 function StatusIndicator({
   label,
   onSelect,
+  interactive = true,
   children,
 }: {
   label: string;
   onSelect?: () => void;
+  interactive?: boolean;
   children: ReactNode;
 }) {
-  const className =
-    'pointer-events-auto inline-flex h-6 items-center gap-1 rounded-sm px-1 text-caption text-muted-foreground transition-colors duration-150 [transition-timing-function:var(--ease-out-quart)] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring';
+  const className = cn(
+    'inline-flex h-6 items-center gap-1 rounded-sm px-1 text-caption text-muted-foreground transition-colors duration-150 [transition-timing-function:var(--ease-out-quart)] hover:bg-accent hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+    interactive && 'pointer-events-auto',
+  );
 
   return (
     <Tooltip>
@@ -99,10 +103,11 @@ export const RepoCard = memo(function RepoCard({
 
   return (
     <Card
-      data-selected={selected}
+      data-selected={selected || bulkSelected}
       className={cn(
         'group relative flex h-auto min-h-[208px] flex-col gap-3 rounded-lg p-4 transition-[border-color,background-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] sm:h-[208px] dark:hover:shadow-none',
-        selected && 'border-ring/70 bg-accent/25 shadow-[inset_0_0_0_1px_var(--ring)]',
+        (selected || bulkSelected) &&
+          'border-ring/70 bg-accent/25 shadow-[inset_0_0_0_1px_var(--ring)]',
       )}
     >
       {handleOpen || bulkSelection ? (
@@ -146,25 +151,40 @@ export const RepoCard = memo(function RepoCard({
         )}
       >
         <div className="flex h-5 min-w-0 items-start justify-between gap-2">
-          <a
-            href={`https://github.com/${repo.fullName}`}
-            target="_blank"
-            rel="noreferrer noopener"
-            className="group/link pointer-events-auto flex min-w-0 items-center gap-2 rounded-sm text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span
-              aria-hidden="true"
-              className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
-              style={dotColor ? { backgroundColor: dotColor } : undefined}
-            />
-            <span className="min-w-0 truncate">
-              <span className="font-medium text-muted-foreground">{repo.owner}</span>
-              <span className="text-muted-foreground"> / </span>
-              <span className="font-semibold text-link group-hover/link:underline">
-                {repo.name}
+          {bulkSelection ? (
+            <span className="flex min-w-0 items-center gap-2 text-[13px]">
+              <span
+                aria-hidden="true"
+                className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
+                style={dotColor ? { backgroundColor: dotColor } : undefined}
+              />
+              <span className="min-w-0 truncate">
+                <span className="font-medium text-muted-foreground">{repo.owner}</span>
+                <span className="text-muted-foreground"> / </span>
+                <span className="font-semibold text-link">{repo.name}</span>
               </span>
             </span>
-          </a>
+          ) : (
+            <a
+              href={`https://github.com/${repo.fullName}`}
+              target="_blank"
+              rel="noreferrer noopener"
+              className="group/link pointer-events-auto flex min-w-0 items-center gap-2 rounded-sm text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span
+                aria-hidden="true"
+                className={cn('size-2.5 shrink-0 rounded-full', !dotColor && 'bg-muted-foreground')}
+                style={dotColor ? { backgroundColor: dotColor } : undefined}
+              />
+              <span className="min-w-0 truncate">
+                <span className="font-medium text-muted-foreground">{repo.owner}</span>
+                <span className="text-muted-foreground"> / </span>
+                <span className="font-semibold text-link group-hover/link:underline">
+                  {repo.name}
+                </span>
+              </span>
+            </a>
+          )}
           {repo.archived ? (
             <Badge variant="outline" className="h-5 shrink-0 gap-1 text-muted-foreground">
               <ArchiveIcon className="size-3" aria-hidden="true" />
@@ -175,7 +195,9 @@ export const RepoCard = memo(function RepoCard({
 
         <div className="min-h-10">
           {repo.description ? (
-            <TruncatedDescription onSelect={handleOpen}>{repo.description}</TruncatedDescription>
+            <TruncatedDescription onSelect={bulkSelection ? undefined : handleOpen}>
+              {repo.description}
+            </TruncatedDescription>
           ) : null}
         </div>
 
@@ -194,19 +216,27 @@ export const RepoCard = memo(function RepoCard({
                   </Badge>
                 )}
                 renderTooltipItem={(item) => <ContextChip item={item} />}
-                className="pointer-events-auto"
+                className={bulkSelection ? undefined : 'pointer-events-auto'}
               />
             ) : null}
           </div>
           <span className="flex shrink-0 items-center gap-1">
             {collectionCount > 0 ? (
-              <StatusIndicator label={collectionLabel} onSelect={handleOpen}>
+              <StatusIndicator
+                label={collectionLabel}
+                onSelect={bulkSelection ? undefined : handleOpen}
+                interactive={!bulkSelection}
+              >
                 <FolderIcon className="size-3.5" aria-hidden="true" />
                 {collectionCount}
               </StatusIndicator>
             ) : null}
             {hasNote ? (
-              <StatusIndicator label={noteLabel} onSelect={handleOpen}>
+              <StatusIndicator
+                label={noteLabel}
+                onSelect={bulkSelection ? undefined : handleOpen}
+                interactive={!bulkSelection}
+              >
                 <NotebookPenIcon className="size-3.5" aria-hidden="true" />
               </StatusIndicator>
             ) : null}

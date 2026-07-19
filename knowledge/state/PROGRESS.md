@@ -6,6 +6,10 @@
 
 ## 当前状态
 
+> 批量选择交互优化（2026-07-19，见 `logs/2026-07-19-bulk-selection-ui-first-pass.md`）：Browse 批量模式改为明确的“模式 / 范围 / 动作”控制区；全选当前范围改为可逆的添加/取消，不再静默覆盖跨筛选选择；界面显示被筛选隐藏的已选数量；网格与列表共享整面选中反馈，选择模式内禁用仓库外链等浏览交互。en / zh-CN 与键盘/ARIA 语义同步，`pnpm lint / typecheck / test / build` 全部通过（Web 125 tests）。
+
+> 表格选择框定位修复（2026-07-19）：虚拟化表格行补充 `relative` 定位上下文，避免绝对定位的选择框被表格 `overflow-clip` 裁掉；新增真实 `RepoTableRow` DOM 回归测试，先红后绿。
+
 **阶段：Phase 1 Web MVP — Done（2026-07-18）；下一阶段为 Phase 2 AI（BYOK）+ 批量整理。** 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁均已验收。
 
 > 真实环境验收确认（2026-07-18）：当前 Supabase 环境及所需 Edge Functions 已部署；GitHub OAuth 与会话恢复、首次/增量 Stars 同步、标签/集合/笔记持久化与 RLS 隔离、README authenticated / public fallback / no README / not in library / rate limit / ETag 304 路径均已完成验收。

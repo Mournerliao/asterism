@@ -161,7 +161,15 @@ export const RepoCard = memo(function RepoCard({
               <span className="min-w-0 truncate">
                 <span className="font-medium text-muted-foreground">{repo.owner}</span>
                 <span className="text-muted-foreground"> / </span>
-                <span className="font-semibold text-link">{repo.name}</span>
+                <a
+                  href={`https://github.com/${repo.fullName}`}
+                  target="_blank"
+                  rel="noreferrer noopener"
+                  aria-label={t('browse.openOnGitHub', { repo: repo.fullName })}
+                  className="pointer-events-auto rounded-sm font-semibold text-link hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {repo.name}
+                </a>
               </span>
             </span>
           ) : (
@@ -195,7 +203,9 @@ export const RepoCard = memo(function RepoCard({
 
         <div className="min-h-10">
           {repo.description ? (
-            <TruncatedDescription onSelect={bulkSelection ? undefined : handleOpen}>
+            <TruncatedDescription
+              onSelect={bulkSelection ? () => bulkSelection.onToggle(record.repoId) : handleOpen}
+            >
               {repo.description}
             </TruncatedDescription>
           ) : null}

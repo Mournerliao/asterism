@@ -67,4 +67,58 @@ describe('RepoTableRow bulk selection', () => {
     expect(marker?.classList.contains('absolute')).toBe(true);
     expect(row?.classList.contains('relative')).toBe(true);
   });
+
+  it('uses a quiet surface without an inset ring for bulk-selected rows', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () =>
+      root.render(
+        <table>
+          <tbody>
+            <RepoTableRow
+              record={record}
+              selected
+              layout="wide"
+              rowIndex={2}
+              measureElement={vi.fn()}
+              bulkSelection={{ repoIds: new Set([record.repoId]), onToggle: vi.fn() }}
+            />
+          </tbody>
+        </table>,
+      ),
+    );
+
+    const row = container.querySelector('tr');
+
+    expect(row?.classList.contains('bg-accent/30')).toBe(true);
+    expect(row?.className).not.toContain('shadow-[inset_0_0_0_1px_var(--ring)]');
+  });
+
+  it('keeps the inset ring for the single Quick Look selection', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () =>
+      root.render(
+        <table>
+          <tbody>
+            <RepoTableRow
+              record={record}
+              selected
+              layout="wide"
+              rowIndex={2}
+              measureElement={vi.fn()}
+            />
+          </tbody>
+        </table>,
+      ),
+    );
+
+    expect(container.querySelector('tr')?.className).toContain(
+      'shadow-[inset_0_0_0_1px_var(--ring)]',
+    );
+  });
 });

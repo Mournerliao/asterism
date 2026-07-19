@@ -234,7 +234,7 @@ export function SettingsRouteLoading({ label }: { label: string }) {
   return (
     <LoadingRegion
       label={label}
-      className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col gap-8 overflow-hidden"
+      className="mx-auto flex min-h-0 w-full max-w-6xl flex-1 flex-col gap-8 overflow-hidden"
     >
       <PageHeaderSkeleton compact />
       {THREE_KEYS.map((key) => (

@@ -225,7 +225,8 @@ export const RepoTableRow = memo(function RepoTableRow({
           ? 'min-h-[104px] gap-x-3 gap-y-2 px-3 py-3'
           : 'h-16 min-h-16 gap-0 px-0 py-0',
         'group relative border-border/50 border-b transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-        (selected || bulkSelected) && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
+        bulkSelected && 'bg-accent/30',
+        !bulkSelection && selected && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
         (handleOpen || bulkSelection) && 'cursor-pointer',
       )}
     >

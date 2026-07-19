@@ -58,7 +58,7 @@ export function BrowsePage() {
   const { t, i18n } = useTranslation();
   const { view, transitionTo } = useBrowseView();
   const filters = useBrowseFilters();
-  const { requestOpen, registerContext } = useRepoInspector();
+  const { requestOpen, requestClose, registerContext } = useRepoInspector();
   const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
   const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
   const { data: tags, isLoading: tagsLoading } = useTags();
@@ -396,7 +396,10 @@ export function BrowsePage() {
                         variant="outline"
                         size="sm"
                         disabled={Boolean(activeBulkOperation)}
-                        onClick={() => setBulkSelectionMode(true)}
+                        onClick={() => {
+                          requestClose();
+                          setBulkSelectionMode(true);
+                        }}
                       >
                         {t('bulk.select')}
                       </Button>

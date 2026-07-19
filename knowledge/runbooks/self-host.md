@@ -66,12 +66,14 @@ Asterism 只读取公开 Star、公开仓库元数据与公开资料，不申请
 ```bash
 supabase functions deploy sync-stars
 supabase functions deploy read-repo-readme
+supabase functions deploy bulk-organize
 ```
 
-两项函数都使用 Supabase 运行时自动注入的 `SUPABASE_URL` 与 `SUPABASE_SERVICE_ROLE_KEY`；不需要把它们写进仓库或 Web 环境变量。
+三项函数都使用 Supabase 运行时自动注入的 `SUPABASE_URL` 与 `SUPABASE_SERVICE_ROLE_KEY`；不需要把它们写进仓库或 Web 环境变量。
 
 - `sync-stars`：验证当前 Supabase 用户后，使用其 GitHub provider token 增量同步公开 Star。
 - `read-repo-readme`：先验证仓库属于当前用户的 Star 库，再从 GitHub 读取 README；README 不持久化到数据库。
+- `bulk-organize`：验证用户与仓库、标签、集合归属，按有界批次幂等写入并持久化逐关系结果；不访问 GitHub，也不执行 star/unstar。
 
 ## 5. 配置并验证本地 Web
 

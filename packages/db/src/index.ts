@@ -1,5 +1,16 @@
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
+export type {
+  BulkChange,
+  BulkItemStatus,
+  BulkOperation,
+  BulkOperationItem,
+  BulkOperationRequest,
+  BulkOperationStatus,
+  BulkRelationAction,
+  BulkRelationType,
+} from './bulk-operations';
+export { invokeBulkOperation, listBulkOperations } from './bulk-operations';
 export type { SupabaseClient, SupabaseClientOptions } from './client';
 export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';

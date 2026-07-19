@@ -192,6 +192,91 @@ export interface Database {
           },
         ];
       };
+      bulk_operations: {
+        Row: {
+          id: string;
+          user_id: string;
+          source: 'manual' | 'ai_draft';
+          source_repo_ids: string[];
+          status: 'pending' | 'running' | 'needs_attention' | 'completed';
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source: 'manual' | 'ai_draft';
+          source_repo_ids: string[];
+          status?: 'pending' | 'running' | 'needs_attention' | 'completed';
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['bulk_operations']['Insert']>;
+        Relationships: [];
+      };
+      bulk_operation_items: {
+        Row: {
+          id: string;
+          user_id: string;
+          operation_id: string;
+          repo_id: string;
+          relation_type: 'tag' | 'collection';
+          target_id: string;
+          action: 'add' | 'remove';
+          status:
+            | 'pending'
+            | 'running'
+            | 'succeeded'
+            | 'retryable_failed'
+            | 'terminal_failed'
+            | 'dismissed';
+          attempt_count: number;
+          last_error_code: string | null;
+          last_error_message: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          operation_id: string;
+          repo_id: string;
+          relation_type: 'tag' | 'collection';
+          target_id: string;
+          action: 'add' | 'remove';
+          status?:
+            | 'pending'
+            | 'running'
+            | 'succeeded'
+            | 'retryable_failed'
+            | 'terminal_failed'
+            | 'dismissed';
+          attempt_count?: number;
+          last_error_code?: string | null;
+          last_error_message?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['bulk_operation_items']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'bulk_operation_items_operation_id_fkey';
+            columns: ['operation_id'];
+            isOneToOne: false;
+            referencedRelation: 'bulk_operations';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'bulk_operation_items_repo_id_fkey';
+            columns: ['repo_id'];
+            isOneToOne: false;
+            referencedRelation: 'repos';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
       notes: {
         Row: {
           id: string;
@@ -222,7 +307,35 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      create_bulk_operation: {
+        Args: {
+          p_user_id: string;
+          p_source: string;
+          p_repo_ids: string[];
+          p_changes: Json;
+        };
+        Returns: string;
+      };
+      claim_bulk_operation_items: {
+        Args: { p_user_id: string; p_operation_id: string; p_statuses: string[] };
+        Returns: Database['public']['Tables']['bulk_operation_items']['Row'][];
+      };
+      record_bulk_operation_item_result: {
+        Args: {
+          p_user_id: string;
+          p_item_id: string;
+          p_status: string;
+          p_error_code?: string | null;
+          p_error_message?: string | null;
+        };
+        Returns: undefined;
+      };
+      complete_bulk_operation: {
+        Args: { p_user_id: string; p_operation_id: string };
+        Returns: boolean;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };

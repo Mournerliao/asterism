@@ -1,10 +1,18 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { Badge, Card, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
-import { ArchiveIcon, FolderIcon, GitForkIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
+import {
+  ArchiveIcon,
+  CheckIcon,
+  FolderIcon,
+  GitForkIcon,
+  NotebookPenIcon,
+  StarIcon,
+} from 'lucide-react';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { BulkSelectionController } from '../lib/bulk-selection';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import type { RepoOpenModality } from '../stores/repo-inspector';
@@ -62,6 +70,7 @@ export const RepoCard = memo(function RepoCard({
   hasNote = false,
   selected = false,
   onSelect,
+  bulkSelection,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
@@ -69,6 +78,7 @@ export const RepoCard = memo(function RepoCard({
   hasNote?: boolean;
   selected?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
+  bulkSelection?: BulkSelectionController;
 }) {
   const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
@@ -83,6 +93,7 @@ export const RepoCard = memo(function RepoCard({
     [repo.topics, tags],
   );
   const handleOpen = onSelect ? () => onSelect(record, 'pointer') : undefined;
+  const bulkSelected = bulkSelection?.repoIds.has(record.repoId) ?? false;
   const collectionLabel = t('browse.inCollections', { count: collectionCount });
   const noteLabel = t('browse.hasNote');
 
@@ -94,22 +105,44 @@ export const RepoCard = memo(function RepoCard({
         selected && 'border-ring/70 bg-accent/25 shadow-[inset_0_0_0_1px_var(--ring)]',
       )}
     >
-      {handleOpen ? (
+      {handleOpen || bulkSelection ? (
         <button
           type="button"
-          aria-label={t('browse.openDetails', { repo: repo.fullName })}
-          aria-expanded={selected}
-          aria-controls="repo-inspector"
-          data-repo-quick-look-trigger={record.repoId}
-          onClick={(event) => onSelect?.(record, event.detail === 0 ? 'keyboard' : 'pointer')}
+          aria-label={
+            bulkSelection
+              ? t(bulkSelected ? 'bulk.deselectRepo' : 'bulk.selectRepo', { repo: repo.fullName })
+              : t('browse.openDetails', { repo: repo.fullName })
+          }
+          aria-pressed={bulkSelection ? bulkSelected : undefined}
+          aria-expanded={bulkSelection ? undefined : selected}
+          aria-controls={bulkSelection ? undefined : 'repo-inspector'}
+          data-repo-quick-look-trigger={bulkSelection ? undefined : record.repoId}
+          onClick={(event) =>
+            bulkSelection
+              ? bulkSelection.onToggle(record.repoId)
+              : onSelect?.(record, event.detail === 0 ? 'keyboard' : 'pointer')
+          }
           className="absolute inset-0 z-0 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         />
+      ) : null}
+
+      {bulkSelection ? (
+        <span
+          aria-hidden="true"
+          className={cn(
+            'pointer-events-none absolute top-4 left-4 z-20 flex size-5 items-center justify-center rounded-sm border bg-card',
+            bulkSelected && 'border-primary bg-primary text-primary-foreground',
+          )}
+        >
+          {bulkSelected ? <CheckIcon className="size-3.5" /> : null}
+        </span>
       ) : null}
 
       <div
         className={cn(
           'relative z-10 flex min-h-0 flex-1 flex-col gap-3',
-          handleOpen && 'pointer-events-none',
+          (handleOpen || bulkSelection) && 'pointer-events-none',
+          bulkSelection && 'pl-7',
         )}
       >
         <div className="flex h-5 min-w-0 items-start justify-between gap-2">

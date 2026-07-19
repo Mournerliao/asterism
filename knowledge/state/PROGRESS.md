@@ -52,6 +52,12 @@
 
 > Phase 2 查询持久化边界（2026-07-18）：批量整理只接受当前手动选择或当前筛选结果；本阶段不持久化命名筛选，也不保存关键词或语义查询历史。未来若有明确复用需求，再独立设计 Saved View。
 
+> 批量整理可靠写入边界（2026-07-19，ADR 0023）：先实现不依赖 AI 的批量底座。“全选当前筛选结果”固化为 repository ID 范围；用户确认后持久化操作与逐关系项目，添加已有关系 / 移除不存在关系视为成功；成功项保留，失败项分为可重试与终止，刷新或中断后只继续待执行 / 可重试项。选中导出复用 JSON 部分备份、CSV 清单与 Markdown 可读归档，读取下载时的最新 Postgres 数据且不创建写操作记录。
+
+> 批量整理 issues（2026-07-19）：已发布两个 `ready-for-agent` 纵向切片——GitHub #11「Add reliable bulk organization」与 #12「Export selected repositories」；#12 已通过 GitHub 原生依赖由 #11 阻塞。
+
+> 可靠批量整理已落地（2026-07-19，GitHub #11）：Browse 的手动选择与“全选当前筛选结果”按 repository ID 固化，确认层可同时配置已有 tags / collections 的添加与移除。新增 `bulk_operations` / `bulk_operation_items`、仅本人可读 RLS 与 `bulk-organize` 受信 Edge Function；按 50 条有界批次幂等执行，逐关系记录成功、可重试失败与终止失败，刷新后可继续，仅重试可重试项，并允许明确结束剩余终止失败。Web 提供 en / zh-CN、键盘选择、移动宽度布局与权威查询恢复；自动化覆盖状态迁移、幂等、授权边界、选择快照、部分重试和 tag / collection 路径。
+
 > 未保存笔记弹窗用关闭代替「继续编辑」（2026-07-17，见 `logs/2026-07-17-unsaved-note-close-affordance.md`）：确认层恢复与 Quick Look 一致的关闭按钮，语义等同继续编辑；页脚只保留放弃 / 保存。
 
 > Dialog 密度与标题关闭对齐（2026-07-17，见 `logs/2026-07-17-dialog-density-alignment.md`）：共享 Dialog 默认收敛为 448px / 20px，关闭按钮与标题同顶边垂直居中；标签 / 集合 / 确认弹窗页脚改用 `size="sm"`，与未保存笔记确认层一致。

@@ -2,6 +2,7 @@ import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useEffect, useRef, useState } from 'react';
+import type { BulkSelectionController } from '../lib/bulk-selection';
 import { useScrollMargin } from '../lib/scroll-margin';
 import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
@@ -20,6 +21,7 @@ type RepoCollectionProps = {
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
+  bulkSelection?: BulkSelectionController;
 };
 
 function useColumns(ref: React.RefObject<HTMLElement | null>): number {
@@ -57,6 +59,7 @@ const RepoGridView = memo(function RepoGridView({
   selectedRepoId,
   onSelect,
   scrollElement,
+  bulkSelection,
 }: RepoCollectionProps) {
   const collectionRef = useRef<HTMLDivElement>(null);
   const scrollMargin = useScrollMargin(collectionRef, scrollElement);
@@ -113,6 +116,7 @@ const RepoGridView = memo(function RepoGridView({
                     hasNote={noteRepoIds?.has(record.repoId)}
                     selected={record.repoId === selectedRepoId}
                     onSelect={onSelect}
+                    bulkSelection={bulkSelection}
                   />
                 ))}
               </div>
@@ -132,6 +136,7 @@ const RepoListView = memo(function RepoListView({
   selectedRepoId,
   onSelect,
   scrollElement,
+  bulkSelection,
 }: RepoCollectionProps) {
   return (
     <RepoTable
@@ -142,6 +147,7 @@ const RepoListView = memo(function RepoListView({
       selectedRepoId={selectedRepoId}
       onSelect={onSelect}
       scrollElement={scrollElement}
+      bulkSelection={bulkSelection}
     />
   );
 });
@@ -157,6 +163,7 @@ export const RepoCollection = memo(function RepoCollection({
   selectedRepoId,
   onSelect,
   scrollElement,
+  bulkSelection,
 }: RepoCollectionProps & { view: RepoViewMode }) {
   if (view === 'list') {
     return (
@@ -168,6 +175,7 @@ export const RepoCollection = memo(function RepoCollection({
         selectedRepoId={selectedRepoId}
         onSelect={onSelect}
         scrollElement={scrollElement}
+        bulkSelection={bulkSelection}
       />
     );
   }
@@ -181,6 +189,7 @@ export const RepoCollection = memo(function RepoCollection({
       selectedRepoId={selectedRepoId}
       onSelect={onSelect}
       scrollElement={scrollElement}
+      bulkSelection={bulkSelection}
     />
   );
 });

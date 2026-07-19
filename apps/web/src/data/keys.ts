@@ -31,3 +31,8 @@ export const noteKeys = {
   repoIds: (userId: string) => ['note', userId, 'repo-ids'] as const,
   detail: (userId: string, repoId: string) => ['note', userId, repoId] as const,
 };
+
+export const bulkOperationKeys = {
+  all: ['bulk-operations'] as const,
+  list: (userId: string) => ['bulk-operations', userId] as const,
+};

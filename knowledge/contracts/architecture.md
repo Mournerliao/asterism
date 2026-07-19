@@ -21,7 +21,7 @@ flowchart TD
   subgraph supabase [Supabase]
     auth[Auth: GitHub OAuth]
     pg[(Postgres)]
-    fn[Edge Functions: sync-stars / read-repo-readme / AI generation]
+    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / AI generation]
   end
   gh[GitHub GraphQL / REST API]
 
@@ -82,7 +82,7 @@ asterism/
 │   └── config/         # 共享工程配置（tsconfig / tailwind / biome 预设等）
 └── supabase/
     ├── migrations/     # 数据库迁移（schema + RLS）
-    └── functions/      # Edge Functions（sync-stars / read-repo-readme / AI generation 等）
+    └── functions/      # Edge Functions（sync-stars / read-repo-readme / bulk-organize / AI generation 等）
 ```
 
 包命名遵循 `@asterism/*`；共享包为私有 workspace（不发 npm）。目录边界规则见 `conventions.md`。
@@ -115,7 +115,7 @@ sequenceDiagram
 5. **读取 / 会话收敛**：客户端按 RLS 读取结果（`repos` 全局可读、`user_stars` 按 `user_id`）；进入页面、查询刷新、完成本地操作或重新连接后重新读取 Postgres。多个在线会话不承诺主动推送收敛。
 6. **请求缓存**：客户端使用 TanStack Query 做会话内去重与新鲜度管理；不建立浏览器持久缓存，也不承诺离线读取。
 
-> Stars 同步由受信 Edge Function `sync-stars` 执行，满足「全局 `repos` 仅受信路径写」的 RLS 约束。Phase 2 的 AI 整理建议同样由验证用户 JWT 的 Edge Function 调用 Generation Provider，但模型只返回建议草稿，持久化标签 / 集合必须经过用户确认并复用批量整理路径。决策与 `provider_token` 局限见 `../decisions/0006-stars-sync-edge-function.md`、ADR 0020。
+> Stars 同步由受信 Edge Function `sync-stars` 执行，满足「全局 `repos` 仅受信路径写」的 RLS 约束。Phase 2 的批量整理先建立与 AI 无关的持久化执行路径：用户确认后固化 repository ID 范围与逐关系项目，服务端按有界批次执行并记录结果；成功项目不回滚，恢复时只领取待执行或可重试失败项目，幂等关系写保证重复提交不产生脏数据。客户端只经 `packages/db` 创建、触发、查询、重试或明确结束操作，并在查询边界重新读取权威状态。AI 整理建议同样由验证用户 JWT 的 Edge Function 调用 Generation Provider，但模型只返回建议草稿，确认后复用这条批量整理路径。决策与 `provider_token` 局限见 `../decisions/0006-stars-sync-edge-function.md`、ADR 0020、0023。
 
 BYOK credential 通过独立设置 Edge Function 保存：明文只进入当前函数内存，由服务端 master key 做 authenticated encryption；普通客户端查询只获得 provider、credential 状态与非敏感提示，不获得 ciphertext、nonce 或完整 credential。AI Edge Functions 在服务端按版本解密后，通过类型化 Provider Registry 调用对应原生 Adapter；Provider credential schema 可以不同，不以 `apiKey + baseUrl` 作为统一数据模型。
 

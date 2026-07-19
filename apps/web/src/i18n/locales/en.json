@@ -319,6 +319,44 @@
       "UNSUPPORTED_VERSION": "Unsupported export version"
     }
   },
+  "bulk": {
+    "select": "Select repositories",
+    "selectRepo": "Select {{repo}}",
+    "deselectRepo": "Deselect {{repo}}",
+    "selectedCount": "{{count}} selected",
+    "selectAllFiltered": "Select all {{count}} filtered",
+    "clear": "Clear",
+    "organize": "Organize",
+    "dialogTitle": "Organize selected repositories",
+    "dialogDescription": "Confirm a stable scope of {{count}} repositories, then choose tag and collection changes.",
+    "tags": "Tags",
+    "collections": "Collections",
+    "noTags": "Create a tag before using bulk organization.",
+    "noCollections": "Create a collection before using bulk organization.",
+    "actionFor": "Change for {{name}}",
+    "noChange": "No change",
+    "add": "Add",
+    "remove": "Remove",
+    "confirm": "Apply to {{count}} repositories",
+    "applying": "Applying changes...",
+    "createError": "The bulk operation could not be created. Your selection and changes are still here; try again or cancel.",
+    "actionError": "The bulk operation could not be updated. Its saved progress is unchanged; try again.",
+    "retry": "Retry failed changes",
+    "continue": "Continue",
+    "endOperation": "End operation",
+    "terminalExplanation": "These changes cannot be retried unchanged because a repository or target is no longer owned or available.",
+    "status": {
+      "running": "Applying organization changes",
+      "needsAttention": "Bulk organization needs attention",
+      "completed": "Bulk organization completed"
+    },
+    "result": {
+      "success": "{{count}} succeeded",
+      "pending": "{{count}} pending",
+      "retryable": "{{count}} retryable",
+      "terminal": "{{count}} terminal"
+    }
+  },
   "settings": {
     "title": "Settings",
     "appearance": "Appearance",

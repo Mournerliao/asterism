@@ -67,8 +67,10 @@ OAuth 回流并显示当前用户。
 | 函数 | 作用 |
 | --- | --- |
 | `sync-stars` | 受信路径（service role）同步用户 GitHub starred 仓库到 `repos` / `user_stars`，支持增量。详见 `functions/sync-stars/README.md` 与 `knowledge/decisions/0006` |
+| `bulk-organize` | 受信路径（service role）创建并执行持久化批量 tag / collection 关系变更；按逐关系结果恢复和重试。详见 `functions/bulk-organize/README.md` 与 ADR 0023 |
 
 ```bash
 # 部署（需 Supabase CLI 且已 link 项目）
 supabase functions deploy sync-stars
+supabase functions deploy bulk-organize
 ```

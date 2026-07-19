@@ -2,9 +2,10 @@ import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { Badge, cn } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArchiveIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
+import { ArchiveIcon, CheckIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
 import { type KeyboardEvent, type MouseEvent, memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { BulkSelectionController } from '../lib/bulk-selection';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
@@ -139,6 +140,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   layout,
   rowIndex,
   measureElement,
+  bulkSelection,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
@@ -149,6 +151,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   layout: TableLayout;
   rowIndex: number;
   measureElement: (element: HTMLTableRowElement | null) => void;
+  bulkSelection?: BulkSelectionController;
 }) {
   const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
@@ -161,36 +164,55 @@ export const RepoTableRow = memo(function RepoTableRow({
   const handleOpen = onSelect
     ? (modality: RepoOpenModality) => onSelect(record, modality)
     : undefined;
-  const handleRowClick = handleOpen
-    ? (event: MouseEvent<HTMLTableRowElement>) => {
-        const target = event.target as Element;
-        if (target.closest('a, button, [role="button"]')) {
-          return;
+  const bulkSelected = bulkSelection?.repoIds.has(record.repoId) ?? false;
+  const handleRowClick = bulkSelection
+    ? () => bulkSelection.onToggle(record.repoId)
+    : handleOpen
+      ? (event: MouseEvent<HTMLTableRowElement>) => {
+          const target = event.target as Element;
+          if (target.closest('a, button, [role="button"]')) {
+            return;
+          }
+          handleOpen('pointer');
         }
-        handleOpen('pointer');
-      }
-    : undefined;
-  const handleRowKeyDown = handleOpen
+      : undefined;
+  const handleRowKeyDown = bulkSelection
     ? (event: KeyboardEvent<HTMLTableRowElement>) => {
-        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' ')) {
+        if (event.target !== event.currentTarget || (event.key !== 'Enter' && event.key !== ' '))
           return;
-        }
         event.preventDefault();
-        handleOpen('keyboard');
+        bulkSelection.onToggle(record.repoId);
       }
-    : undefined;
+    : handleOpen
+      ? (event: KeyboardEvent<HTMLTableRowElement>) => {
+          if (
+            event.target !== event.currentTarget ||
+            (event.key !== 'Enter' && event.key !== ' ')
+          ) {
+            return;
+          }
+          event.preventDefault();
+          handleOpen('keyboard');
+        }
+      : undefined;
 
   return (
     <tr
       ref={measureElement}
       data-index={rowIndex - 2}
       aria-rowindex={rowIndex}
-      aria-label={handleOpen ? t('browse.openDetails', { repo: repo.fullName }) : undefined}
-      aria-selected={selected}
-      aria-expanded={selected}
-      aria-controls={handleOpen ? 'repo-inspector' : undefined}
-      data-repo-quick-look-trigger={handleOpen ? record.repoId : undefined}
-      tabIndex={handleOpen ? 0 : undefined}
+      aria-label={
+        bulkSelection
+          ? t(bulkSelected ? 'bulk.deselectRepo' : 'bulk.selectRepo', { repo: repo.fullName })
+          : handleOpen
+            ? t('browse.openDetails', { repo: repo.fullName })
+            : undefined
+      }
+      aria-selected={bulkSelection ? bulkSelected : selected}
+      aria-expanded={bulkSelection ? undefined : selected}
+      aria-controls={!bulkSelection && handleOpen ? 'repo-inspector' : undefined}
+      data-repo-quick-look-trigger={!bulkSelection && handleOpen ? record.repoId : undefined}
+      tabIndex={bulkSelection || handleOpen ? 0 : undefined}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
       className={cn(
@@ -199,14 +221,24 @@ export const RepoTableRow = memo(function RepoTableRow({
           ? 'min-h-[104px] gap-x-3 gap-y-2 px-3 py-3'
           : 'h-16 min-h-16 gap-0 px-0 py-0',
         'group border-border/50 border-b transition-colors hover:bg-accent/20 focus-visible:bg-accent/25 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring',
-        selected && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
-        handleOpen && 'cursor-pointer',
+        (selected || bulkSelected) && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
+        (handleOpen || bulkSelection) && 'cursor-pointer',
       )}
     >
+      {bulkSelection ? (
+        <td
+          aria-hidden="true"
+          className="absolute top-1/2 left-3 flex size-5 -translate-y-1/2 items-center justify-center rounded-sm border bg-card data-[selected=true]:border-primary data-[selected=true]:bg-primary data-[selected=true]:text-primary-foreground"
+          data-selected={bulkSelected}
+        >
+          {bulkSelected ? <CheckIcon className="size-3.5" /> : null}
+        </td>
+      ) : null}
       <td
         className={cn(
           'flex min-w-0 flex-col justify-center gap-1',
           layout === 'mobile' ? 'col-span-3' : 'col-span-1 px-3',
+          bulkSelection && 'pl-11',
         )}
       >
         <div className="flex min-w-0 items-center gap-1.5">
@@ -349,6 +381,7 @@ export const RepoTable = memo(function RepoTable({
   selectedRepoId,
   onSelect,
   scrollElement,
+  bulkSelection,
 }: {
   records: StarredRepoRecord[];
   tagsByRepo?: Map<string, Tag[]>;
@@ -357,6 +390,7 @@ export const RepoTable = memo(function RepoTable({
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
+  bulkSelection?: BulkSelectionController;
 }) {
   const { t } = useTranslation();
   const tableRef = useRef<HTMLTableElement>(null);
@@ -439,6 +473,7 @@ export const RepoTable = memo(function RepoTable({
               onSelect={onSelect}
               rowIndex={virtualRow.index + 2}
               measureElement={virtualizer.measureElement}
+              bulkSelection={bulkSelection}
             />
           );
         })}

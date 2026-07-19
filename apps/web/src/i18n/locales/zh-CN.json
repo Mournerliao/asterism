@@ -319,6 +319,44 @@
       "UNSUPPORTED_VERSION": "不支持的导出版本"
     }
   },
+  "bulk": {
+    "select": "选择仓库",
+    "selectRepo": "选择 {{repo}}",
+    "deselectRepo": "取消选择 {{repo}}",
+    "selectedCount": "已选择 {{count}} 个",
+    "selectAllFiltered": "全选当前筛选的 {{count}} 个",
+    "clear": "清空",
+    "organize": "批量整理",
+    "dialogTitle": "整理所选仓库",
+    "dialogDescription": "确认固定的 {{count}} 个仓库范围，然后选择标签与集合变更。",
+    "tags": "标签",
+    "collections": "集合",
+    "noTags": "请先创建标签，再使用批量整理。",
+    "noCollections": "请先创建集合，再使用批量整理。",
+    "actionFor": "{{name}} 的变更",
+    "noChange": "不更改",
+    "add": "添加",
+    "remove": "移除",
+    "confirm": "应用到 {{count}} 个仓库",
+    "applying": "正在应用变更…",
+    "createError": "无法创建批量操作。你的选择和变更仍保留在此处；请重试或取消。",
+    "actionError": "无法更新批量操作，已保存的进度未改变；请重试。",
+    "retry": "重试失败变更",
+    "continue": "继续",
+    "endOperation": "结束操作",
+    "terminalExplanation": "仓库或目标已不再归你所有或不可用，这些变更无法原样重试。",
+    "status": {
+      "running": "正在应用整理变更",
+      "needsAttention": "批量整理需要处理",
+      "completed": "批量整理已完成"
+    },
+    "result": {
+      "success": "{{count}} 项成功",
+      "pending": "{{count}} 项待处理",
+      "retryable": "{{count}} 项可重试",
+      "terminal": "{{count}} 项已终止"
+    }
+  },
   "settings": {
     "title": "设置",
     "appearance": "外观",

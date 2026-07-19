@@ -11,6 +11,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
+import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
 import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
@@ -20,7 +21,9 @@ import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
+import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
+import { useCollections } from '../data/use-collections';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
@@ -28,6 +31,7 @@ import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
 import { useBrowseView } from '../hooks/use-browse-view';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
+import { clearSelection, selectAllSnapshot, toggleSelection } from '../lib/bulk-selection';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
@@ -49,13 +53,24 @@ export function BrowsePage() {
   const { data: tags, isLoading: tagsLoading } = useTags();
   const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
+  const { data: collections, isLoading: collectionsLoading } = useCollections();
+  const { data: bulkOperations } = useBulkOperations();
+  const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
-    reposLoading || tagsLoading || repoTagsLoading || collectionReposLoading || notesLoading;
+    reposLoading ||
+    tagsLoading ||
+    repoTagsLoading ||
+    collectionReposLoading ||
+    collectionsLoading ||
+    notesLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
   const [stuck, setStuck] = useState(false);
+  const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
+  const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(() => new Set());
+  const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
 
   useEffect(() => {
@@ -152,6 +167,26 @@ export function BrowsePage() {
 
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
+  const activeBulkOperation = bulkOperations?.find((operation) => operation.status !== 'completed');
+  const selectedCount = new Intl.NumberFormat(i18n.language).format(selectedRepoIds.size);
+  const selectionController = bulkSelectionMode
+    ? {
+        repoIds: selectedRepoIds,
+        onToggle: (repoId: string) =>
+          setSelectedRepoIds((current) => toggleSelection(current, repoId)),
+      }
+    : undefined;
+  const bulkOperationContent = activeBulkOperation ? (
+    <BulkOperationBanner
+      operation={activeBulkOperation}
+      resuming={bulkActions.resume.isPending}
+      retrying={bulkActions.retry.isPending}
+      completing={bulkActions.complete.isPending}
+      onResume={() => bulkActions.resume.mutate(activeBulkOperation)}
+      onRetry={() => bulkActions.retry.mutate(activeBulkOperation)}
+      onComplete={() => bulkActions.complete.mutate(activeBulkOperation)}
+    />
+  ) : null;
 
   const repoContent = isError ? (
     <EmptyState
@@ -214,6 +249,7 @@ export function BrowsePage() {
       selectedRepoId={selectedRepoId}
       onSelect={openInspector}
       scrollElement={repoScrollElement}
+      bulkSelection={selectionController}
     />
   );
 
@@ -249,11 +285,66 @@ export function BrowsePage() {
                   title={t('browse.title')}
                   description={!isError ? t('browse.count', { total }) : undefined}
                 />
-                <RepoViewToggle committedView={view} onSelect={transitionTo} />
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  {bulkSelectionMode ? (
+                    <>
+                      <span aria-live="polite" className="text-caption text-muted-foreground">
+                        {t('bulk.selectedCount', { count: selectedCount })}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() =>
+                          setSelectedRepoIds(
+                            selectAllSnapshot(visible.map((record) => record.repoId)),
+                          )
+                        }
+                      >
+                        {t('bulk.selectAllFiltered', { count: total })}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={selectedRepoIds.size === 0}
+                        onClick={() => setSelectedRepoIds(clearSelection())}
+                      >
+                        {t('bulk.clear')}
+                      </Button>
+                      <Button
+                        size="sm"
+                        disabled={selectedRepoIds.size === 0 || Boolean(activeBulkOperation)}
+                        onClick={() => setBulkDialogOpen(true)}
+                      >
+                        {t('bulk.organize')}
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setBulkSelectionMode(false);
+                          setSelectedRepoIds(clearSelection());
+                        }}
+                      >
+                        {t('common.cancel')}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={Boolean(activeBulkOperation)}
+                      onClick={() => setBulkSelectionMode(true)}
+                    >
+                      {t('bulk.select')}
+                    </Button>
+                  )}
+                  <RepoViewToggle committedView={view} onSelect={transitionTo} />
+                </div>
               </div>
               <RepoFilterBar facets={facets} tags={tags ?? []} />
             </GlassControlRow>
             {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
+            {bulkOperationContent}
           </div>
         </div>
 
@@ -264,6 +355,27 @@ export function BrowsePage() {
         >
           <div className="mx-auto w-full max-w-6xl">{repoContent}</div>
         </div>
+        <BulkOrganizeDialog
+          open={bulkDialogOpen}
+          onOpenChange={setBulkDialogOpen}
+          repoCount={selectedRepoIds.size}
+          tags={tags ?? []}
+          collections={collections ?? []}
+          pending={bulkActions.create.isPending}
+          error={bulkActions.create.isError}
+          onConfirm={(changes) =>
+            bulkActions.create.mutate(
+              { repoIds: [...selectedRepoIds], changes },
+              {
+                onSuccess: () => {
+                  setBulkDialogOpen(false);
+                  setBulkSelectionMode(false);
+                  setSelectedRepoIds(clearSelection());
+                },
+              },
+            )
+          }
+        />
       </div>
     );
   }
@@ -278,6 +390,8 @@ export function BrowsePage() {
         />
 
         {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
+
+        {bulkOperationContent}
 
         {repoContent}
       </div>

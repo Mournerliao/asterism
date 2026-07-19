@@ -9,7 +9,7 @@
 - **`repos` 为全局共享、公共可读**：同一个 GitHub 仓库的元数据全局只存一份，所有用户共享读取，避免重复。
 - **用户私有数据按 `user_id` 隔离**：star 关系、标签、集合、笔记、设置等都归属具体用户，彼此不可见。
 - **关系尽量规范化**：多对多关系（仓库↔标签、仓库↔集合）用独立连接表表达。
-- **AI 相关表在 Phase 2 落地**：`ai_provider_connections`、`ai_organization_drafts` 与 `user_settings` 属 AI（BYOK）阶段；当前路线不建立 Embedding 或向量表。
+- **Phase 2 表按能力解耦落地**：不依赖 AI 的 `bulk_operations` / `bulk_operation_items` 先提供可靠批量写入；`ai_provider_connections`、`ai_organization_drafts` 与 `user_settings` 再承载可选的 AI（BYOK）能力。当前路线不建立 Embedding 或向量表。
 
 约定：所有表含 `id`（主键，uuid 或 bigint，下文不再逐一重复）、`created_at`、`updated_at`（时间戳）。`user_id` 引用 Supabase `auth.users(id)`。
 
@@ -92,7 +92,32 @@
 
 ---
 
-## Phase 2 Tables · 进阶表（AI / 设置）
+## Phase 2 Tables · 进阶表（批量整理 / AI / 设置）
+
+### `bulk_operations` — 持久化批量操作
+
+- `user_id` → `auth.users(id)`
+- `source` — `manual` / `ai_draft`，仅说明操作来源，不改变执行语义
+- `source_repo_ids` — 用户确认时固化的选择范围快照
+- `status` — `pending` / `running` / `needs_attention` / `completed`
+- `completed_at` — 全部成功或用户明确结束剩余终止失败的时间（可选）
+
+约束：用户确认写入后才创建；`source_repo_ids` 不随筛选变化或后续同步改变。操作状态由其逐关系项目汇总：仍有待执行项为 `pending` / `running`，存在失败项为 `needs_attention`，全部成功或终止失败已由用户明确结束后为 `completed`。AI 草稿确认后复用同一模型，不建立另一套 AI 写入通道。
+
+### `bulk_operation_items` — 批量关系变更
+
+- `user_id` → `auth.users(id)`
+- `operation_id` → `bulk_operations(id)`
+- `repo_id` → `repos(id)`
+- `relation_type` — `tag` / `collection`
+- `target_id` — 对应用户标签或集合的 ID
+- `action` — `add` / `remove`
+- `status` — `pending` / `running` / `succeeded` / `retryable_failed` / `terminal_failed` / `dismissed`
+- `attempt_count` — 已执行次数
+- `last_error_code` — 稳定、非敏感的错误码（可选）
+- `last_error_message` — 可展示且不含 credential / token / SQL 细节的错误摘要（可选）
+
+约束：一条“仓库 × 关系类型 × 目标 × 动作”是最小执行、结果与重试单位，并在同一操作内唯一。添加已有关系或移除不存在的关系必须视为 `succeeded`。只允许 `retryable_failed` 原样重试；`terminal_failed` 只能由用户明确结束为 `dismissed`，或修正条件后创建新操作。操作与项目的 `user_id` 必须一致，目标标签 / 集合及仓库成员关系必须属于同一用户可见范围。
 
 ### `ai_provider_connections` — 用户的 AI Provider Connection
 
@@ -144,6 +169,11 @@
 - **`user_stars` / `tags` / `repo_tags` / `collections` / `collection_repos` / `notes` / `user_settings` / `ai_organization_drafts`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
+
+- **`bulk_operations` / `bulk_operation_items`**
+  - SELECT：要求 `user_id = auth.uid()`，客户端可读取本人的操作进度与结果。
+  - INSERT / UPDATE / DELETE：普通客户端无直接表权限；创建、执行、重试与明确结束只经验证用户 JWT 的受信批量写入路径完成，避免客户端伪造执行结果或绕过状态机。
+  - 受信路径必须同时校验操作、项目、仓库成员关系以及目标标签 / 集合都属于当前用户。
 
 - **`ai_provider_connections`**
   - 普通客户端角色无直接表权限；RLS 仍启用为纵深防御。

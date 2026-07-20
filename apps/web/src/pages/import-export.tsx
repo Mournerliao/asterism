@@ -26,6 +26,7 @@ import { useNotesList } from '../data/use-notes-list';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useTags } from '../data/use-tags';
+import { buildExportSnapshot } from '../lib/export-snapshot';
 
 const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string }[] =
   [
@@ -54,61 +55,18 @@ export function ImportExportPage() {
     collectionReposLoading ||
     notesLoading;
 
-  const snapshot = useMemo((): ExportSnapshot => {
-    const records = starredRepos ?? [];
-    const tagById = new Map((tags ?? []).map((tag) => [tag.id, tag.name]));
-    const collectionById = new Map(
-      (collections ?? []).map((collection) => [collection.id, collection.name]),
-    );
-    const fullNameByRepoId = new Map(
-      records.map((record) => [record.repoId, record.repo.fullName]),
-    );
-
-    return {
-      tags: (tags ?? []).map(({ name, color }) => ({ name, color })),
-      collections: (collections ?? []).map(({ name, description }) => ({ name, description })),
-      repos: records.map(({ repo, starredAt }) => ({
-        fullName: repo.fullName,
-        starredAt,
-        language: repo.language,
-        description: repo.description,
-        topics: repo.topics,
-        stargazers: repo.stargazers,
-        forks: repo.forks,
-        archived: repo.archived,
-        pushedAt: repo.pushedAt,
-      })),
-      repoTags: (repoTags ?? [])
-        .map((link) => {
-          const tagName = tagById.get(link.tagId);
-          const fullName = fullNameByRepoId.get(link.repoId);
-          if (!tagName || !fullName) {
-            return null;
-          }
-          return { fullName, tagName };
-        })
-        .filter((link): link is { fullName: string; tagName: string } => link !== null),
-      collectionRepos: (collectionRepos ?? [])
-        .map((link) => {
-          const collectionName = collectionById.get(link.collectionId);
-          const fullName = fullNameByRepoId.get(link.repoId);
-          if (!collectionName || !fullName) {
-            return null;
-          }
-          return { collectionName, fullName };
-        })
-        .filter((link): link is { collectionName: string; fullName: string } => link !== null),
-      notes: (notesList ?? [])
-        .map((note) => {
-          const fullName = fullNameByRepoId.get(note.repoId);
-          if (!fullName || !note.body.trim()) {
-            return null;
-          }
-          return { fullName, body: note.body };
-        })
-        .filter((note): note is { fullName: string; body: string } => note !== null),
-    };
-  }, [starredRepos, tags, collections, repoTags, collectionRepos, notesList]);
+  const snapshot = useMemo(
+    (): ExportSnapshot =>
+      buildExportSnapshot({
+        starredRepos: starredRepos ?? [],
+        tags: tags ?? [],
+        collections: collections ?? [],
+        repoTags: repoTags ?? [],
+        collectionRepos: collectionRepos ?? [],
+        notes: notesList ?? [],
+      }),
+    [starredRepos, tags, collections, repoTags, collectionRepos, notesList],
+  );
 
   const hasData = (starredRepos?.length ?? 0) > 0;
 

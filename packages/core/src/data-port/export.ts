@@ -24,6 +24,31 @@ export function buildExportPayload(
   };
 }
 
+/**
+ * 按固定的仓库范围裁剪导出快照：只保留在 `repoFullNames` 内的仓库，以及
+ * 与之相关的标签 / 集合 / 关联 / 笔记。范围外的名字会被忽略，不会扩大导出。
+ */
+export function scopeExportSnapshot(
+  snapshot: ExportSnapshot,
+  repoFullNames: ReadonlySet<string>,
+): ExportSnapshot {
+  const repos = snapshot.repos.filter((repo) => repoFullNames.has(repo.fullName));
+  const repoTags = snapshot.repoTags.filter((link) => repoFullNames.has(link.fullName));
+  const collectionRepos = snapshot.collectionRepos.filter((link) =>
+    repoFullNames.has(link.fullName),
+  );
+  const notes = snapshot.notes.filter((note) => repoFullNames.has(note.fullName));
+
+  const usedTagNames = new Set(repoTags.map((link) => link.tagName));
+  const usedCollectionNames = new Set(collectionRepos.map((link) => link.collectionName));
+  const tags = snapshot.tags.filter((tag) => usedTagNames.has(tag.name));
+  const collections = snapshot.collections.filter((collection) =>
+    usedCollectionNames.has(collection.name),
+  );
+
+  return { tags, collections, repos, repoTags, collectionRepos, notes };
+}
+
 /** 序列化为格式化 JSON 字符串。 */
 export function serializeExportJson(payload: ExportPayloadV1): string {
   return `${JSON.stringify(payload, null, 2)}\n`;

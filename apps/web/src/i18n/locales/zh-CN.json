@@ -340,6 +340,19 @@
     "deselectAllFiltered": "取消选择当前筛选的 {{count}} 个",
     "clear": "清空",
     "organize": "批量整理",
+    "export": {
+      "action": "导出",
+      "title": "导出所选仓库",
+      "description": "导出选中的 {{count}} 个仓库及其最新的标签、集合与笔记，不会改动任何数据。",
+      "download": "下载 {{format}}",
+      "error": "无法生成导出文件。你的选择仍保留在此处；请重试。",
+      "retry": "重试",
+      "formatDescription": {
+        "json": "可恢复的部分备份，重新导入会合并这些仓库的标签、集合、关联与笔记，不会删除其它内容。",
+        "csv": "适合用电子表格处理的所选仓库清单，仅含元数据，无法恢复到 Asterism。",
+        "markdown": "所选仓库的可读归档，包含其标签、集合与笔记，无法恢复到 Asterism。"
+      }
+    },
     "dialogTitle": "整理所选仓库",
     "dialogDescription": "确认固定的 {{count}} 个仓库范围，然后选择标签与集合变更。",
     "tags": "标签",

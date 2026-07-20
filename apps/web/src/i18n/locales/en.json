@@ -340,6 +340,19 @@
     "deselectAllFiltered": "Deselect all {{count}} filtered",
     "clear": "Clear",
     "organize": "Organize",
+    "export": {
+      "action": "Export",
+      "title": "Export selected repositories",
+      "description": "Export the {{count}} selected repositories with their latest tags, collections, and notes. Nothing is changed.",
+      "download": "Download {{format}}",
+      "error": "Couldn't generate the export. Your selection is still here; try again.",
+      "retry": "Try again",
+      "formatDescription": {
+        "json": "Recoverable partial backup. Re-importing merges these repositories' tags, collections, links, and notes without deleting anything else.",
+        "csv": "Spreadsheet-ready list of the selected repositories. Metadata only; it can't be restored to Asterism.",
+        "markdown": "Readable archive of the selected repositories with their tags, collections, and notes. It can't be restored to Asterism."
+      }
+    },
     "dialogTitle": "Organize selected repositories",
     "dialogDescription": "Confirm a stable scope of {{count}} repositories, then choose tag and collection changes.",
     "tags": "Tags",

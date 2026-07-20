@@ -17,6 +17,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
+import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
 import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
@@ -82,6 +83,7 @@ export function BrowsePage() {
   const [bulkSelectionMode, setBulkSelectionMode] = useState(false);
   const [selectedRepoIds, setSelectedRepoIds] = useState<Set<string>>(() => new Set());
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [bulkExportOpen, setBulkExportOpen] = useState(false);
   const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
 
   useEffect(() => {
@@ -370,6 +372,13 @@ export function BrowsePage() {
                               {t('bulk.clear')}
                             </Button>
                             <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setBulkExportOpen(true)}
+                            >
+                              {t('bulk.export.action')}
+                            </Button>
+                            <Button
                               size="sm"
                               disabled={Boolean(activeBulkOperation)}
                               onClick={() => setBulkDialogOpen(true)}
@@ -442,6 +451,16 @@ export function BrowsePage() {
               },
             )
           }
+        />
+        <BulkExportDialog
+          open={bulkExportOpen}
+          onOpenChange={setBulkExportOpen}
+          selectedRepoIds={selectedRepoIds}
+          starredRepos={records}
+          tags={tags ?? []}
+          collections={collections ?? []}
+          repoTags={repoTags ?? []}
+          collectionRepos={collectionRepos ?? []}
         />
       </div>
     );

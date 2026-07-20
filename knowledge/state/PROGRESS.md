@@ -8,6 +8,8 @@
 
 > 自定义 endpoint SSRF 边界已验证并裁决（2026-07-20，ADR 0024，见 `logs/2026-07-20-custom-endpoint-ssrf-verification.md`）：向目标 Supabase Edge Runtime 部署一次性探针实测后删除——`Deno.resolveDns` 可用（服务端可先解析再校验），云 metadata 已被平台挡，但 loopback / 私网出站会真实发起，平台不是充分兜底。裁决：分类器守卫（resolve 后校验 + 逐跳重定向重校验）恒开；因任一实例可能托管多租户，自定义 endpoint 在守卫之上叠加部署者域名 allowlist（内置 Provider 免配、个人实例可 allow-all、公开分享实例应 curate 或关闭）。HTTPS DNS-rebinding TOCTOU 为已知残余限制，allowlist 生效时规避。conventions「AI Provider 网络边界」与 BACKLOG 同步更新。
 
+> Web 本地启动依赖预构建修复（2026-07-20，见 `logs/2026-07-20-web-dev-shared-package-prebuild.md`）：`pnpm --filter @asterism/web dev` 现在会先构建 Web 的 workspace 依赖，避免 `packages/{core,ui,db}/dist` 被忽略且过期时，Vite 从旧入口加载不到新增导出。此次由 `invokeBulkOperation` 源码已导出、但 `packages/db/dist/index.js` 仍停留在旧构建而触发；新增启动前置步骤后精确导出反馈环、DB 测试与 Web 构建均通过。
+
 > 简体中文混排可读性规范化（2026-07-20，见 `logs/2026-07-20-zh-cn-mixed-text-spacing.md`）：明确汉字与拉丁术语 / 缩写 / 拉丁插值之间使用半角空格，统一中文界面的 `Star` / `GitHub Stars` 大小写，并把动态收藏时间改为自然的“收藏于 …”；语言名称全部外部化，切换 locale 时同步 HTML `lang`。新增全量 zh-CN 资源回归扫描，保护未来文案不再出现中英粘连；不改写仓库名、URL、代码与 README 原文，数字和中文量词继续遵循 locale 原生格式。`pnpm lint / typecheck / test / build` 全部通过（Web 130 tests）。
 
 > 批量卡片点击语义修复（2026-07-20）：进入 Browse 批量选择模式时先关闭已有 Quick Look（未保存笔记继续走保护确认）；选择模式内仅项目名保留 GitHub 外链，描述及卡片其他区域统一切换选择，不再触发或残留 Quick Look。新增真实 `RepoCard` DOM 回归测试并先红后绿。

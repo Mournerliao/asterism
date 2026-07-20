@@ -34,7 +34,7 @@
 
 ## Phase 0 脚手架便签
 
-- **本地骨架已就位**：`pnpm install` 后，`pnpm dev`（turbo）可起各端；`apps/web` 用 `pnpm --filter @asterism/web dev`。四道门：`pnpm lint` / `typecheck` / `test` / `build`。
+- **本地骨架已就位**：`pnpm install` 后，`pnpm dev`（turbo）可起各端；`apps/web` 用 `pnpm --filter @asterism/web dev`，其 `predev` 会先构建 workspace 依赖，避免被忽略的共享包 `dist` 过期。四道门：`pnpm lint` / `typecheck` / `test` / `build`。
 - **依赖版本**：由 `pnpm add` 在 2026-06 解析（如 TS 6、Vite 8、Vitest 4、React 19、WXT 0.20.x），以 `pnpm-lock.yaml` 为准，未手写臆造版本。
 - **恢复点**：下一步是凭据 handoff（Supabase + GitHub OAuth），见 `PROGRESS.md` 与 `logs/2026-06-29-phase0-scaffold.md`。
 

@@ -68,5 +68,5 @@
 - **`.env` 不入库**：环境变量经 `.env` 本地配置，`.gitignore` 忽略；仓库只提供 `.env.example` 占位（无真实值）。
 - **BYOK credential 加密存储**：用户自带 Provider credential 的明文只允许存在于保存请求与受信 Edge Function 当前调用的内存中。Edge Function 使用独立服务端 master key 做 authenticated encryption；Postgres 分别保存 ciphertext、nonce、加密版本与可选非敏感提示，客户端普通查询永远不得返回完整 credential 或加密材料。credential 是由 Provider Adapter 验证的类型化 payload，不假定只有一个 API key 字段。
 - **BYOK 生命周期**：用户必须可测试、启用/停用、替换和删除 credential；日志、错误、query key 与分析数据不得包含明文。自部署 runbook 必须要求独立 encryption secret，Phase 2 必须定义 master key 轮换与旧版本密文迁移流程。
-- **AI Provider 网络边界**：所有上游 AI 请求只由受信 Edge Function 经注册 Adapter 发起。自定义 OpenAI-compatible Connection 只接受 HTTPS endpoint；保存、能力测试和实际调用均须阻断 localhost、私网、链路本地、保留地址与云 metadata 地址，并对 DNS 解析结果及每次重定向重新校验，避免 SSRF。不得把未经校验的用户 URL 直接作为请求目标。
+- **AI Provider 网络边界**：所有上游 AI 请求只由受信 Edge Function 经注册 Adapter 发起。自定义 OpenAI-compatible Connection 只接受 HTTPS endpoint；保存、能力测试和实际调用均须阻断 localhost、私网、链路本地、保留地址与云 metadata 地址，并对 DNS 解析结果及每次重定向重新校验，避免 SSRF。不得把未经校验的用户 URL 直接作为请求目标。因任一实例都可能托管多租户，自定义 endpoint 在守卫之上叠加**部署者域名 allowlist**：内置 Provider 域名固定视为天然白名单，自定义 Connection 只能命中部署者显式允许的域名（个人实例可 allow-all，公开分享实例应 curate 或关闭）。HTTPS 下 DNS-rebinding 的 TOCTOU 属已知残余限制，在 allowlist 生效时规避。见 ADR 0024。
 - **同步更新知识库**：任何代码 / 配置 / 架构变更，都必须同步更新 `knowledge/`（契约、状态、必要时 ADR），保持单一事实源不漂移。

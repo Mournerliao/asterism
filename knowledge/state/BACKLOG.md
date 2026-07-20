@@ -35,7 +35,7 @@
 - [x] **Embedding 与语义搜索已移出路线图**（2026-07-18，ADR 0022）：不实现 pgvector 向量表、索引任务、Semantic 模式、相似推荐或自动聚类；Browse 继续使用现有关键词搜索。未来只有在出现明确价值且能提供无需理解底层模型的一键、多语言方案时重新立项。
 - [x] **AI 笔记数据边界已明确**（2026-07-18）：首次分类前展示发送字段与目标 Generation Provider；当前用户笔记只有在明确启用后才发送。关闭后不发送笔记；README 与其他用户私有数据永远不可访问。
 - [x] **Phase 2 Generation Provider 架构边界已明确**（2026-07-18）：首批内置 OpenAI、Google Gemini、Anthropic、OpenRouter，并支持具名自定义 OpenAI-compatible Connection。自定义模型允许手填；每个 Connection 一个 credential，不做完整 Gateway 的 key 池、fallback、预算或限流，也不回退到 Asterism 付费额度。见 ADR 0018、0022。
-- [ ] **Phase 2 技术验证 — 自定义 endpoint 安全**：实现前验证 DNS、重定向与私网地址拦截在目标 Supabase Edge Runtime 中可可靠实现；若无法满足 SSRF 合同，自定义 Connection 必须收敛为部署者 allowlist，不能带风险上线。
+- [x] **Phase 2 技术验证 — 自定义 endpoint 安全**（2026-07-20，ADR 0024）：已向目标 Supabase Edge Runtime 部署一次性探针实测——`Deno.resolveDns` 可用（可服务端先解析再校验），云 metadata 已被平台挡，但 loopback / 私网出站会真实发起，故分类器守卫（resolve 后校验 + 逐跳重定向重校验）恒开为必需；因任一实例可能托管多租户，自定义 endpoint 叠加部署者域名 allowlist（内置 Provider 免配、个人实例可 allow-all）。HTTPS DNS-rebinding TOCTOU 记为已知残余限制。见 ADR 0024。
 - [x] **DB 强类型查询**（2026-06-30，Slice 3）：`packages/db` 已收紧为 `SupabaseClient<Database>`，新增 `listStarredRepos`/`getLatestStarredAt` 强类型读查询。当前 `database.types.ts` 为**手写**（7 表 Row/Insert/Update + 关系）作为过渡；待 Supabase CLI 流程统一后用 `supabase gen types typescript` 生成版替换（保留此指针）。见 `logs/2026-06-30-phase1-slice3-stars-sync.md`。
 - [x] **迁移版本纪律已明确**（2026-07-18）：`supabase/migrations/*.sql` 是 schema/RLS 唯一来源；禁止只在 Dashboard 手改线上，紧急修复必须补等价 migration。手写 database types 可暂时保留，不阻断 Phase 1。
 - [ ] **Web 主 chunk 性能观察项（非 Phase 1 阻断）**：2026-07-18 构建主 JS 约 815KB / gzip 241KB，Vite 发出默认 500KB warning；Dashboard 约 160KB。暂不抬高阈值或盲目拆包，待 Core Web Vitals、低端设备加载时间、流量或平台成本指标证明问题后再优化。

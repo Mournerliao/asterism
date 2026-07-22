@@ -3,9 +3,11 @@ import {
   BUILTIN_GENERATION_HOSTS,
   buildGenerationProbeRequest,
   buildModelDiscoveryRequest,
+  buildOrganizationGenerationRequest,
   extractJsonObject,
   type GenerationTarget,
   interpretGenerationProbeResponse,
+  interpretOrganizationGenerationResponse,
   isCustomGenerationAdapter,
   isOrganizationDraft,
   parseModelDiscoveryResponse,
@@ -251,5 +253,115 @@ describe('registry metadata', () => {
   it('marks only openai-compatible as custom', () => {
     expect(isCustomGenerationAdapter('openai-compatible')).toBe(true);
     expect(isCustomGenerationAdapter('openai')).toBe(false);
+  });
+});
+
+const organizationInput = {
+  repositories: [
+    {
+      id: 'repo-1',
+      fullName: 'asterism/app',
+      description: 'A star manager',
+      language: 'TypeScript',
+      topics: ['github', 'stars'],
+      existingTagIds: ['tag-1'],
+      existingCollectionIds: [],
+      note: 'private note',
+    },
+  ],
+  tags: [{ id: 'tag-1', name: 'Tools' }],
+  collections: [{ id: 'collection-1', name: 'Research' }],
+};
+
+describe('organization generation', () => {
+  it.each([
+    ['openai', '/chat/completions'],
+    ['openrouter', '/chat/completions'],
+    ['openai-compatible', '/chat/completions'],
+    ['anthropic', '/messages'],
+    ['google', ':generateContent'],
+  ] as const)('builds a native %s request without flattening adapter contracts', (adapter, suffix) => {
+    const request = buildOrganizationGenerationRequest({
+      ...target({
+        adapter,
+        baseUrl: adapter === 'openai-compatible' ? 'https://api.example.com/v1' : null,
+      }),
+      input: organizationInput,
+    });
+    expect(request.url).toContain(suffix);
+    expect(request.body).toContain('repo-1');
+    expect(request.body).not.toContain('sk-test-key');
+    if (adapter === 'anthropic') expect(request.headers['anthropic-version']).toBeTruthy();
+    if (adapter === 'google') expect(request.headers['x-goog-api-key']).toBe('sk-test-key');
+  });
+
+  it('accepts a valid empty suggestion set as a successful draft', () => {
+    const body = {
+      choices: [{ message: { content: '{"relationChanges":[],"newClassifications":[]}' } }],
+    };
+    expect(interpretOrganizationGenerationResponse('openai', ok(body), organizationInput)).toEqual({
+      ok: true,
+      draft: { version: 1, relationChanges: [], newClassifications: [] },
+    });
+  });
+
+  it('normalizes valid suggestions that use stable ids', () => {
+    const content = JSON.stringify({
+      relationChanges: [
+        { repoId: 'repo-1', relationType: 'tag', action: 'remove', targetId: 'tag-1' },
+      ],
+      newClassifications: [
+        { relationType: 'collection', name: '  AI   Reading  ', repoIds: ['repo-1'] },
+      ],
+    });
+    const result = interpretOrganizationGenerationResponse(
+      'openai',
+      ok({ choices: [{ message: { content } }] }),
+      organizationInput,
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      draft: {
+        newClassifications: [{ relationType: 'collection', name: 'AI Reading' }],
+      },
+    });
+  });
+
+  it.each([
+    [
+      'unknown repository',
+      {
+        relationChanges: [
+          { repoId: 'repo-x', relationType: 'tag', action: 'add', targetId: 'tag-1' },
+        ],
+        newClassifications: [],
+      },
+    ],
+    [
+      'foreign classification',
+      {
+        relationChanges: [
+          { repoId: 'repo-1', relationType: 'tag', action: 'add', targetId: 'tag-x' },
+        ],
+        newClassifications: [],
+      },
+    ],
+    [
+      'contradictory duplicate',
+      {
+        relationChanges: [
+          { repoId: 'repo-1', relationType: 'tag', action: 'add', targetId: 'tag-1' },
+          { repoId: 'repo-1', relationType: 'tag', action: 'remove', targetId: 'tag-1' },
+        ],
+        newClassifications: [],
+      },
+    ],
+  ])('rejects %s output', (_label, draft) => {
+    const result = interpretOrganizationGenerationResponse(
+      'openai',
+      ok({ choices: [{ message: { content: JSON.stringify(draft) } }] }),
+      organizationInput,
+    );
+    expect(result.ok).toBe(false);
   });
 });

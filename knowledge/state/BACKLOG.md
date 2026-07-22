@@ -32,6 +32,7 @@
 - [x] **Phase 2 批量整理契约对齐**（2026-07-19，ADR 0023）：选择范围按 repository ID 固化；关系变更是最小执行与重试单位；确认后持久化操作及逐项结果；失败分为可重试 / 终止；选中导出沿用 JSON / CSV / Markdown 语义。
 - [x] **Phase 2 选中导出（GitHub #12）**（2026-07-20）：Browse 批量模式可将固定 repository ID 范围导出为 JSON 部分备份 / CSV 清单 / Markdown 可读归档；只读读取下载时最新数据，不改动用户数据也不创建写操作记录；裁剪范围与筛选无关（核心 `scopeExportSnapshot`）。GitHub #11 / #12 均已验证并关闭。
 - [x] **Phase 2 AI 切片 A — BYOK Generation Connections（GitHub #13）**（2026-07-22 全面复审完成）：Generation Connection 的添加、编辑、替换凭据、模型发现/手填、测试、显式启停、删除、active connection/model 与笔记偏好已落地；连接表只经受信函数返回安全投影，`user_settings` 客户端只读并由数据库 trigger 强制 active pair。AES-256-GCM + AAD、版本化 master key、独立带外轮换、类型化 Provider Registry、SSRF + allowlist + 同源重定向边界均有自动化覆盖；en / zh-CN、Impeccable 检测和四道门禁全绿。AI 整理建议流程（`ai_organization_drafts`）仍为切片 B。见 `logs/2026-07-21-issue-13-byok-generation-connections.md`。
+- [ ] **Phase 2 AI 切片 B — AI 整理建议草稿（GitHub #14）**（2026-07-23）：#15 生成 / 恢复有界草稿已完成，已落地 1–50 个仓库的权威上下文生成、每条已启用笔记 2,000 个 Unicode code points 截断、稳定分类 ID / 类型化新分类、失败保留旧草稿与跨刷新恢复；下一步为 #16 持久化人工审阅，之后是 #17 受信确认到 `source: "ai_draft"` 可靠批量操作及真实环境验收。切片 B 在 #16 / #17 完成前保持未完成。见 `logs/2026-07-23-issue-15-ai-organization-drafts.md`。
 - [x] **Phase 2 不做 Saved View / Query History**（2026-07-18）：不持久化命名筛选，也不记录关键词或语义查询历史；未来出现明确复用需求时作为独立能力设计。
 - [x] **Embedding 与语义搜索已移出路线图**（2026-07-18，ADR 0022）：不实现 pgvector 向量表、索引任务、Semantic 模式、相似推荐或自动聚类；Browse 继续使用现有关键词搜索。未来只有在出现明确价值且能提供无需理解底层模型的一键、多语言方案时重新立项。
 - [x] **AI 笔记数据边界已明确**（2026-07-18）：首次分类前展示发送字段与目标 Generation Provider；当前用户笔记只有在明确启用后才发送。关闭后不发送笔记；README 与其他用户私有数据永远不可访问。

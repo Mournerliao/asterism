@@ -46,3 +46,8 @@ export const aiSettingsKeys = {
   all: ['ai-settings'] as const,
   detail: (userId: string) => ['ai-settings', userId] as const,
 };
+
+export const aiOrganizationKeys = {
+  all: ['ai-organization'] as const,
+  draft: (userId: string) => ['ai-organization', 'draft', userId] as const,
+};

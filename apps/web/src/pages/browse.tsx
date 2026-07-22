@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { AiOrganizationDraftBanner, AiOrganizationPreflight } from '../components/ai-organization';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
@@ -28,6 +29,12 @@ import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
+import { useAiConnections, useAiSettings } from '../data/use-ai-connections';
+import {
+  useAiOrganizationDraft,
+  useDiscardAiOrganizationDraft,
+  useGenerateAiOrganizationDraft,
+} from '../data/use-ai-organization';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
@@ -67,6 +74,11 @@ export function BrowsePage() {
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: bulkOperations } = useBulkOperations();
+  const { data: aiConnections, isLoading: aiConnectionsLoading } = useAiConnections();
+  const { data: aiSettings, isLoading: aiSettingsLoading } = useAiSettings();
+  const { data: aiDraft, isLoading: aiDraftLoading } = useAiOrganizationDraft();
+  const generateAiDraft = useGenerateAiOrganizationDraft();
+  const discardAiDraft = useDiscardAiOrganizationDraft();
   const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
@@ -75,7 +87,10 @@ export function BrowsePage() {
     repoTagsLoading ||
     collectionReposLoading ||
     collectionsLoading ||
-    notesLoading;
+    notesLoading ||
+    aiConnectionsLoading ||
+    aiSettingsLoading ||
+    aiDraftLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
@@ -178,10 +193,25 @@ export function BrowsePage() {
     [collectionRepos],
   );
   const noteRepoIdSet = useMemo(() => toRepoIdSet(noteRepoIds ?? []), [noteRepoIds]);
+  const repoNames = useMemo(
+    () => new Map(records.map((record) => [record.repoId, record.repo.fullName])),
+    [records],
+  );
+  const targetNames = useMemo(
+    () =>
+      new Map([
+        ...(tags ?? []).map((tag) => [tag.id, tag.name] as const),
+        ...(collections ?? []).map((collection) => [collection.id, collection.name] as const),
+      ]),
+    [tags, collections],
+  );
 
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
   const activeBulkOperation = bulkOperations?.find((operation) => operation.status !== 'completed');
+  const activeAiConnection =
+    aiConnections?.find((connection) => connection.id === aiSettings?.generationConnectionId) ??
+    null;
   const activeFilter = hasActiveFilter(toRepoFilter(filters));
   const selectedVisibleCount = useMemo(() => {
     let count = 0;
@@ -222,6 +252,15 @@ export function BrowsePage() {
       onResume={() => bulkActions.resume.mutate(activeBulkOperation)}
       onRetry={() => bulkActions.retry.mutate(activeBulkOperation)}
       onComplete={() => bulkActions.complete.mutate(activeBulkOperation)}
+    />
+  ) : null;
+  const aiDraftContent = aiDraft ? (
+    <AiOrganizationDraftBanner
+      draft={aiDraft}
+      repoNames={repoNames}
+      targetNames={targetNames}
+      discarding={discardAiDraft.isPending}
+      onDiscard={() => discardAiDraft.mutateAsync()}
     />
   ) : null;
 
@@ -378,14 +417,25 @@ export function BrowsePage() {
                             >
                               {t('bulk.export.action')}
                             </Button>
-                            <Button
-                              size="sm"
-                              disabled={Boolean(activeBulkOperation)}
-                              onClick={() => setBulkDialogOpen(true)}
-                            >
-                              {t('bulk.organize')}
-                            </Button>
                           </>
+                        ) : null}
+                        <AiOrganizationPreflight
+                          selectedRepoIds={[...selectedRepoIds]}
+                          connection={activeAiConnection}
+                          model={aiSettings?.generationModel ?? null}
+                          includeNotes={aiSettings?.includeNotesInAi ?? false}
+                          existingDraft={aiDraft ?? null}
+                          pending={generateAiDraft.isPending}
+                          onGenerate={(repoIds) => generateAiDraft.mutateAsync(repoIds)}
+                        />
+                        {selectedRepoIds.size > 0 ? (
+                          <Button
+                            size="sm"
+                            disabled={Boolean(activeBulkOperation)}
+                            onClick={() => setBulkDialogOpen(true)}
+                          >
+                            {t('bulk.organize')}
+                          </Button>
                         ) : null}
                         <Button
                           variant="ghost"
@@ -421,6 +471,7 @@ export function BrowsePage() {
             </GlassControlRow>
             {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
             {bulkOperationContent}
+            {aiDraftContent}
           </div>
         </div>
 
@@ -478,6 +529,7 @@ export function BrowsePage() {
         {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
 
         {bulkOperationContent}
+        {aiDraftContent}
 
         {repoContent}
       </div>

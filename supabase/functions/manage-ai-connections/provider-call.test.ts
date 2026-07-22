@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import type { GenerationTarget } from '../../../packages/core/src/ai/generation-registry';
+import type {
+  GenerationTarget,
+  OrganizationGenerationInput,
+} from '../../../packages/core/src/ai/generation-registry';
 import { type DnsResolver, SsrfError } from '../../../packages/core/src/ai/ssrf';
 import {
   assertCustomEndpointAllowed,
   discoverConnectionModels,
+  generateOrganizationDraft,
   type ProviderCallConfig,
   probeConnection,
 } from './provider-call';
@@ -184,5 +188,47 @@ describe('assertCustomEndpointAllowed', () => {
         'https://api.deepseek.com/v1',
       ),
     ).rejects.toBeInstanceOf(SsrfError);
+  });
+});
+
+describe('generateOrganizationDraft', () => {
+  const input: OrganizationGenerationInput = {
+    repositories: [
+      {
+        id: 'repo-1',
+        fullName: 'asterism/app',
+        description: null,
+        language: 'TypeScript',
+        topics: [],
+        existingTagIds: [],
+        existingCollectionIds: [],
+      },
+    ],
+    tags: [],
+    collections: [],
+  };
+
+  it('returns a validated empty draft through the guarded provider seam', async () => {
+    const fetch = fetchReturning(
+      jsonResponse({
+        choices: [{ message: { content: '{"relationChanges":[],"newClassifications":[]}' } }],
+      }),
+    ).fetch;
+    await expect(
+      generateOrganizationDraft(config({ fetch }), { ...target(), input }),
+    ).resolves.toEqual({
+      version: 1,
+      relationChanges: [],
+      newClassifications: [],
+    });
+  });
+
+  it('returns stable non-sensitive errors for transport and schema failures', async () => {
+    const badSchema = fetchReturning(
+      jsonResponse({ choices: [{ message: { content: '{"unexpected":true}' } }] }),
+    ).fetch;
+    await expect(
+      generateOrganizationDraft(config({ fetch: badSchema }), { ...target(), input }),
+    ).rejects.toThrow('provider_schema_mismatch');
   });
 });

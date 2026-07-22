@@ -339,6 +339,56 @@ export interface Database {
         Update: Partial<Database['public']['Tables']['ai_provider_connections']['Insert']>;
         Relationships: [];
       };
+      ai_organization_drafts: {
+        Row: {
+          id: string;
+          user_id: string;
+          source_repo_ids: string[];
+          suggestion_version: number;
+          suggestions: Json;
+          generation_connection_id: string;
+          generation_adapter:
+            | 'openai'
+            | 'google'
+            | 'anthropic'
+            | 'openrouter'
+            | 'openai-compatible';
+          generation_model: string;
+          review_state: 'review';
+          revision: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          source_repo_ids: string[];
+          suggestion_version?: number;
+          suggestions: Json;
+          generation_connection_id: string;
+          generation_adapter:
+            | 'openai'
+            | 'google'
+            | 'anthropic'
+            | 'openrouter'
+            | 'openai-compatible';
+          generation_model: string;
+          review_state?: 'review';
+          revision?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ai_organization_drafts']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'ai_organization_drafts_connection_fkey';
+            columns: ['generation_connection_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'ai_provider_connections';
+            referencedColumns: ['id', 'user_id'];
+          },
+        ];
+      };
       user_settings: {
         Row: {
           id: string;
@@ -378,6 +428,18 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      replace_ai_organization_draft: {
+        Args: {
+          p_user_id: string;
+          p_source_repo_ids: string[];
+          p_suggestion_version: number;
+          p_suggestions: Json;
+          p_generation_connection_id: string;
+          p_generation_adapter: string;
+          p_generation_model: string;
+        };
+        Returns: Database['public']['Tables']['ai_organization_drafts']['Row'];
+      };
       create_bulk_operation: {
         Args: {
           p_user_id: string;

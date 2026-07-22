@@ -14,6 +14,7 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260629120100_row_level_security.sql` | 启用 RLS 并创建策略：`repos` 全局可读，其余表按 `user_id` 隔离 |
 | `20260719143000_bulk_organization.sql` | 持久化批量整理：`bulk_operations` / `bulk_operation_items` 表与按 `user_id` 隔离的 RLS（详见 ADR 0023） |
 | `20260721120000_ai_provider_connections.sql` | BYOK 生成连接：`ai_provider_connections`（凭据密文，客户端 `revoke all`）与 `user_settings`（owner-only RLS）（详见 ADR 0017 / 0018 / 0024） |
+| `20260723120000_ai_organization_drafts.sql` | AI 整理草稿：每用户一个只读活动草稿、版本化建议、Connection/model provenance，以及仅 service role 可执行的原子替换函数 |
 
 > Phase 3 的 `repo_embeddings` 暂未建表（见 `knowledge/contracts/data-model.md`）。
 
@@ -45,7 +46,8 @@ select tablename, rowsecurity from pg_tables where schemaname = 'public' order b
 ```
 
 `repos / user_stars / tags / repo_tags / collections / collection_repos / notes /
-bulk_operations / bulk_operation_items / ai_provider_connections / user_settings` 的
+bulk_operations / bulk_operation_items / ai_provider_connections / user_settings /
+ai_organization_drafts` 的
 `rowsecurity` 应均为 `true`。
 
 ## GitHub OAuth 配置（后台手动一次）
@@ -73,6 +75,7 @@ OAuth 回流并显示当前用户。
 | `bulk-organize` | 受信路径（service role）创建并执行持久化批量 tag / collection 关系变更；按逐关系结果恢复和重试。详见 `functions/bulk-organize/README.md` 与 ADR 0023 |
 | `read-repo-readme` | 受保护的 README 读取边界：校验会话与 `user_stars` 成员关系后代理 GitHub REST README HTML，ETag 重验证，token 与内容不落库。详见 `functions/read-repo-readme/README.md` |
 | `manage-ai-connections` | 受信路径（service role）管理 BYOK 生成连接与凭据：JWT 校验、操作限定到 `auth.uid()`、AES-256-GCM 加密、自定义端点过 SSRF / allowlist；`list` 只回传安全投影。详见 `functions/manage-ai-connections/README.md` 与 ADR 0017 / 0018 / 0024 |
+| `manage-ai-organization` | 受信路径（service role）生成、读取与丢弃唯一 AI 整理草稿：1–50 个权威仓库快照、笔记 opt-in / 2,000 code point 截断、精确 active Connection/model、严格响应校验与成功后原子替换。详见 `functions/manage-ai-organization/README.md` |
 | `rotate-ai-connections` | 带外密钥轮换例程（service role）：由独立管理员密钥 `AI_CREDENTIAL_ROTATION_SECRET` 保护、用户 handler 不可达；遍历所有凭据，把旧版本密文重加密到 active 版本。详见 `functions/rotate-ai-connections/README.md` 与 ADR 0017 |
 
 ```bash
@@ -81,6 +84,7 @@ supabase functions deploy sync-stars
 supabase functions deploy bulk-organize
 supabase functions deploy read-repo-readme
 supabase functions deploy manage-ai-connections
+supabase functions deploy manage-ai-organization
 # 轮换例程不走用户鉴权，只由 x-rotation-secret 保护，需 --no-verify-jwt
 supabase functions deploy rotate-ai-connections --no-verify-jwt
 ```

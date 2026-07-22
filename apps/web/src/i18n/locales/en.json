@@ -28,6 +28,7 @@
     "delete": "Delete",
     "deleting": "Deleting…",
     "retry": "Retry",
+    "close": "Close",
     "actions": "Actions"
   },
   "loading": {
@@ -381,6 +382,50 @@
       "pending": "{{count}} pending",
       "retryable": "{{count}} retryable",
       "terminal": "{{count}} terminal"
+    }
+  },
+  "aiOrganization": {
+    "action": "Organize with AI",
+    "provider": "Provider",
+    "model": "Model",
+    "generate": "Generate draft",
+    "generating": "Generating draft…",
+    "generateError": "The draft could not be generated. Your selection and previous draft are unchanged; try again or cancel.",
+    "discard": "Discard draft",
+    "discarding": "Discarding…",
+    "discardError": "The draft could not be discarded. It remains available; try again.",
+    "kind": {
+      "tag": "Tag",
+      "collection": "Collection"
+    },
+    "preflight": {
+      "title": "Review what will be sent",
+      "description": "Generate organization suggestions for {{count}} selected repositories.",
+      "zero": "Select at least one repository before generating.",
+      "overLimit": "{{count}} repositories are selected. Keep your selection, but reduce it to {{limit}} or fewer before generating.",
+      "noConnection": "Choose and test an active Generation Connection and model in Settings first.",
+      "fieldsTitle": "Fields sent to the selected Provider",
+      "repoFields": "Repository owner/name, description, primary language, and GitHub topics.",
+      "organizationFields": "Your existing tags and collections as stable IDs and display names, plus current memberships.",
+      "notesIncluded": "Private notes are included and truncated to {{limit}} Unicode code points per note.",
+      "notesExcluded": "Private notes are excluded by your current setting.",
+      "readmeExcluded": "README content and credentials are never sent.",
+      "replaceWarning": "A saved draft already exists. It will be replaced only after the new Provider response passes validation."
+    },
+    "resume": {
+      "title": "AI organization draft ready",
+      "description": "Resume the read-only suggestions for {{count}} repositories.",
+      "action": "Resume draft"
+    },
+    "draft": {
+      "title": "AI organization draft",
+      "description": "{{count}} repositories · {{provider}} · {{model}}. Nothing has been applied.",
+      "additions": "Add relationships",
+      "removals": "Remove relationships",
+      "newClassifications": "Suggested new classifications",
+      "repoCount": "{{count}} repositories",
+      "noChangesTitle": "No changes recommended",
+      "noChangesDescription": "The Provider returned a valid empty suggestion set. Your organization remains unchanged."
     }
   },
   "settings": {

@@ -88,6 +88,55 @@ export interface OrganizationDraft {
   newCategories?: string[];
 }
 
+export interface OrganizationClassificationCandidate {
+  id: string;
+  name: string;
+}
+
+export interface OrganizationRepositoryInput {
+  id: string;
+  fullName: string;
+  description: string | null;
+  language: string | null;
+  topics: string[];
+  existingTagIds: string[];
+  existingCollectionIds: string[];
+  note?: string;
+}
+
+export interface OrganizationGenerationInput {
+  repositories: OrganizationRepositoryInput[];
+  tags: OrganizationClassificationCandidate[];
+  collections: OrganizationClassificationCandidate[];
+}
+
+export interface OrganizationGenerationTarget extends GenerationTarget {
+  input: OrganizationGenerationInput;
+}
+
+export interface OrganizationRelationChange {
+  repoId: string;
+  relationType: OrganizationRelationType;
+  action: OrganizationAction;
+  targetId: string;
+}
+
+export interface OrganizationNewClassification {
+  relationType: OrganizationRelationType;
+  name: string;
+  repoIds: string[];
+}
+
+export interface ValidatedOrganizationDraft {
+  version: 1;
+  relationChanges: OrganizationRelationChange[];
+  newClassifications: OrganizationNewClassification[];
+}
+
+export type OrganizationGenerationOutcome =
+  | { ok: true; draft: ValidatedOrganizationDraft }
+  | { ok: false; reason: string };
+
 export class GenerationRegistryError extends Error {
   readonly code: string;
   constructor(code: string, message: string) {
@@ -120,6 +169,11 @@ const PROBE_SYSTEM_PROMPT =
 const PROBE_USER_PROMPT =
   'Confirm connectivity by returning exactly this JSON: ' +
   '{"suggestions":[{"repoId":"probe","relationType":"tag","action":"add","target":"example"}]}';
+const ORGANIZATION_SYSTEM_PROMPT =
+  'You organize GitHub Stars. Return strict JSON only, with exactly relationChanges and newClassifications. ' +
+  'Existing targets must use supplied stable ids. Never invent repository or target ids. ' +
+  'relationChanges entries use repoId, relationType (tag|collection), action (add|remove), targetId. ' +
+  'newClassifications entries use relationType, name, repoIds and only represent additions. No prose or markdown.';
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -469,4 +523,196 @@ export function parseModelDiscoveryResponse(
 /** Whether an adapter is the custom openai-compatible adapter (subject to the allowlist). */
 export function isCustomGenerationAdapter(adapter: GenerationAdapterId): boolean {
   return ADAPTER_SPECS[adapter]?.isCustom ?? false;
+}
+
+/** Build a real organization request while preserving each provider's native wire contract. */
+export function buildOrganizationGenerationRequest(
+  target: OrganizationGenerationTarget,
+): ProviderRequest {
+  if (target.model.trim().length === 0) {
+    throw new GenerationRegistryError('missing_model', 'A model id is required');
+  }
+  const spec = ADAPTER_SPECS[target.adapter];
+  if (!spec) {
+    throw new GenerationRegistryError('unknown_adapter', `Unknown adapter: ${target.adapter}`);
+  }
+  const base = resolveGenerationBaseUrl(target.adapter, target.baseUrl);
+  const prompt = JSON.stringify(target.input);
+  if (target.adapter === 'anthropic') {
+    return {
+      url: `${base}/messages`,
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': target.credential.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: target.model,
+        max_tokens: 4096,
+        temperature: 0,
+        system: ORGANIZATION_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    };
+  }
+  if (target.adapter === 'google') {
+    return {
+      url: `${base}/models/${encodeURIComponent(target.model)}:generateContent`,
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-goog-api-key': target.credential.apiKey,
+      },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: ORGANIZATION_SYSTEM_PROMPT }] },
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0,
+          maxOutputTokens: 4096,
+          responseMimeType: 'application/json',
+        },
+      }),
+    };
+  }
+  const payload: Record<string, unknown> = {
+    model: target.model,
+    temperature: 0,
+    max_tokens: 4096,
+    messages: [
+      { role: 'system', content: ORGANIZATION_SYSTEM_PROMPT },
+      { role: 'user', content: prompt },
+    ],
+  };
+  if (spec.supportsJsonMode) payload.response_format = { type: 'json_object' };
+  return {
+    url: `${base}/chat/completions`,
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      authorization: `Bearer ${target.credential.apiKey}`,
+    },
+    body: JSON.stringify(payload),
+  };
+}
+
+function hasExactKeys(value: Record<string, unknown>, keys: readonly string[]): boolean {
+  const actual = Object.keys(value).toSorted();
+  return actual.length === keys.length && actual.every((key, index) => key === keys[index]);
+}
+
+function normalizeClassificationName(value: string): string {
+  return value.normalize('NFKC').trim().replace(/\s+/gu, ' ');
+}
+
+function validateOrganizationOutput(
+  value: unknown,
+  input: OrganizationGenerationInput,
+): OrganizationGenerationOutcome {
+  const root = asRecord(value);
+  if (!root || !hasExactKeys(root, ['newClassifications', 'relationChanges'])) {
+    return { ok: false, reason: 'schema_mismatch' };
+  }
+  const changes = asArray(root.relationChanges);
+  const newClassifications = asArray(root.newClassifications);
+  if (!changes || !newClassifications) return { ok: false, reason: 'schema_mismatch' };
+
+  const repoIds = new Set(input.repositories.map((repo) => repo.id));
+  const targets = {
+    tag: new Set(input.tags.map((tag) => tag.id)),
+    collection: new Set(input.collections.map((collection) => collection.id)),
+  };
+  const existingNames = {
+    tag: new Set(
+      input.tags.map((tag) => normalizeClassificationName(tag.name).toLocaleLowerCase()),
+    ),
+    collection: new Set(
+      input.collections.map((collection) =>
+        normalizeClassificationName(collection.name).toLocaleLowerCase(),
+      ),
+    ),
+  };
+  const relationKeys = new Set<string>();
+  const relationChanges: OrganizationRelationChange[] = [];
+  for (const entry of changes) {
+    const item = asRecord(entry);
+    if (!item || !hasExactKeys(item, ['action', 'relationType', 'repoId', 'targetId'])) {
+      return { ok: false, reason: 'schema_mismatch' };
+    }
+    const repoId = asString(item.repoId);
+    const targetId = asString(item.targetId);
+    const relationType = item.relationType;
+    const action = item.action;
+    if (
+      !repoId ||
+      !repoIds.has(repoId) ||
+      !targetId ||
+      (relationType !== 'tag' && relationType !== 'collection') ||
+      (action !== 'add' && action !== 'remove') ||
+      !targets[relationType].has(targetId)
+    ) {
+      return { ok: false, reason: 'unknown_reference' };
+    }
+    const key = `${repoId}:${relationType}:${targetId}`;
+    if (relationKeys.has(key)) return { ok: false, reason: 'contradictory_duplicate' };
+    relationKeys.add(key);
+    relationChanges.push({ repoId, relationType, action, targetId });
+  }
+
+  const newNames = { tag: new Set<string>(), collection: new Set<string>() };
+  const normalizedNew: OrganizationNewClassification[] = [];
+  for (const entry of newClassifications) {
+    const item = asRecord(entry);
+    if (!item || !hasExactKeys(item, ['name', 'relationType', 'repoIds'])) {
+      return { ok: false, reason: 'schema_mismatch' };
+    }
+    const relationType = item.relationType;
+    const nameValue = asString(item.name);
+    const itemRepoIds = asArray(item.repoIds);
+    if (
+      (relationType !== 'tag' && relationType !== 'collection') ||
+      !nameValue ||
+      !itemRepoIds ||
+      itemRepoIds.length === 0 ||
+      !itemRepoIds.every((repoId) => typeof repoId === 'string' && repoIds.has(repoId))
+    ) {
+      return { ok: false, reason: 'unknown_reference' };
+    }
+    const name = normalizeClassificationName(nameValue);
+    const folded = name.toLocaleLowerCase();
+    if (
+      name.length === 0 ||
+      name.length > 100 ||
+      existingNames[relationType].has(folded) ||
+      newNames[relationType].has(folded)
+    ) {
+      return { ok: false, reason: 'duplicate_classification' };
+    }
+    const uniqueRepoIds = [...new Set(itemRepoIds as string[])];
+    if (uniqueRepoIds.length !== itemRepoIds.length) {
+      return { ok: false, reason: 'contradictory_duplicate' };
+    }
+    newNames[relationType].add(folded);
+    normalizedNew.push({ relationType, name, repoIds: uniqueRepoIds });
+  }
+  return {
+    ok: true,
+    draft: { version: 1, relationChanges, newClassifications: normalizedNew },
+  };
+}
+
+/** Parse and validate a real organization response against the authoritative request snapshot. */
+export function interpretOrganizationGenerationResponse(
+  adapter: GenerationAdapterId,
+  response: RawProviderResponse,
+  input: OrganizationGenerationInput,
+): OrganizationGenerationOutcome {
+  const spec = ADAPTER_SPECS[adapter];
+  if (!spec) return { ok: false, reason: 'unknown_adapter' };
+  if (!response.ok) return { ok: false, reason: 'upstream_error' };
+  const text = spec.extractText(response.body);
+  if (!text?.trim()) return { ok: false, reason: 'empty_response' };
+  const parsed = extractJsonObject(text);
+  if (parsed === null) return { ok: false, reason: 'unparseable_output' };
+  return validateOrganizationOutput(parsed, input);
 }

@@ -6,6 +6,10 @@
 
 ## 当前状态
 
+> Phase 2 AI 切片 B 的第一个纵向切片已实现并验证（2026-07-23，GitHub #15）：Browse 现在可对固定的 1–50 个仓库发起 AI 整理生成，在调用前披露准确 Provider、model 与发送字段；受信 `manage-ai-organization` Edge Function 从 Postgres 重建权威上下文，只在用户明确启用时读取并按每条 2,000 个 Unicode code points 截断笔记，永不读取 README。原生 Provider Adapter 经既有 SSRF / allowlist / 同源重定向边界调用并严格校验版本化建议 schema；生成成功后原子替换每用户唯一活动草稿，失败保留旧草稿。草稿可跨刷新恢复、只读查看 additions / removals / new classifications、识别有效空建议并显式丢弃。`pnpm lint / typecheck / test / build` 全绿（core 132 / db 52 / functions 83 / web 145；build 仅既有主 chunk warning），真实登录态视觉复核覆盖桌面 / 窄屏与 light / dark；无新增 ADR。下一步为 #16「Review and persist AI organization decisions」，#17 仍依赖 #16。见 `logs/2026-07-23-issue-15-ai-organization-drafts.md`。
+
+> Phase 2 AI 切片 B 的剩余设计缺口已对齐并发布 PRD（2026-07-23，GitHub #14）：PRD 拆为 3 个串行纵向 issues——#15「Generate and resume bounded AI organization drafts」、#16「Review and persist AI organization decisions」、#17「Confirm AI drafts through durable bulk organization」；其中 #15 现已实现，#16 / #17 仍待完成。现有标签 / 集合建议引用稳定 ID，新分类使用带 `relationType` 的规范化名称；每用户最多一个活动草稿；单次最多 50 个仓库，每条已启用笔记最多发送前 2,000 个 Unicode code points；确认通过受信事务交接到 `source: "ai_draft"` 批量操作。见 `logs/2026-07-23-ai-organization-draft-alignment.md`。
+
 > #13 已在真实 Supabase 环境完成部署与 smoke test（2026-07-22）：`20260721120000_ai_provider_connections.sql` 已应用，`manage-ai-connections` 与带外 `rotate-ai-connections` 已部署，服务端 encryption / rotation secrets 已配置；以 allowlist 内的 DeepSeek OpenAI-compatible endpoint 实测连接创建、模型发现/手填、capability 探活、激活、禁用/重新启用、credential 替换回到未测试及删除清理均正常。轮换函数仅完成部署，首次安装未触发轮换。#13 达到真实环境验收标准，可关闭。
 
 > #13 暂存实现已完成全面复审与收敛（2026-07-22，见 `logs/2026-07-21-issue-13-byok-generation-connections.md` 的「全面复审与最终收敛」）：补齐 models 发现 + 手填 fallback、显式启用/禁用、最近测试详情、加载/失败恢复与笔记披露；受信服务拆出瘦入口 / HTTP handler / 生命周期 service。安全边界新增同源重定向限制，SSRF 分类补齐 IPv4-compatible IPv6 与保留网段；active connection/model 改为受信函数写入 + 数据库 trigger 纵深强制，连接失效或 capability 改变自动清引用。端点/credential 变化清除旧 capability，禁用连接探活不再隐式启用；密钥轮换例程与安全投影守卫保留。Impeccable 静态检测无违规；`pnpm lint / typecheck / test / build` 全绿（core 122 / db 49 / functions 75 / web 142，build 仅既有主 chunk warning）。无新增 ADR，契约与 runbook 已同步；实现提交为 `e908ddc`。

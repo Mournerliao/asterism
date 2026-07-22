@@ -7,12 +7,18 @@
  * an injected resolver before letting the injected fetch touch the network.
  */
 
+import type {
+  OrganizationGenerationTarget,
+  ValidatedOrganizationDraft,
+} from '../../../packages/core/src/ai/generation-registry.ts';
 import {
   buildGenerationProbeRequest,
   buildModelDiscoveryRequest,
+  buildOrganizationGenerationRequest,
   type GenerationAdapterId,
   type GenerationTarget,
   interpretGenerationProbeResponse,
+  interpretOrganizationGenerationResponse,
   isCustomGenerationAdapter,
   type ProviderRequest,
   parseModelDiscoveryResponse,
@@ -26,12 +32,15 @@ import {
 } from '../../../packages/core/src/ai/ssrf.ts';
 
 const DEFAULT_MAX_REDIRECTS = 3;
+const DEFAULT_TIMEOUT_MS = 60_000;
+const MAX_PROVIDER_RESPONSE_BYTES = 1_000_000;
 
 export interface ProviderCallConfig {
   fetch: typeof fetch;
   resolve: DnsResolver;
   allowlist: HostAllowlist;
   maxRedirects?: number;
+  timeoutMs?: number;
 }
 
 export interface ProbeResult {
@@ -46,6 +55,9 @@ function requireAllowlistFor(adapter: GenerationAdapterId): boolean {
 
 async function readBody(response: Response): Promise<unknown> {
   const text = await response.text();
+  if (new TextEncoder().encode(text).byteLength > MAX_PROVIDER_RESPONSE_BYTES) {
+    throw new Error('provider_response_too_large');
+  }
   if (text.length === 0) {
     return null;
   }
@@ -80,6 +92,7 @@ async function guardedFetch(
       headers: request.headers,
       body: request.body,
       redirect: 'manual',
+      signal: AbortSignal.timeout(config.timeoutMs ?? DEFAULT_TIMEOUT_MS),
     });
     const location = response.headers.get('location');
     if (response.status >= 300 && response.status < 400 && location) {
@@ -158,4 +171,26 @@ export async function assertCustomEndpointAllowed(
     allowlist: config.allowlist,
     requireAllowlist: true,
   });
+}
+
+/** Execute one real organization generation with the same SSRF/redirect boundary as probes. */
+export async function generateOrganizationDraft(
+  config: ProviderCallConfig,
+  target: OrganizationGenerationTarget,
+): Promise<ValidatedOrganizationDraft> {
+  const request = buildOrganizationGenerationRequest(target);
+  let response: Response;
+  try {
+    response = await guardedFetch(config, request, requireAllowlistFor(target.adapter));
+  } catch (error) {
+    if (error instanceof SsrfError) throw new Error(`provider_blocked:${error.code}`);
+    throw new Error('provider_network_error');
+  }
+  const outcome = interpretOrganizationGenerationResponse(
+    target.adapter,
+    { ok: response.ok, status: response.status, body: await readBody(response) },
+    target.input,
+  );
+  if (!outcome.ok) throw new Error(`provider_${outcome.reason}`);
+  return outcome.draft;
 }

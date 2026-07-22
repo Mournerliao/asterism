@@ -21,6 +21,17 @@ export {
   updateAiConnection,
   updateAiSettings,
 } from './ai-connections';
+export type {
+  AiOrganizationAction,
+  AiOrganizationDraft,
+  AiOrganizationRelationType,
+} from './ai-organization';
+export {
+  discardAiOrganizationDraft,
+  generateAiOrganizationDraft,
+  getAiOrganizationDraft,
+  isAiOrganizationDraft,
+} from './ai-organization';
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
 export type {

@@ -28,6 +28,7 @@
     "delete": "删除",
     "deleting": "删除中…",
     "retry": "重试",
+    "close": "关闭",
     "actions": "操作"
   },
   "loading": {
@@ -381,6 +382,50 @@
       "pending": "{{count}} 项待处理",
       "retryable": "{{count}} 项可重试",
       "terminal": "{{count}} 项已终止"
+    }
+  },
+  "aiOrganization": {
+    "action": "使用 AI 整理",
+    "provider": "Provider",
+    "model": "模型",
+    "generate": "生成草稿",
+    "generating": "正在生成草稿…",
+    "generateError": "无法生成草稿。当前选择与原草稿均未改变；请重试或取消。",
+    "discard": "丢弃草稿",
+    "discarding": "正在丢弃…",
+    "discardError": "无法丢弃草稿。草稿仍然可用；请重试。",
+    "kind": {
+      "tag": "标签",
+      "collection": "集合"
+    },
+    "preflight": {
+      "title": "检查即将发送的内容",
+      "description": "为已选择的 {{count}} 个仓库生成整理建议。",
+      "zero": "请至少选择一个仓库后再生成。",
+      "overLimit": "当前已选择 {{count}} 个仓库。选择会保留，但生成前需缩小到不超过 {{limit}} 个。",
+      "noConnection": "请先在设置中选择并测试一个活跃的 Generation Connection 与模型。",
+      "fieldsTitle": "发送给所选 Provider 的字段",
+      "repoFields": "仓库 owner/name、描述、主要语言与 GitHub topics。",
+      "organizationFields": "现有标签与集合的稳定 ID、显示名称，以及当前归属关系。",
+      "notesIncluded": "会包含私密笔记，并将每条截断到 {{limit}} 个 Unicode code points。",
+      "notesExcluded": "当前设置不会包含私密笔记。",
+      "readmeExcluded": "绝不会发送 README 内容或 credential。",
+      "replaceWarning": "已有保存的草稿。只有新的 Provider 响应通过校验后，才会替换旧草稿。"
+    },
+    "resume": {
+      "title": "AI 整理草稿已就绪",
+      "description": "继续查看 {{count}} 个仓库的只读建议。",
+      "action": "继续审阅草稿"
+    },
+    "draft": {
+      "title": "AI 整理草稿",
+      "description": "{{count}} 个仓库 · {{provider}} · {{model}}。尚未应用任何改动。",
+      "additions": "添加关系",
+      "removals": "移除关系",
+      "newClassifications": "建议新建分类",
+      "repoCount": "{{count}} 个仓库",
+      "noChangesTitle": "没有建议改动",
+      "noChangesDescription": "Provider 返回了有效的空建议集。现有整理状态保持不变。"
     }
   },
   "settings": {

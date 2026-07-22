@@ -1,3 +1,26 @@
+export type {
+  AiAdapterId,
+  AiConnection,
+  AiConnectionStatus,
+  AiSettings,
+  CreateAiConnectionInput,
+  LocalePreference,
+  ThemePreference,
+  UpdateAiConnectionInput,
+  UpdateAiSettingsInput,
+} from './ai-connections';
+export {
+  createAiConnection,
+  deleteAiConnection,
+  discoverAiConnectionModels,
+  getAiSettings,
+  isAiConnection,
+  isAiSettings,
+  listAiConnections,
+  testAiConnection,
+  updateAiConnection,
+  updateAiSettings,
+} from './ai-connections';
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';
 export type {

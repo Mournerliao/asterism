@@ -41,3 +41,16 @@ describe('Simplified Chinese typography', () => {
     expect(inconsistent).toEqual([]);
   });
 });
+
+describe('locale key parity', () => {
+  it('defines the same keys in English and Simplified Chinese', () => {
+    const enKeys = flattenStrings(en)
+      .map(([key]) => key)
+      .sort();
+    const zhKeys = flattenStrings(zhCN)
+      .map(([key]) => key)
+      .sort();
+
+    expect(zhKeys).toEqual(enKeys);
+  });
+});

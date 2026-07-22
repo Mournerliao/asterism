@@ -305,6 +305,76 @@ export interface Database {
           },
         ];
       };
+      ai_provider_connections: {
+        Row: {
+          id: string;
+          user_id: string;
+          adapter: 'openai' | 'google' | 'anthropic' | 'openrouter' | 'openai-compatible';
+          name: string;
+          base_url: string | null;
+          credential_ciphertext: string;
+          credential_nonce: string;
+          credential_version: number;
+          credential_hint: string | null;
+          status: 'untested' | 'valid' | 'invalid' | 'disabled';
+          generation_capability: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          adapter: 'openai' | 'google' | 'anthropic' | 'openrouter' | 'openai-compatible';
+          name: string;
+          base_url?: string | null;
+          credential_ciphertext: string;
+          credential_nonce: string;
+          credential_version?: number;
+          credential_hint?: string | null;
+          status?: 'untested' | 'valid' | 'invalid' | 'disabled';
+          generation_capability?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['ai_provider_connections']['Insert']>;
+        Relationships: [];
+      };
+      user_settings: {
+        Row: {
+          id: string;
+          user_id: string;
+          generation_connection_id: string | null;
+          generation_model: string | null;
+          include_notes_in_ai: boolean;
+          locale: 'en' | 'zh-CN' | null;
+          theme: 'system' | 'light' | 'dark' | null;
+          preferences: Json | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          generation_connection_id?: string | null;
+          generation_model?: string | null;
+          include_notes_in_ai?: boolean;
+          locale?: 'en' | 'zh-CN' | null;
+          theme?: 'system' | 'light' | 'dark' | null;
+          preferences?: Json | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_settings']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'user_settings_generation_connection_fkey';
+            columns: ['generation_connection_id', 'user_id'];
+            isOneToOne: false;
+            referencedRelation: 'ai_provider_connections';
+            referencedColumns: ['id', 'user_id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

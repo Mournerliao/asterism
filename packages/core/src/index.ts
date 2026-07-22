@@ -1,5 +1,60 @@
 export const CORE_VERSION = '0.0.0';
 
+export type {
+  BaseUrlValidation,
+  CredentialValidation,
+  GenerationAdapterId,
+  GenerationCredential,
+  GenerationTarget,
+  ModelDiscoveryTarget,
+  OrganizationAction,
+  OrganizationDraft,
+  OrganizationRelationType,
+  OrganizationSuggestion,
+  ProbeOutcome,
+  ProviderRequest,
+  RawProviderResponse,
+} from './ai/generation-registry';
+export {
+  BUILTIN_GENERATION_HOSTS,
+  buildGenerationProbeRequest,
+  buildModelDiscoveryRequest,
+  extractJsonObject,
+  GENERATION_ADAPTER_IDS,
+  GenerationRegistryError,
+  interpretGenerationProbeResponse,
+  isCustomGenerationAdapter,
+  isOrganizationDraft,
+  parseModelDiscoveryResponse,
+  resolveGenerationBaseUrl,
+  validateGenerationBaseUrl,
+  validateGenerationCredential,
+} from './ai/generation-registry';
+export type {
+  GenerationCapabilityView,
+  GenerationConnectionStatus,
+  GenerationSelectionResult,
+  GenerationSelectionState,
+} from './ai/generation-selection';
+export {
+  readGenerationCapability,
+  readTestedModel,
+  resolveActiveGenerationModel,
+} from './ai/generation-selection';
+export type {
+  DnsResolver,
+  HostAllowlist,
+  IpClassification,
+  UrlGuardOptions,
+} from './ai/ssrf';
+export {
+  assertUrlIsSafe,
+  classifyIp,
+  hostMatchesAllowlist,
+  isPubliclyRoutableIp,
+  parseHttpsUrl,
+  SsrfError,
+} from './ai/ssrf';
 export {
   buildExportPayload,
   scopeExportSnapshot,

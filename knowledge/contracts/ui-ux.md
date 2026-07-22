@@ -19,7 +19,7 @@
 | Login Page | `8:2` | 登录页（左 brand / 右 GitHub OAuth） |
 | Browse · 列表/表格 | `8:59` | ⚠️ frame 名为 "Browse - Card View"，**实为表格/列表视图** |
 | Browse · 卡片 | `8:227` | ⚠️ frame 名为 "Dashboard"，**实为卡片视图** |
-| Settings | `8:299` | 外观 / 账号 / AI（BYOK，Coming Soon） |
+| Settings | `8:299` | 外观 / 账号 / AI（BYOK Generation Connections） |
 | Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（tags / collections / notes） |
 | Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计仪表盘** |
 | Tags Management | `12:2` | 标签管理 |

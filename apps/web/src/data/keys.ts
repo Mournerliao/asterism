@@ -36,3 +36,13 @@ export const bulkOperationKeys = {
   all: ['bulk-operations'] as const,
   list: (userId: string) => ['bulk-operations', userId] as const,
 };
+
+export const aiConnectionKeys = {
+  all: ['ai-connections'] as const,
+  list: (userId: string) => ['ai-connections', userId] as const,
+};
+
+export const aiSettingsKeys = {
+  all: ['ai-settings'] as const,
+  detail: (userId: string) => ['ai-settings', userId] as const,
+};

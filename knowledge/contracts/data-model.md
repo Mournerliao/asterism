@@ -144,7 +144,7 @@
 - `theme` — 主题偏好（system / light / dark）
 - `preferences` — 其他偏好（jsonb，可选）
 
-约束：`user_id` 唯一。`generation_connection_id` 必须与 `user_id` 组成复合外键，保证只能引用当前用户的 Connection。所选 Connection / model 必须通过 Generation capability 测试；关闭 `include_notes_in_ai` 后，任何 AI Adapter 都不得收到笔记正文。credential 安全与轮换见 `conventions.md` 安全章节、ADR 0017；Provider Registry 见 ADR 0018、0022。
+约束：`user_id` 唯一。`generation_connection_id` 与 `generation_model` 必须同时为空或同时非空；非空时 Connection 必须属于当前用户、状态为 `valid`，model 必须精确等于该 Connection 最近一次成功 Generation capability 测试的 model。普通客户端只可读取本人的设置，写入集中在受信 Edge Function，并由数据库 trigger 纵深校验；连接失效、禁用或成功测试的 model 改变时，数据库自动清除不再成立的 active pair。关闭 `include_notes_in_ai` 后，任何 AI Adapter 都不得收到笔记正文。credential 安全与轮换见 `conventions.md` 安全章节、ADR 0017；Provider Registry 见 ADR 0018、0022。
 
 ### `ai_organization_drafts` — AI 整理建议草稿
 
@@ -166,9 +166,13 @@
   - SELECT：全局可读（所有已认证用户均可读）。
   - INSERT / UPDATE：仅由受信路径写入（同步逻辑 / Edge Functions / service role），普通用户不可直接写。
 
-- **`user_stars` / `tags` / `repo_tags` / `collections` / `collection_repos` / `notes` / `user_settings` / `ai_organization_drafts`**
+- **`user_stars` / `tags` / `repo_tags` / `collections` / `collection_repos` / `notes` / `ai_organization_drafts`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
+
+- **`user_settings`**
+  - SELECT：要求 `user_id = auth.uid()`。
+  - INSERT / UPDATE / DELETE：普通客户端无直接表权限；设置写入只经验证用户 JWT 的受信 Edge Function，active connection/model 另由数据库 trigger 强制保持一致。
 
 - **`bulk_operations` / `bulk_operation_items`**
   - SELECT：要求 `user_id = auth.uid()`，客户端可读取本人的操作进度与结果。

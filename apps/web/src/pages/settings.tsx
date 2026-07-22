@@ -3,10 +3,7 @@ import {
   Avatar,
   AvatarFallback,
   AvatarImage,
-  Badge,
   Button,
-  Input,
-  Label,
   SegmentedControl,
   Select,
   SelectContent,
@@ -21,6 +18,7 @@ import { LogOutIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
+import { AiConnectionsManager } from '../components/ai-connections-manager';
 import { PageHeader } from '../components/page-header';
 import { supabase } from '../lib/supabase';
 
@@ -139,25 +137,7 @@ export function SettingsPage() {
         </div>
       </section>
 
-      <section className="flex flex-col gap-3">
-        <SectionTitle badge={<Badge variant="secondary">{t('settings.comingSoon')}</Badge>}>
-          {t('settings.aiFeatures')}
-        </SectionTitle>
-        <div className="flex flex-col gap-4 rounded-lg border p-4 opacity-60">
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ai-provider">{t('settings.apiProvider')}</Label>
-            <Input id="ai-provider" disabled placeholder={t('settings.apiProviderPlaceholder')} />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ai-key">{t('settings.apiKey')}</Label>
-            <Input id="ai-key" type="password" disabled placeholder="sk-••••••••••••••••" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <Label htmlFor="ai-endpoint">{t('settings.customEndpoint')}</Label>
-            <Input id="ai-endpoint" disabled placeholder="https://api.openai.com/v1" />
-          </div>
-        </div>
-      </section>
+      <AiConnectionsManager />
     </div>
   );
 }

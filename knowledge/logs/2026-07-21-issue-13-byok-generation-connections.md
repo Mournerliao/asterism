@@ -57,7 +57,7 @@
 
 ## 收口
 
-- `/code-review` 双轴通过、五项修复与轮换函数均已落地并复跑门禁全绿；knowledge（PROGRESS / NOTES / 本 log）已同步。**待用户确认后**按 Conventional Commit（英文 subject + 中文 body）提交到当前分支；GitHub #13 实现完成。
+- `/code-review` 双轴通过、五项修复与轮换函数均已落地并复跑门禁全绿；knowledge（PROGRESS / NOTES / 本 log）已同步。实现随后经全面复审进一步收敛，并以 `e908ddc feat(ai): add secure BYOK generation connections` 提交；GitHub #13 实现完成。
 
 ## 全面复审与最终收敛（2026-07-22）
 
@@ -72,3 +72,10 @@
 - **UI**：新增探活对话框、连接管理器与生命周期交互回归测试；Impeccable 静态检测返回空问题列表，所有文案 en / zh-CN 对齐。
 
 最终门禁：`pnpm lint`（274 files）、`pnpm typecheck`（9 tasks）、`pnpm test`（core 122 / db 49 / functions 75 / web 142）、`pnpm build`（6 tasks）全部通过；构建仅保留既有 Web 主 chunk 大于 500 kB warning。测试输出中的 happy-dom `github.com` DNS 失败为既有用例副输出，对应用例仍通过。契约、状态、backlog 与函数 runbook 已同步，无需新增 ADR。
+
+## 真实环境验收（2026-07-22）
+
+- 目标 Supabase 项目已应用 `20260721120000_ai_provider_connections.sql`，并配置版本 1 encryption key、active version 与独立 rotation secret。
+- `manage-ai-connections` 已按用户 JWT 路径部署；`rotate-ai-connections` 已以 `--no-verify-jwt` 部署并由独立 header secret 保护。首次安装没有旧密文，因此未触发轮换任务。
+- 使用部署者 allowlist 内的 DeepSeek OpenAI-compatible endpoint 完成真实 API smoke test：连接创建、模型发现/手填、capability 探活与 active selection 正常；禁用/重新启用、替换 credential 后回到 `untested`、删除后清理设置引用均无异常。
+- 用户确认真实环境验收通过。至此 #13 的代码门禁、部署 runbook 与运行时链路均已验证，可以关闭 GitHub issue；后续 AI 整理建议作为独立切片处理。

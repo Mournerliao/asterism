@@ -6,7 +6,9 @@
 
 ## 当前状态
 
-> #13 暂存实现已完成全面复审与收敛（2026-07-22，见 `logs/2026-07-21-issue-13-byok-generation-connections.md` 的「全面复审与最终收敛」）：补齐 models 发现 + 手填 fallback、显式启用/禁用、最近测试详情、加载/失败恢复与笔记披露；受信服务拆出瘦入口 / HTTP handler / 生命周期 service。安全边界新增同源重定向限制，SSRF 分类补齐 IPv4-compatible IPv6 与保留网段；active connection/model 改为受信函数写入 + 数据库 trigger 纵深强制，连接失效或 capability 改变自动清引用。端点/credential 变化清除旧 capability，禁用连接探活不再隐式启用；密钥轮换例程与安全投影守卫保留。Impeccable 静态检测无违规；`pnpm lint / typecheck / test / build` 全绿（core 122 / db 49 / functions 75 / web 142，build 仅既有主 chunk warning）。无新增 ADR，契约与 runbook 已同步；待用户决定是否提交。
+> #13 已在真实 Supabase 环境完成部署与 smoke test（2026-07-22）：`20260721120000_ai_provider_connections.sql` 已应用，`manage-ai-connections` 与带外 `rotate-ai-connections` 已部署，服务端 encryption / rotation secrets 已配置；以 allowlist 内的 DeepSeek OpenAI-compatible endpoint 实测连接创建、模型发现/手填、capability 探活、激活、禁用/重新启用、credential 替换回到未测试及删除清理均正常。轮换函数仅完成部署，首次安装未触发轮换。#13 达到真实环境验收标准，可关闭。
+
+> #13 暂存实现已完成全面复审与收敛（2026-07-22，见 `logs/2026-07-21-issue-13-byok-generation-connections.md` 的「全面复审与最终收敛」）：补齐 models 发现 + 手填 fallback、显式启用/禁用、最近测试详情、加载/失败恢复与笔记披露；受信服务拆出瘦入口 / HTTP handler / 生命周期 service。安全边界新增同源重定向限制，SSRF 分类补齐 IPv4-compatible IPv6 与保留网段；active connection/model 改为受信函数写入 + 数据库 trigger 纵深强制，连接失效或 capability 改变自动清引用。端点/credential 变化清除旧 capability，禁用连接探活不再隐式启用；密钥轮换例程与安全投影守卫保留。Impeccable 静态检测无违规；`pnpm lint / typecheck / test / build` 全绿（core 122 / db 49 / functions 75 / web 142，build 仅既有主 chunk warning）。无新增 ADR，契约与 runbook 已同步；实现提交为 `e908ddc`。
 
 > #13 带外密钥轮换例程落地（2026-07-21，US22/Sp1，ADR 0017）：新增独立 Edge Function `supabase/functions/rotate-ai-connections`，与用户面 `manage-ai-connections` 分离、用户 handler 不可达。纯逻辑 `rotate.ts` 把非 active 版本的凭据密文用 active 版本重加密（AAD 重绑定 `version:userId:connectionId`），active 版本行跳过、单行失败隔离计入 `failed` 不中断整体；可测 `handler.ts` 用独立管理员密钥（`AI_CREDENTIAL_ROTATION_SECRET`，经 `x-rotation-secret` header + 常量时间比较）守卫，非 POST → 405、密钥缺失/不符 → 401、轮换抛错 → 500；瘦 `index.ts` 校验必需 env、缓存 key ring、以 service-role client 分页覆盖全部行。部署走 `--no-verify-jwt`（不经 Supabase 用户鉴权，仅由自有 secret 保护）。退役旧密钥版本前必须先跑到「无残留旧版本行」。函数 README + `supabase/README.md` runbook + `.env.example` 已同步。
 

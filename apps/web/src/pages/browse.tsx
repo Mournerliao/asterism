@@ -262,7 +262,11 @@ export function BrowsePage() {
       repoNames={repoNames}
       targetNames={targetNames}
       discarding={discardAiDraft.isPending}
-      updatingReviewId={updateAiDraftReview.variables?.change.suggestionId ?? null}
+      updatingReviewId={
+        updateAiDraftReview.isPending
+          ? (updateAiDraftReview.variables?.change.suggestionId ?? null)
+          : null
+      }
       onUpdate={(input) => updateAiDraftReview.mutateAsync(input)}
       onDiscard={() => discardAiDraft.mutateAsync()}
     />

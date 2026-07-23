@@ -1,44 +1,19 @@
+import type {
+  AiOrganizationDraft as AiOrganizationDraftView,
+  AiOrganizationReviewChange,
+} from '../../../packages/core/src/ai/organization-review.ts';
+
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-export type AiOrganizationReviewChange =
-  | { kind: 'relation'; suggestionId: string; selected: boolean }
-  | { kind: 'classification'; suggestionId: string; approved: boolean };
-
-export interface AiOrganizationReviewSuggestions {
-  version: 2;
-  relationChanges: Array<{
-    id: string;
-    repoId: string;
-    relationType: 'tag' | 'collection';
-    action: 'add' | 'remove';
-    targetId: string;
-    selected: boolean;
-  }>;
-  newClassifications: Array<{
-    id: string;
-    relationType: 'tag' | 'collection';
-    name: string;
-    repoIds: string[];
-    approved: boolean;
-  }>;
-}
-
-export interface AiOrganizationDraftView {
-  id: string;
-  sourceRepoIds: string[];
-  suggestions: AiOrganizationReviewSuggestions;
-  generationConnectionId: string;
-  generationAdapter: string;
-  generationModel: string;
-  reviewState: 'review';
-  revision: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export type {
+  AiOrganizationDraft as AiOrganizationDraftView,
+  AiOrganizationReviewChange,
+  AiOrganizationReviewSuggestions,
+} from '../../../packages/core/src/ai/organization-review.ts';
 
 export interface AiOrganizationDependencies {
   authenticate: (jwt: string) => Promise<string | null>;

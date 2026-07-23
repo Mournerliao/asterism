@@ -5,10 +5,10 @@ import type {
 } from '../../../packages/core/src/ai/generation-registry.ts';
 import { resolveActiveGenerationModel } from '../../../packages/core/src/ai/generation-selection.ts';
 import type {
-  AiOrganizationDraftView,
+  AiOrganizationDraft as AiOrganizationDraftView,
   AiOrganizationReviewChange,
   AiOrganizationReviewSuggestions,
-} from './handler.ts';
+} from '../../../packages/core/src/ai/organization-review.ts';
 
 export const AI_NOTE_CODE_POINT_LIMIT = 2_000;
 

@@ -1,40 +1,14 @@
+import type {
+  AiOrganizationDraft,
+  AiOrganizationReviewChange,
+  OrganizationAction,
+  OrganizationRelationType,
+} from '@asterism/core';
 import type { SupabaseClient } from './client';
 
-export type AiOrganizationRelationType = 'tag' | 'collection';
-export type AiOrganizationAction = 'add' | 'remove';
-export type AiOrganizationReviewChange =
-  | { kind: 'relation'; suggestionId: string; selected: boolean }
-  | { kind: 'classification'; suggestionId: string; approved: boolean };
-
-export interface AiOrganizationDraft {
-  id: string;
-  sourceRepoIds: string[];
-  suggestions: {
-    version: 2;
-    relationChanges: Array<{
-      id: string;
-      repoId: string;
-      relationType: AiOrganizationRelationType;
-      action: AiOrganizationAction;
-      targetId: string;
-      selected: boolean;
-    }>;
-    newClassifications: Array<{
-      id: string;
-      relationType: AiOrganizationRelationType;
-      name: string;
-      repoIds: string[];
-      approved: boolean;
-    }>;
-  };
-  generationConnectionId: string;
-  generationAdapter: string;
-  generationModel: string;
-  reviewState: 'review';
-  revision: number;
-  createdAt: string;
-  updatedAt: string;
-}
+export type { AiOrganizationDraft, AiOrganizationReviewChange } from '@asterism/core';
+export type AiOrganizationAction = OrganizationAction;
+export type AiOrganizationRelationType = OrganizationRelationType;
 
 const FORBIDDEN_FIELDS = [
   'credential',

@@ -52,6 +52,11 @@ export {
   resolveActiveGenerationModel,
 } from './ai/generation-selection';
 export type {
+  AiOrganizationDraft,
+  AiOrganizationReviewChange,
+  AiOrganizationReviewSuggestions,
+} from './ai/organization-review';
+export type {
   DnsResolver,
   HostAllowlist,
   IpClassification,

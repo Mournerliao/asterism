@@ -315,7 +315,7 @@ export function AiOrganizationDraftDialog({
       onOpenChange={(next) => !discarding && !reviewPending && onOpenChange(next)}
     >
       <DialogContent
-        className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-[40rem]"
+        className="flex max-h-[calc(100dvh-2rem)] flex-col"
         closeDisabled={discarding || reviewPending}
       >
         <DialogHeader className="pr-10">

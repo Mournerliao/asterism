@@ -32,6 +32,7 @@ import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useAiConnections, useAiSettings } from '../data/use-ai-connections';
 import {
   useAiOrganizationDraft,
+  useConfirmAiOrganizationDraft,
   useDiscardAiOrganizationDraft,
   useGenerateAiOrganizationDraft,
   useUpdateAiOrganizationDraftReview,
@@ -81,6 +82,7 @@ export function BrowsePage() {
   const generateAiDraft = useGenerateAiOrganizationDraft();
   const discardAiDraft = useDiscardAiOrganizationDraft();
   const updateAiDraftReview = useUpdateAiOrganizationDraftReview();
+  const confirmAiDraft = useConfirmAiOrganizationDraft();
   const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
@@ -262,12 +264,14 @@ export function BrowsePage() {
       repoNames={repoNames}
       targetNames={targetNames}
       discarding={discardAiDraft.isPending}
+      confirming={confirmAiDraft.isPending}
       updatingReviewId={
         updateAiDraftReview.isPending
           ? (updateAiDraftReview.variables?.change.suggestionId ?? null)
           : null
       }
       onUpdate={(input) => updateAiDraftReview.mutateAsync(input)}
+      onConfirm={(input) => confirmAiDraft.mutateAsync(input)}
       onDiscard={() => discardAiDraft.mutateAsync()}
     />
   ) : null;

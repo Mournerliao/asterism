@@ -394,6 +394,26 @@
     "discard": "Discard draft",
     "discarding": "Discarding…",
     "discardError": "The draft could not be discarded. It remains available; try again.",
+    "confirmation": {
+      "title": "Final organization changes",
+      "description": "Only these reviewed changes will enter the durable bulk operation.",
+      "newClassifications": "Approved new classifications",
+      "newClassificationsCount_one": "{{count}} approved new classification",
+      "newClassificationsCount_other": "{{count}} approved new classifications",
+      "additions": "Additions",
+      "additionsCount_one": "{{count}} addition",
+      "additionsCount_other": "{{count}} additions",
+      "removals": "Removals",
+      "removalsCount_one": "{{count}} removal",
+      "removalsCount_other": "{{count}} removals",
+      "confirm": "Confirm organization",
+      "confirming": "Confirming…",
+      "error": {
+        "conflict": "This draft changed in another tab. Refresh the authoritative draft and review it again.",
+        "stale": "A selected repository or classification is no longer valid. The draft was preserved; adjust or regenerate it.",
+        "failed": "The confirmation transaction failed. The draft and organization data were preserved; try again."
+      }
+    },
     "kind": {
       "tag": "Tag",
       "collection": "Collection"

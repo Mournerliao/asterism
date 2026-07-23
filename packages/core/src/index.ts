@@ -56,6 +56,7 @@ export type {
   AiOrganizationReviewChange,
   AiOrganizationReviewSuggestions,
 } from './ai/organization-review';
+export { isAiOrganizationReviewSuggestions } from './ai/organization-review';
 export type {
   DnsResolver,
   HostAllowlist,

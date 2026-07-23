@@ -238,6 +238,33 @@ function createDataDependencies(
       return row ? mapDraft(row as unknown as Record<string, unknown>) : null;
     },
 
+    async confirmDraftTransaction(input: {
+      userId: string;
+      draftId: string;
+      expectedRevision: number;
+      suggestions: AiOrganizationDraftView['suggestions'];
+    }): Promise<string> {
+      const { data, error } = await admin.rpc('confirm_ai_organization_draft', {
+        p_user_id: input.userId,
+        p_draft_id: input.draftId,
+        p_expected_revision: input.expectedRevision,
+        p_suggestions: input.suggestions as unknown as Json,
+      });
+      if (error || typeof data !== 'string') {
+        const message = error?.message ?? 'draft_confirmation_failed';
+        for (const code of [
+          'draft_confirmation_conflict',
+          'draft_repository_invalid',
+          'draft_target_invalid',
+          'draft_confirmation_invalid',
+        ]) {
+          if (message.includes(code)) throw new Error(code);
+        }
+        throw new Error('draft_confirmation_failed');
+      }
+      return data;
+    },
+
     async discardDraft(userId: string): Promise<boolean> {
       const { data, error } = await admin
         .from('ai_organization_drafts')

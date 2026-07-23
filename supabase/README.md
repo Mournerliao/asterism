@@ -16,6 +16,8 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260721120000_ai_provider_connections.sql` | BYOK 生成连接：`ai_provider_connections`（凭据密文，客户端 `revoke all`）与 `user_settings`（owner-only RLS）（详见 ADR 0017 / 0018 / 0024） |
 | `20260723120000_ai_organization_drafts.sql` | AI 整理草稿：每用户一个活动草稿、版本化建议、Connection/model provenance，以及仅 service role 可执行的原子替换函数 |
 | `20260723160000_ai_organization_review.sql` | AI 草稿人工审阅：把既有草稿升级为 review schema v2，并新增仅 service role 可执行的 revision CAS 更新函数 |
+| `20260723190000_ai_organization_confirmation.sql` | AI 草稿确认：安全合并历史等价分类并建立规范化唯一约束、近似名称 guard、以草稿 ID + revision + 完整选择幂等消费确认请求，并在单个受信事务中创建 `source: "ai_draft"` 批量操作与逐关系项目后删除草稿 |
+| `20260723193000_fix_ai_organization_confirmation.sql` | AI 草稿确认函数兼容修正：消除真实 Postgres 中 PL/pgSQL 变量与 SQL 标识符的歧义，保持确认事务语义不变 |
 
 > Phase 3 的 `repo_embeddings` 暂未建表（见 `knowledge/contracts/data-model.md`）。
 
@@ -76,7 +78,7 @@ OAuth 回流并显示当前用户。
 | `bulk-organize` | 受信路径（service role）创建并执行持久化批量 tag / collection 关系变更；按逐关系结果恢复和重试。详见 `functions/bulk-organize/README.md` 与 ADR 0023 |
 | `read-repo-readme` | 受保护的 README 读取边界：校验会话与 `user_stars` 成员关系后代理 GitHub REST README HTML，ETag 重验证，token 与内容不落库。详见 `functions/read-repo-readme/README.md` |
 | `manage-ai-connections` | 受信路径（service role）管理 BYOK 生成连接与凭据：JWT 校验、操作限定到 `auth.uid()`、AES-256-GCM 加密、自定义端点过 SSRF / allowlist；`list` 只回传安全投影。详见 `functions/manage-ai-connections/README.md` 与 ADR 0017 / 0018 / 0024 |
-| `manage-ai-organization` | 受信路径（service role）生成、读取、持久化审阅与丢弃唯一 AI 整理草稿：1–50 个权威仓库快照、笔记 opt-in / 2,000 code point 截断、精确 active Connection/model、严格响应校验、成功后原子替换与 revision CAS。详见 `functions/manage-ai-organization/README.md` |
+| `manage-ai-organization` | 受信路径（service role）生成、读取、持久化审阅、确认与丢弃唯一 AI 整理草稿：1–50 个权威仓库快照、笔记 opt-in / 2,000 code point 截断、精确 active Connection/model、严格响应校验、原子替换、revision CAS，以及受信确认到可靠批量操作。详见 `functions/manage-ai-organization/README.md` |
 | `rotate-ai-connections` | 带外密钥轮换例程（service role）：由独立管理员密钥 `AI_CREDENTIAL_ROTATION_SECRET` 保护、用户 handler 不可达；遍历所有凭据，把旧版本密文重加密到 active 版本。详见 `functions/rotate-ai-connections/README.md` 与 ADR 0017 |
 
 ```bash

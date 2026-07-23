@@ -8,6 +8,7 @@ import { toast } from '@asterism/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
+import { runBulkOperationUntilSettled } from '../lib/bulk-operation-runner';
 import { supabase } from '../lib/supabase';
 import {
   bulkOperationKeys,
@@ -50,30 +51,14 @@ export function useBulkOperationActions() {
     ]);
   };
 
-  const runUntilSettled = async (
+  const runUntilSettled = (
     operation: BulkOperation,
     action: 'execute' | 'retry',
     runnableStatus: 'pending' | 'retryable_failed',
-  ) => {
-    let current = operation;
-    for (let batch = 0; batch < 200; batch += 1) {
-      const previousRunnable = current.items.filter(
-        (item) => item.status === runnableStatus,
-      ).length;
-      const hasRecoverableRunning =
-        action === 'execute' && current.items.some((item) => item.status === 'running');
-      if (previousRunnable === 0 && !hasRecoverableRunning) return current;
-      const next = await invokeBulkOperation(supabase, {
-        action,
-        operationId: current.id,
-      });
-      const nextRunnable = next.items.filter((item) => item.status === runnableStatus).length;
-      current = next;
-      if (nextRunnable >= previousRunnable && previousRunnable > 0) return current;
-      if (previousRunnable === 0) return current;
-    }
-    return current;
-  };
+  ) =>
+    runBulkOperationUntilSettled(operation.id, action, runnableStatus, (request) =>
+      invokeBulkOperation(supabase, request),
+    );
 
   const create = useMutation({
     mutationFn: async (input: { repoIds: string[]; changes: BulkChange[] }) => {

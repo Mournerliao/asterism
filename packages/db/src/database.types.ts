@@ -197,6 +197,9 @@ export interface Database {
           id: string;
           user_id: string;
           source: 'manual' | 'ai_draft';
+          source_draft_id: string | null;
+          source_draft_revision: number | null;
+          source_draft_suggestions: Json | null;
           source_repo_ids: string[];
           status: 'pending' | 'running' | 'needs_attention' | 'completed';
           completed_at: string | null;
@@ -207,6 +210,9 @@ export interface Database {
           id?: string;
           user_id: string;
           source: 'manual' | 'ai_draft';
+          source_draft_id?: string | null;
+          source_draft_revision?: number | null;
+          source_draft_suggestions?: Json | null;
           source_repo_ids: string[];
           status?: 'pending' | 'running' | 'needs_attention' | 'completed';
           completed_at?: string | null;
@@ -447,6 +453,15 @@ export interface Database {
           p_suggestions: Json;
         };
         Returns: Database['public']['Tables']['ai_organization_drafts']['Row'][];
+      };
+      confirm_ai_organization_draft: {
+        Args: {
+          p_user_id: string;
+          p_draft_id: string;
+          p_expected_revision: number;
+          p_suggestions: Json;
+        };
+        Returns: string;
       };
       create_bulk_operation: {
         Args: {

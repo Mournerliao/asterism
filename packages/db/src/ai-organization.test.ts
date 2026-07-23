@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
+  AiOrganizationConfirmationError,
+  type AiOrganizationDraft,
+  confirmAiOrganizationDraft,
   discardAiOrganizationDraft,
   generateAiOrganizationDraft,
   getAiOrganizationDraft,
@@ -19,11 +22,27 @@ const draft = {
   revision: 1,
   createdAt: '2026-07-23T00:00:00Z',
   updatedAt: '2026-07-23T00:00:00Z',
-};
+} satisfies AiOrganizationDraft;
 
 function clientReturning(data: unknown) {
   const invoke = vi.fn().mockResolvedValue({ data, error: null });
   return { client: { functions: { invoke } } as unknown as SupabaseClient, invoke };
+}
+
+function clientFailing(code: string) {
+  return {
+    functions: {
+      invoke: vi.fn().mockResolvedValue({
+        data: null,
+        error: {
+          context: new Response(JSON.stringify({ error: code }), {
+            status: 409,
+            headers: { 'Content-Type': 'application/json' },
+          }),
+        },
+      }),
+    },
+  } as unknown as SupabaseClient;
 }
 
 describe('AI organization DB boundary', () => {
@@ -90,5 +109,56 @@ describe('AI organization DB boundary', () => {
         },
       }),
     ).resolves.toEqual({ status: 'conflict' });
+  });
+
+  it('confirms the exact reviewed state and accepts only a safe operation reference', async () => {
+    const confirmed = clientReturning({
+      status: 'confirmed',
+      operationId: 'operation-1',
+    });
+    await expect(
+      confirmAiOrganizationDraft(confirmed.client, {
+        draftId: 'draft-1',
+        expectedRevision: 4,
+        suggestions: draft.suggestions,
+      }),
+    ).resolves.toEqual({ status: 'confirmed', operationId: 'operation-1' });
+    expect(confirmed.invoke).toHaveBeenCalledWith('manage-ai-organization', {
+      body: {
+        action: 'confirm',
+        draftId: 'draft-1',
+        expectedRevision: 4,
+        suggestions: draft.suggestions,
+      },
+    });
+
+    await expect(
+      confirmAiOrganizationDraft(
+        clientReturning({
+          status: 'confirmed',
+          operationId: 'operation-1',
+          credential: 'secret',
+        }).client,
+        {
+          draftId: 'draft-1',
+          expectedRevision: 4,
+          suggestions: draft.suggestions,
+        },
+      ),
+    ).rejects.toThrow('invalid response');
+
+    const conflict = confirmAiOrganizationDraft(clientFailing('draft_confirmation_conflict'), {
+      draftId: 'draft-1',
+      expectedRevision: 4,
+      suggestions: draft.suggestions,
+    });
+    await expect(conflict).rejects.toBeInstanceOf(AiOrganizationConfirmationError);
+    await expect(
+      confirmAiOrganizationDraft(clientFailing('draft_confirmation_conflict'), {
+        draftId: 'draft-1',
+        expectedRevision: 4,
+        suggestions: draft.suggestions,
+      }),
+    ).rejects.toThrow('draft_confirmation_conflict');
   });
 });

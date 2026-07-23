@@ -55,6 +55,7 @@ function dependencies(
     }),
     getDraft: vi.fn().mockResolvedValue(null),
     updateDraftReview: vi.fn().mockResolvedValue(null),
+    confirmDraftTransaction: vi.fn().mockResolvedValue('operation-1'),
     discardDraft: vi.fn().mockResolvedValue(false),
     ...overrides,
   };
@@ -246,5 +247,46 @@ describe('AI organization authoritative service', () => {
       }),
     ).resolves.toEqual({ status: 'conflict' });
     expect(conflict.updateDraftReview).not.toHaveBeenCalled();
+  });
+
+  it('hands the exact final review to the atomic confirmation transaction', async () => {
+    const suggestions = {
+      version: 2 as const,
+      relationChanges: [
+        {
+          id: 'relation-1',
+          repoId,
+          relationType: 'tag' as const,
+          action: 'add' as const,
+          targetId: 'tag-1',
+          selected: true,
+        },
+      ],
+      newClassifications: [
+        {
+          id: 'classification-1',
+          relationType: 'collection' as const,
+          name: 'AI Reading',
+          repoIds: [repoId],
+          approved: true,
+        },
+      ],
+    };
+    const deps = dependencies();
+
+    await expect(
+      createAiOrganizationService(deps).confirmDraft('user-1', {
+        draftId: 'draft-1',
+        expectedRevision: 7,
+        suggestions,
+      }),
+    ).resolves.toEqual({ status: 'confirmed', operationId: 'operation-1' });
+    expect(deps.confirmDraftTransaction).toHaveBeenCalledWith({
+      userId: 'user-1',
+      draftId: 'draft-1',
+      expectedRevision: 7,
+      suggestions,
+    });
+    expect(deps.getDraft).not.toHaveBeenCalled();
   });
 });

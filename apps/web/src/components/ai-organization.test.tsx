@@ -156,8 +156,10 @@ describe('Browse AI organization flow', () => {
           repoNames={new Map([['repo-1', 'owner/repo']])}
           targetNames={new Map()}
           discarding={false}
+          confirming={false}
           updatingReviewId={null}
           onUpdate={vi.fn()}
+          onConfirm={vi.fn()}
           onDiscard={onDiscard}
         />,
       );
@@ -190,8 +192,10 @@ describe('Browse AI organization flow', () => {
             ])
           }
           discarding={false}
+          confirming={false}
           updatingReviewId={null}
           onUpdate={onUpdate}
+          onConfirm={vi.fn()}
           onDiscard={vi.fn()}
         />,
       );
@@ -238,8 +242,10 @@ describe('Browse AI organization flow', () => {
           repoNames={new Map([['repo-1', 'owner/alpha']])}
           targetNames={new Map([['tag-1', 'Tools']])}
           discarding={false}
+          confirming={false}
           updatingReviewId={null}
           onUpdate={onUpdate}
+          onConfirm={vi.fn()}
           onDiscard={vi.fn()}
         />,
       );
@@ -290,8 +296,10 @@ describe('Browse AI organization flow', () => {
             ])
           }
           discarding={false}
+          confirming={false}
           updatingReviewId={null}
           onUpdate={vi.fn()}
+          onConfirm={vi.fn()}
           onDiscard={vi.fn()}
         />,
       );
@@ -308,5 +316,92 @@ describe('Browse AI organization flow', () => {
         ?.getAttribute('aria-pressed'),
     ).toBe('true');
     expect(document.body.textContent).toContain('Classification approved');
+  });
+
+  it('summarizes the exact final write and requires an explicit confirmation action', async () => {
+    const finalDraft: AiOrganizationDraft = {
+      ...reviewDraft,
+      suggestions: {
+        ...reviewDraft.suggestions,
+        relationChanges: reviewDraft.suggestions.relationChanges.map((item) => ({
+          ...item,
+          selected: true,
+        })),
+        newClassifications: reviewDraft.suggestions.newClassifications.map((item) => ({
+          ...item,
+          approved: true,
+        })),
+      },
+    };
+    const onConfirm = vi.fn().mockResolvedValue({
+      status: 'confirmed',
+      operationId: 'operation-1',
+    });
+    await act(async () => {
+      root.render(
+        <AiOrganizationDraftBanner
+          draft={finalDraft}
+          repoNames={
+            new Map([
+              ['repo-1', 'owner/alpha'],
+              ['repo-2', 'owner/beta'],
+            ])
+          }
+          targetNames={
+            new Map([
+              ['tag-1', 'Tools'],
+              ['collection-1', 'Archive'],
+            ])
+          }
+          discarding={false}
+          confirming={false}
+          updatingReviewId={null}
+          onUpdate={vi.fn()}
+          onConfirm={onConfirm}
+          onDiscard={vi.fn()}
+        />,
+      );
+    });
+    await act(async () => button('Resume draft')?.click());
+    expect(document.body.textContent).toContain('1 approved new classification');
+    expect(document.body.textContent).toContain('3 additions');
+    expect(document.body.textContent).toContain('1 removal');
+    expect(onConfirm).not.toHaveBeenCalled();
+
+    await act(async () => button('Confirm organization')?.click());
+    expect(onConfirm).toHaveBeenCalledWith({
+      draftId: 'draft-1',
+      expectedRevision: 4,
+      suggestions: finalDraft.suggestions,
+    });
+  });
+
+  it('keeps the draft open and announces stale confirmation state', async () => {
+    const confirmationConflict = Object.assign(new Error('draft_confirmation_conflict'), {
+      name: 'AiOrganizationConfirmationError',
+      code: 'draft_confirmation_conflict',
+    });
+    const onConfirm = vi.fn().mockRejectedValue(confirmationConflict);
+    await act(async () => {
+      root.render(
+        <AiOrganizationDraftBanner
+          draft={reviewDraft}
+          repoNames={new Map([['repo-1', 'owner/alpha']])}
+          targetNames={new Map([['tag-1', 'Tools']])}
+          discarding={false}
+          confirming={false}
+          updatingReviewId={null}
+          onUpdate={vi.fn()}
+          onConfirm={onConfirm}
+          onDiscard={vi.fn()}
+        />,
+      );
+    });
+    await act(async () => button('Resume draft')?.click());
+    await act(async () => button('Confirm organization')?.click());
+    expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(document.body.querySelector('[role="alert"]')?.textContent).toContain(
+      'changed in another tab',
+    );
   });
 });

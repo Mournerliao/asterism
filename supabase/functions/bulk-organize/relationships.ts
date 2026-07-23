@@ -1,5 +1,5 @@
-import { BulkExecutionError } from './executor';
-import type { BulkOperationItem, BulkRelationType } from './handler';
+import { BulkExecutionError } from './executor.ts';
+import type { BulkOperationItem, BulkRelationType } from './handler.ts';
 
 export interface RelationshipStore {
   ownsRepository: (userId: string, repoId: string) => Promise<boolean>;

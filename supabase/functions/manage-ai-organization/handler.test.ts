@@ -24,6 +24,10 @@ function deps(overrides: Partial<AiOrganizationDependencies> = {}): AiOrganizati
     generateDraft: vi.fn().mockResolvedValue(draft),
     getDraft: vi.fn().mockResolvedValue(draft),
     updateReview: vi.fn().mockResolvedValue({ status: 'updated', draft }),
+    confirmDraft: vi.fn().mockResolvedValue({
+      status: 'confirmed',
+      operationId: 'operation-1',
+    }),
     discardDraft: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
@@ -84,6 +88,121 @@ describe('manage-ai-organization trusted HTTP interface', () => {
     );
     expect(conflictResponse.status).toBe(200);
     await expect(conflictResponse.json()).resolves.toEqual({ status: 'conflict' });
+  });
+
+  it('confirms the exact reviewed draft through the authenticated user scope', async () => {
+    const dependencies = deps();
+    const response = await createManageAiOrganizationHandler(dependencies)(
+      request({
+        action: 'confirm',
+        draftId: 'draft-1',
+        expectedRevision: 4,
+        suggestions: {
+          version: 2,
+          relationChanges: [
+            {
+              id: 'relation-1',
+              repoId: 'repo-1',
+              relationType: 'tag',
+              action: 'add',
+              targetId: 'tag-1',
+              selected: true,
+            },
+          ],
+          newClassifications: [],
+        },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(dependencies.confirmDraft).toHaveBeenCalledWith('user-1', {
+      draftId: 'draft-1',
+      expectedRevision: 4,
+      suggestions: {
+        version: 2,
+        relationChanges: [
+          {
+            id: 'relation-1',
+            repoId: 'repo-1',
+            relationType: 'tag',
+            action: 'add',
+            targetId: 'tag-1',
+            selected: true,
+          },
+        ],
+        newClassifications: [],
+      },
+    });
+    await expect(response.json()).resolves.toEqual({
+      status: 'confirmed',
+      operationId: 'operation-1',
+    });
+  });
+
+  it('rejects malformed confirmation payloads before the transaction boundary', async () => {
+    const dependencies = deps();
+    const handler = createManageAiOrganizationHandler(dependencies);
+
+    expect(
+      (
+        await handler(
+          request({
+            action: 'confirm',
+            draftId: 'draft-1',
+            expectedRevision: 0,
+            suggestions: draft.suggestions,
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await handler(
+          request({
+            action: 'confirm',
+            draftId: 'draft-1',
+            expectedRevision: 1,
+            suggestions: {
+              version: 2,
+              relationChanges: [
+                {
+                  id: 'relation-1',
+                  repoId: 'repo-1',
+                  relationType: 'tag',
+                  action: 'add',
+                  targetId: 'tag-1',
+                  selected: 'yes',
+                },
+              ],
+              newClassifications: [],
+            },
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(dependencies.confirmDraft).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['draft_confirmation_conflict', 409],
+    ['draft_repository_invalid', 400],
+    ['draft_target_invalid', 400],
+    ['draft_confirmation_failed', 500],
+  ] as const)('maps confirmation outcome %s to a stable HTTP status', async (code, status) => {
+    const dependencies = deps({
+      confirmDraft: vi.fn().mockRejectedValue(new Error(code)),
+    });
+    const response = await createManageAiOrganizationHandler(dependencies)(
+      request({
+        action: 'confirm',
+        draftId: 'draft-1',
+        expectedRevision: 4,
+        suggestions: draft.suggestions,
+      }),
+    );
+
+    expect(response.status).toBe(status);
+    await expect(response.json()).resolves.toEqual({ error: code });
   });
 
   it('rejects malformed review changes before the service boundary', async () => {

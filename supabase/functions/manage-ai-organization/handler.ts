@@ -1,7 +1,9 @@
 import type {
   AiOrganizationDraft as AiOrganizationDraftView,
   AiOrganizationReviewChange,
+  AiOrganizationReviewSuggestions,
 } from '../../../packages/core/src/ai/organization-review.ts';
+import { isAiOrganizationReviewSuggestions } from '../../../packages/core/src/ai/organization-review.ts';
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +26,14 @@ export interface AiOrganizationDependencies {
     expectedRevision: number,
     change: AiOrganizationReviewChange,
   ) => Promise<{ status: 'updated'; draft: AiOrganizationDraftView } | { status: 'conflict' }>;
+  confirmDraft: (
+    userId: string,
+    input: {
+      draftId: string;
+      expectedRevision: number;
+      suggestions: AiOrganizationReviewSuggestions;
+    },
+  ) => Promise<{ status: 'confirmed'; operationId: string }>;
   discardDraft: (userId: string) => Promise<boolean>;
 }
 
@@ -99,6 +109,23 @@ export function createManageAiOrganizationHandler(dependencies: AiOrganizationDe
           await dependencies.updateReview(userId, body.expectedRevision as number, change),
         );
       }
+      if (body.action === 'confirm') {
+        if (
+          !isId(body.draftId) ||
+          !Number.isInteger(body.expectedRevision) ||
+          (body.expectedRevision as number) < 1 ||
+          !isAiOrganizationReviewSuggestions(body.suggestions)
+        ) {
+          return json({ error: 'invalid_request' }, 400);
+        }
+        return json(
+          await dependencies.confirmDraft(userId, {
+            draftId: body.draftId,
+            expectedRevision: body.expectedRevision as number,
+            suggestions: body.suggestions,
+          }),
+        );
+      }
       if (body.action === 'generate') {
         if (!Array.isArray(body.repoIds) || !body.repoIds.every(isId)) {
           return json({ error: 'invalid_request' }, 400);
@@ -117,13 +144,16 @@ export function createManageAiOrganizationHandler(dependencies: AiOrganizationDe
     } catch (error) {
       const code = error instanceof Error ? error.message : 'ai_organization_failed';
       const status =
-        code.startsWith('invalid_') ||
-        code.endsWith('_not_owned') ||
-        code.startsWith('generation_connection_')
-          ? 400
-          : code.startsWith('provider_')
-            ? 502
-            : 500;
+        code === 'draft_confirmation_conflict'
+          ? 409
+          : code.startsWith('invalid_') ||
+              code.endsWith('_invalid') ||
+              code.endsWith('_not_owned') ||
+              code.startsWith('generation_connection_')
+            ? 400
+            : code.startsWith('provider_')
+              ? 502
+              : 500;
       return json({ error: code }, status);
     }
   };

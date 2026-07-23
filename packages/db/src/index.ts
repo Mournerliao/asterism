@@ -23,12 +23,17 @@ export {
 } from './ai-connections';
 export type {
   AiOrganizationAction,
+  AiOrganizationConfirmationErrorCode,
   AiOrganizationDraft,
   AiOrganizationRelationType,
   AiOrganizationReviewChange,
   AiOrganizationReviewUpdateResult,
+  ConfirmAiOrganizationDraftInput,
+  ConfirmAiOrganizationDraftResult,
 } from './ai-organization';
 export {
+  AiOrganizationConfirmationError,
+  confirmAiOrganizationDraft,
   discardAiOrganizationDraft,
   generateAiOrganizationDraft,
   getAiOrganizationDraft,

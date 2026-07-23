@@ -1,8 +1,11 @@
 import type {
   AiConnection,
+  AiOrganizationConfirmationError,
   AiOrganizationDraft,
   AiOrganizationReviewChange,
   AiOrganizationReviewUpdateResult,
+  ConfirmAiOrganizationDraftInput,
+  ConfirmAiOrganizationDraftResult,
 } from '@asterism/db';
 import {
   Badge,
@@ -201,8 +204,10 @@ export function AiOrganizationDraftDialog({
   repoNames,
   targetNames,
   discarding,
+  confirming,
   updatingReviewId,
   onUpdate,
+  onConfirm,
   onDiscard,
 }: {
   draft: AiOrganizationDraft;
@@ -211,19 +216,36 @@ export function AiOrganizationDraftDialog({
   repoNames: ReadonlyMap<string, string>;
   targetNames: ReadonlyMap<string, string>;
   discarding: boolean;
+  confirming: boolean;
   updatingReviewId: string | null;
   onUpdate: (input: {
     expectedRevision: number;
     change: AiOrganizationReviewChange;
   }) => Promise<AiOrganizationReviewUpdateResult>;
+  onConfirm: (input: ConfirmAiOrganizationDraftInput) => Promise<ConfirmAiOrganizationDraftResult>;
   onDiscard: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
   const [discardFailed, setDiscardFailed] = useState(false);
   const [reviewError, setReviewError] = useState<'conflict' | 'failed' | null>(null);
+  const [confirmationError, setConfirmationError] = useState<
+    'conflict' | 'stale' | 'failed' | null
+  >(null);
   const empty =
     draft.suggestions.relationChanges.length + draft.suggestions.newClassifications.length === 0;
   const reviewPending = updatingReviewId !== null;
+  const approvedNewCount = draft.suggestions.newClassifications.filter(
+    (item) => item.approved,
+  ).length;
+  const selectedRelations = draft.suggestions.relationChanges.filter((item) => item.selected);
+  const additionCount =
+    selectedRelations.filter((item) => item.action === 'add').length +
+    draft.suggestions.newClassifications.reduce(
+      (count, item) => count + (item.approved ? item.repoIds.length : 0),
+      0,
+    );
+  const removalCount = selectedRelations.filter((item) => item.action === 'remove').length;
+  const confirmationCount = additionCount + removalCount;
 
   const update = async (change: AiOrganizationReviewChange) => {
     setReviewError(null);
@@ -309,14 +331,38 @@ export function AiOrganizationDraftDialog({
     }
   };
 
+  const confirm = async () => {
+    setConfirmationError(null);
+    try {
+      await onConfirm({
+        draftId: draft.id,
+        expectedRevision: draft.revision,
+        suggestions: draft.suggestions,
+      });
+      onOpenChange(false);
+    } catch (error) {
+      const code =
+        error instanceof Error && error.name === 'AiOrganizationConfirmationError'
+          ? (error as AiOrganizationConfirmationError).code
+          : null;
+      setConfirmationError(
+        code === 'draft_confirmation_conflict'
+          ? 'conflict'
+          : code === 'draft_repository_invalid' || code === 'draft_target_invalid'
+            ? 'stale'
+            : 'failed',
+      );
+    }
+  };
+
   return (
     <Dialog
       open={open}
-      onOpenChange={(next) => !discarding && !reviewPending && onOpenChange(next)}
+      onOpenChange={(next) => !discarding && !confirming && !reviewPending && onOpenChange(next)}
     >
       <DialogContent
         className="flex max-h-[calc(100dvh-2rem)] flex-col"
-        closeDisabled={discarding || reviewPending}
+        closeDisabled={discarding || confirming || reviewPending}
       >
         <DialogHeader className="pr-10">
           <DialogTitle>{t('aiOrganization.draft.title')}</DialogTitle>
@@ -500,12 +546,55 @@ export function AiOrganizationDraftDialog({
               </section>
             </>
           )}
+          <section aria-labelledby="ai-confirmation-summary" className="border-t pt-4">
+            <h3 id="ai-confirmation-summary" className="font-medium text-body">
+              {t('aiOrganization.confirmation.title')}
+            </h3>
+            <p className="mt-1 text-caption text-muted-foreground">
+              {t('aiOrganization.confirmation.description')}
+            </p>
+            <dl className="mt-3 grid grid-cols-[1fr_auto] gap-x-4 gap-y-2 rounded-lg bg-muted px-3 py-2 text-caption">
+              <dt>{t('aiOrganization.confirmation.newClassifications')}</dt>
+              <dd className="font-mono font-medium">
+                <span className="sr-only">
+                  {t('aiOrganization.confirmation.newClassificationsCount', {
+                    count: approvedNewCount,
+                  })}
+                </span>
+                <span aria-hidden="true">{approvedNewCount}</span>
+              </dd>
+              <dt>{t('aiOrganization.confirmation.additions')}</dt>
+              <dd className="font-mono font-medium">
+                <span className="sr-only">
+                  {t('aiOrganization.confirmation.additionsCount', {
+                    count: additionCount,
+                  })}
+                </span>
+                <span aria-hidden="true">{additionCount}</span>
+              </dd>
+              <dt>{t('aiOrganization.confirmation.removals')}</dt>
+              <dd className="font-mono font-medium">
+                <span className="sr-only">
+                  {t('aiOrganization.confirmation.removalsCount', {
+                    count: removalCount,
+                  })}
+                </span>
+                <span aria-hidden="true">{removalCount}</span>
+              </dd>
+            </dl>
+          </section>
           {reviewError ? (
             <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
               <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
               {reviewError === 'conflict'
                 ? t('aiOrganization.draft.conflict')
                 : t('aiOrganization.draft.reviewError')}
+            </p>
+          ) : null}
+          {confirmationError ? (
+            <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
+              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+              {t(`aiOrganization.confirmation.error.${confirmationError}`)}
             </p>
           ) : null}
           {discardFailed ? (
@@ -519,7 +608,7 @@ export function AiOrganizationDraftDialog({
             type="button"
             size="sm"
             variant="destructive"
-            disabled={discarding || reviewPending}
+            disabled={discarding || confirming || reviewPending}
             aria-busy={discarding}
             onClick={discard}
           >
@@ -529,6 +618,22 @@ export function AiOrganizationDraftDialog({
               <Trash2Icon className="size-4" />
             )}
             {discarding ? t('aiOrganization.discarding') : t('aiOrganization.discard')}
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            disabled={discarding || confirming || reviewPending || confirmationCount === 0}
+            aria-busy={confirming}
+            onClick={confirm}
+          >
+            {confirming ? (
+              <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
+            ) : (
+              <CheckCircle2Icon className="size-4" />
+            )}
+            {confirming
+              ? t('aiOrganization.confirmation.confirming')
+              : t('aiOrganization.confirmation.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -541,19 +646,23 @@ export function AiOrganizationDraftBanner({
   repoNames,
   targetNames,
   discarding,
+  confirming,
   updatingReviewId,
   onUpdate,
+  onConfirm,
   onDiscard,
 }: {
   draft: AiOrganizationDraft;
   repoNames: ReadonlyMap<string, string>;
   targetNames: ReadonlyMap<string, string>;
   discarding: boolean;
+  confirming: boolean;
   updatingReviewId: string | null;
   onUpdate: (input: {
     expectedRevision: number;
     change: AiOrganizationReviewChange;
   }) => Promise<AiOrganizationReviewUpdateResult>;
+  onConfirm: (input: ConfirmAiOrganizationDraftInput) => Promise<ConfirmAiOrganizationDraftResult>;
   onDiscard: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
@@ -579,8 +688,10 @@ export function AiOrganizationDraftBanner({
         repoNames={repoNames}
         targetNames={targetNames}
         discarding={discarding}
+        confirming={confirming}
         updatingReviewId={updatingReviewId}
         onUpdate={onUpdate}
+        onConfirm={onConfirm}
         onDiscard={onDiscard}
       />
     </section>

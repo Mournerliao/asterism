@@ -394,6 +394,26 @@
     "discard": "丢弃草稿",
     "discarding": "正在丢弃…",
     "discardError": "无法丢弃草稿。草稿仍然可用；请重试。",
+    "confirmation": {
+      "title": "最终整理改动",
+      "description": "只有这些已审阅改动会进入可靠批量操作。",
+      "newClassifications": "批准新建分类",
+      "newClassificationsCount_one": "批准新建 {{count}} 个分类",
+      "newClassificationsCount_other": "批准新建 {{count}} 个分类",
+      "additions": "添加关系",
+      "additionsCount_one": "添加 {{count}} 条关系",
+      "additionsCount_other": "添加 {{count}} 条关系",
+      "removals": "移除关系",
+      "removalsCount_one": "移除 {{count}} 条关系",
+      "removalsCount_other": "移除 {{count}} 条关系",
+      "confirm": "确认整理",
+      "confirming": "正在确认…",
+      "error": {
+        "conflict": "此草稿已在其他标签页中改变。请刷新权威草稿并重新检查。",
+        "stale": "某个已选择的仓库或分类不再有效。草稿已保留，请调整或重新生成。",
+        "failed": "确认事务失败。草稿与整理数据均已保留，请重试。"
+      }
+    },
     "kind": {
       "tag": "标签",
       "collection": "集合"

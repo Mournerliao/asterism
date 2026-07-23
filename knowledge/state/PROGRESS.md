@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> Phase 2 AI 切片 B 已完成并在真实 Supabase 环境验收（2026-07-23，GitHub #17）：草稿确认现在携带 `draftId + expectedRevision + 完整 suggestions` 进入 service-role 数据库事务，先锁定并重新验证草稿、仓库与分类目标，再安全复用规范化等价分类、创建带确认快照和 `source_draft_id` 幂等键的 `source: "ai_draft"` 批量操作及逐关系 items，最后删除草稿；近似但非等价名称会保守拒绝并保留草稿。Web 最终确认层展示批准新分类、additions、removals 的准确计数，成功后立即驱动既有 50 条有界 executor，响应丢失或刷新后从 recovery banner 恢复同一操作。真实环境已验证事务消费、精确重放幂等、不同 payload 冲突、owner RLS、等价名称复用、近似名称拒绝、自动执行与清理；`manage-ai-organization` / `bulk-organize` 及 4 个 AI 草稿迁移均已部署。`pnpm lint / typecheck / test / build` 全绿（434 tests；build 仅既有主 chunk warning），Impeccable 检测无违规；无新增 ADR。见 `logs/2026-07-23-issue-17-ai-organization-confirmation.md`。
+
 > Phase 2 AI 切片 B 的第二个纵向切片已实现并验证（2026-07-23，GitHub #16）：持久化草稿升级为 review schema v2，现有关系建议默认选中且可逐项取消 / 恢复，建议新分类默认未批准并单独审批，其仓库关系在审批前保持明确阻止。所有选择经受信 `manage-ai-organization` Edge Function 与 `packages/db` 边界持久化，每次 mutation 携带 expected revision，并由仅 service-role 可调用的数据库 RPC 做 compare-and-set；旧标签页得到稳定 conflict、保留较新决定并触发客户端重新读取。Browse 审阅按仓库分组，添加 / 移除 / 新分类不依赖颜色区分，支持键盘、语义状态、en / zh-CN、窄屏及 light / dark；有效空草稿仍可丢弃或替换。`pnpm lint / typecheck / test / build` 全绿（core 132 / db 53 / functions 87 / web 148；build 仅既有主 chunk warning），Impeccable 检测无违规；无新增 ADR。下一步为 #17「Confirm AI drafts through durable bulk organization」。见 `logs/2026-07-23-issue-16-ai-organization-review.md`。
 
 > 根级开发服务器共享包预构建竞态已修复（2026-07-23）：`pnpm dev` 的 Turbo `dev` 任务现在先等待 workspace 依赖完成 `build`，避免 Vite 在 `packages/{core,ui,db}/dist` 仍为旧产物时启动并报新增命名导出不存在；共享包 watcher 随后继续承担增量编译。此次由 `@asterism/db` 源码已导出 `discardAiOrganizationDraft`、但旧 `dist/index.js` 尚未包含该导出触发。见 `logs/2026-07-23-root-dev-shared-package-prebuild.md`。

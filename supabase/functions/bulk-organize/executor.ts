@@ -1,4 +1,4 @@
-import type { BulkItemStatus, BulkOperation, BulkOperationItem } from './handler';
+import type { BulkItemStatus, BulkOperation, BulkOperationItem } from './handler.ts';
 
 export type BulkExecutionResult = {
   status: Extract<BulkItemStatus, 'succeeded' | 'retryable_failed' | 'terminal_failed'>;

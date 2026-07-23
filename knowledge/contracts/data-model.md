@@ -98,11 +98,14 @@
 
 - `user_id` → `auth.users(id)`
 - `source` — `manual` / `ai_draft`，仅说明操作来源，不改变执行语义
+- `source_draft_id` — AI 草稿确认的幂等键（manual 为 null）
+- `source_draft_revision` — 已确认的草稿 revision（manual 为 null）
+- `source_draft_suggestions` — 已确认的完整最终选择（manual 为 null，不含 credential）
 - `source_repo_ids` — 用户确认时固化的选择范围快照
 - `status` — `pending` / `running` / `needs_attention` / `completed`
 - `completed_at` — 全部成功或用户明确结束剩余终止失败的时间（可选）
 
-约束：用户确认写入后才创建；`source_repo_ids` 不随筛选变化或后续同步改变。操作状态由其逐关系项目汇总：仍有待执行项为 `pending` / `running`，存在失败项为 `needs_attention`，全部成功或终止失败已由用户明确结束后为 `completed`。AI 草稿确认后复用同一模型，不建立另一套 AI 写入通道。
+约束：用户确认写入后才创建；`source_repo_ids` 不随筛选变化或后续同步改变。操作状态由其逐关系项目汇总：仍有待执行项为 `pending` / `running`，存在失败项为 `needs_attention`，全部成功或终止失败已由用户明确结束后为 `completed`。AI 草稿确认以 `(user_id, source_draft_id)` 唯一，并把 revision 与完整最终选择绑定到该幂等结果；仅完全相同的重放返回原 operation，复用草稿 ID 但改变 payload 必须冲突。AI 草稿确认后复用同一模型，不建立另一套 AI 写入通道。
 
 ### `bulk_operation_items` — 批量关系变更
 
@@ -159,7 +162,7 @@
 - `revision` — 每次成功替换或审阅选择更新递增；失败生成与失败审阅写入不改变
 - `created_at` / `updated_at` — 当前草稿生成与最近替换时间
 
-约束：草稿按 `user_id` 隔离且每个用户最多一个活动草稿；刷新或离开页面后可继续审阅。现有关系建议默认选中并可逐项取消；建议新分类默认未批准，只有单独批准后其依赖关系才具备后续确认资格。每次审阅 mutation 必须携带期望 revision，并由受信函数通过 compare-and-set 原子推进；旧标签页发生冲突时保留较新草稿并要求客户端重新读取。草稿中的现有分类 ID 必须属于当前用户，未知 ID 不得持久化；新分类名称必须先完成大小写、空白与近似名称检查。开始新生成前提示用户将替换旧草稿，新生成成功后原子替换，生成失败保留旧草稿及其审阅选择；主动丢弃直接删除。确认必须在一个受信数据库事务中重新校验最终勾选，幂等创建已确认的新标签 / 集合，创建 `source: "ai_draft"` 的 `bulk_operations` 与全部 `bulk_operation_items`，并仅在这些记录成功落库后删除草稿；实际关系写入不属于该事务。草稿不得包含 API credential、其他用户数据或 README。
+约束：草稿按 `user_id` 隔离且每个用户最多一个活动草稿；刷新或离开页面后可继续审阅。现有关系建议默认选中并可逐项取消；建议新分类默认未批准，只有单独批准后其依赖关系才具备后续确认资格。每次审阅 mutation 必须携带期望 revision，并由受信函数通过 compare-and-set 原子推进；旧标签页发生冲突时保留较新草稿并要求客户端重新读取。草稿中的现有分类 ID 必须属于当前用户，未知 ID 不得持久化；新分类名称必须先完成 NFKC、大小写与空白规范化，规范化等价名称由数据库唯一约束保证只存在一个并复用其稳定 ID；保守的去标点近似键若命中非等价名称则确认失败并保留草稿，禁止静默重定向用户已批准的目标。开始新生成前提示用户将替换旧草稿，新生成成功后原子替换，生成失败保留旧草稿及其审阅选择；主动丢弃直接删除。确认必须在一个受信数据库事务中重新校验最终勾选，幂等创建已确认的新标签 / 集合，创建 `source: "ai_draft"` 的 `bulk_operations` 与全部 `bulk_operation_items`，并仅在这些记录成功落库后删除草稿；实际关系写入不属于该事务，但正常确认响应后客户端必须立即驱动既有有界执行器，响应丢失或执行中断时从权威 operation 状态恢复。草稿不得包含 API credential、其他用户数据或 README。
 
 ---
 

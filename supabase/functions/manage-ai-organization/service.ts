@@ -63,6 +63,12 @@ export interface AiOrganizationServiceDependencies {
     expectedRevision: number;
     suggestions: AiOrganizationReviewSuggestions;
   }) => Promise<AiOrganizationDraftView | null>;
+  confirmDraftTransaction: (input: {
+    userId: string;
+    draftId: string;
+    expectedRevision: number;
+    suggestions: AiOrganizationReviewSuggestions;
+  }) => Promise<string>;
   discardDraft: (userId: string) => Promise<boolean>;
 }
 
@@ -125,6 +131,17 @@ export function createAiOrganizationService(dependencies: AiOrganizationServiceD
   return {
     getDraft: dependencies.getDraft,
     discardDraft: dependencies.discardDraft,
+    async confirmDraft(
+      userId: string,
+      input: {
+        draftId: string;
+        expectedRevision: number;
+        suggestions: AiOrganizationReviewSuggestions;
+      },
+    ): Promise<{ status: 'confirmed'; operationId: string }> {
+      const operationId = await dependencies.confirmDraftTransaction({ userId, ...input });
+      return { status: 'confirmed', operationId };
+    },
     async updateReview(
       userId: string,
       expectedRevision: number,

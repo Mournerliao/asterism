@@ -126,7 +126,20 @@ async function invoke(client: SupabaseClient, body: Record<string, unknown>): Pr
   const { data, error } = await client.functions.invoke<unknown>('manage-ai-organization', {
     body,
   });
-  if (error) throw error;
+  if (error) {
+    const context =
+      typeof error === 'object' && error !== null && 'context' in error
+        ? (error as { context?: unknown }).context
+        : null;
+    if (context instanceof Response) {
+      const payload = (await context
+        .clone()
+        .json()
+        .catch(() => null)) as { error?: unknown } | null;
+      if (typeof payload?.error === 'string') throw new Error(payload.error);
+    }
+    throw error instanceof Error ? error : new Error('ai_organization_failed');
+  }
   return data;
 }
 
@@ -184,4 +197,69 @@ export async function updateAiOrganizationDraftReview(
     return { status: 'updated', draft: response.draft };
   }
   throw new Error('manage-ai-organization returned an invalid response');
+}
+
+export interface ConfirmAiOrganizationDraftInput {
+  draftId: string;
+  expectedRevision: number;
+  suggestions: AiOrganizationDraft['suggestions'];
+}
+
+export interface ConfirmAiOrganizationDraftResult {
+  status: 'confirmed';
+  operationId: string;
+}
+
+export type AiOrganizationConfirmationErrorCode =
+  | 'draft_confirmation_conflict'
+  | 'draft_repository_invalid'
+  | 'draft_target_invalid'
+  | 'draft_confirmation_invalid';
+
+const CONFIRMATION_ERROR_CODES = new Set<AiOrganizationConfirmationErrorCode>([
+  'draft_confirmation_conflict',
+  'draft_repository_invalid',
+  'draft_target_invalid',
+  'draft_confirmation_invalid',
+]);
+
+export class AiOrganizationConfirmationError extends Error {
+  constructor(readonly code: AiOrganizationConfirmationErrorCode) {
+    super(code);
+    this.name = 'AiOrganizationConfirmationError';
+  }
+}
+
+export async function confirmAiOrganizationDraft(
+  client: SupabaseClient,
+  input: ConfirmAiOrganizationDraftInput,
+): Promise<ConfirmAiOrganizationDraftResult> {
+  let data: unknown;
+  try {
+    data = await invoke(client, {
+      action: 'confirm',
+      draftId: input.draftId,
+      expectedRevision: input.expectedRevision,
+      suggestions: input.suggestions,
+    });
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      CONFIRMATION_ERROR_CODES.has(error.message as AiOrganizationConfirmationErrorCode)
+    ) {
+      throw new AiOrganizationConfirmationError(
+        error.message as AiOrganizationConfirmationErrorCode,
+      );
+    }
+    throw error;
+  }
+  if (
+    !isRecord(data) ||
+    !hasExactKeys(data, ['operationId', 'status']) ||
+    data.status !== 'confirmed' ||
+    !isId(data.operationId)
+  ) {
+    throw new Error('manage-ai-organization returned an invalid response');
+  }
+  return { status: 'confirmed', operationId: data.operationId };
 }

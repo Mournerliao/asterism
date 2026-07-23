@@ -51,6 +51,6 @@
 
 - [x] **Phase 0 · 脚手架**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均已完成；2026-06-29 迁移已应用 + 登录端到端验证通过，验收达成
 - [x] **Phase 1 · Web MVP**：2026-07-18 用户可见主流程、真实 Supabase 链路与七项最终收尾全部验收，四道工程门禁全绿；进入 Phase 2。
-- [ ] **Phase 2 · AI（BYOK）+ 批量整理**：Generation 整理建议、类型化 Provider Registry、加密 BYOK，以及仅写 Asterism 私有数据的批量 tags/collections/export；不包含 Embedding 或语义搜索
+- [x] **Phase 2 · AI（BYOK）+ 批量整理**：2026-07-23 完成并验收 Generation 整理建议、类型化 Provider Registry、加密 BYOK，以及仅写 Asterism 私有数据的批量 tags / collections / export；不包含 Embedding 或语义搜索。见 `logs/2026-07-23-phase2-closure-release.md`。
 - [ ] **Phase 3 · 扩展**：WXT popup 快搜 + content-script 页内操作、共享会话、扩展 i18n
 - [ ] **Phase 4 · 桌面**：Tauri 2 套壳

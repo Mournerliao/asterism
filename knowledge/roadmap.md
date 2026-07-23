@@ -6,12 +6,13 @@
 
 - **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
 - **Phase 1 已完成**：Web MVP 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁已于 2026-07-18 全部验收。
+- **Phase 2 已完成**：可靠批量整理与选中导出、加密 BYOK Generation Connections，以及可生成、持久化审阅并经受信事务确认的 AI 整理草稿已于 2026-07-23 全部验收；维护者 Supabase 环境已完成真实链路 smoke，四道工程门禁全绿。
 
 | 阶段 | 名称 | 状态 |
 | --- | --- | --- |
 | Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
 | Phase 1 | Web MVP | Done（2026-07-18） |
-| Phase 2 | AI（BYOK）+ 批量整理 | 进行中（批量整理、BYOK、AI 草稿生成与持久化审阅已完成，确认交接待实现） |
+| Phase 2 | AI（BYOK）+ 批量整理 | Done（2026-07-23） |
 | Phase 3 | 浏览器扩展 Extension | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |
 

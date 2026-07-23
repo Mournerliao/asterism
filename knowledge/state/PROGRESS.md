@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> GitHub Actions 的 Web 测试环境差异已修复（2026-07-23）：自 2026-07-16 起，CI 的干净检出不含本地 `.env`，而 `use-repo-readme.test.ts`（后续还有 `use-ai-organization.test.ts`）在收集阶段间接导入会立即校验 Supabase 配置的运行时单例，导致连续 15 次 run 在 Test 步骤失败；本地根 `.env` 一直掩盖该问题。Web Vitest 现在通过统一 setup 注入固定、非敏感的 `.invalid` URL 与占位 publishable key，使测试不依赖开发者环境或 GitHub Secrets，同时保留生产运行时缺配置即报错的边界。见 `logs/2026-07-23-ci-web-test-environment.md`。
+
 > **阶段：Phase 2 AI（BYOK）+ 批量整理 — Done（2026-07-23）；下一阶段为 Phase 3 浏览器扩展。** Phase 2 合同中的可靠批量 tags / collections、选中仓库 JSON / CSV / Markdown 导出、类型化 Generation Provider Registry、加密 BYOK Connection 生命周期、master key 轮换，以及 AI 整理草稿的有界生成、持久化审阅、revision CAS、受信确认和中断恢复均已交付。维护者 Supabase 环境已验证 credential 生命周期、自定义 OpenAI-compatible capability、草稿 RLS / 事务 / 幂等 / 名称边界和实际批量执行；全仓 `pnpm lint / typecheck / test / build` 再次通过（434 tests，build 仅既有主 chunk warning）。本阶段不引入 Embedding、语义搜索、GitHub 写权限、正式 semver、Git tag 或首个公开版本流程。见 `logs/2026-07-23-phase2-closure-release.md`。
 
 > Phase 2 AI 切片 B 已完成并在真实 Supabase 环境验收（2026-07-23，GitHub #17）：草稿确认现在携带 `draftId + expectedRevision + 完整 suggestions` 进入 service-role 数据库事务，先锁定并重新验证草稿、仓库与分类目标，再安全复用规范化等价分类、创建带确认快照和 `source_draft_id` 幂等键的 `source: "ai_draft"` 批量操作及逐关系 items，最后删除草稿；近似但非等价名称会保守拒绝并保留草稿。Web 最终确认层展示批准新分类、additions、removals 的准确计数，成功后立即驱动既有 50 条有界 executor，响应丢失或刷新后从 recovery banner 恢复同一操作。真实环境已验证事务消费、精确重放幂等、不同 payload 冲突、owner RLS、等价名称复用、近似名称拒绝、自动执行与清理；`manage-ai-organization` / `bulk-organize` 及 4 个 AI 草稿迁移均已部署。`pnpm lint / typecheck / test / build` 全绿（434 tests；build 仅既有主 chunk warning），Impeccable 检测无违规；无新增 ADR。见 `logs/2026-07-23-issue-17-ai-organization-confirmation.md`。

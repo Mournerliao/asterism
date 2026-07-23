@@ -61,15 +61,15 @@ export function useBulkOperationActions() {
     );
 
   const create = useMutation({
+    // 只创建操作；执行由横幅接管（onSuccess 里触发 resume），不在对话框内阻塞
     mutationFn: async (input: { repoIds: string[]; changes: BulkChange[] }) => {
       if (!userId) throw new Error(NO_USER);
-      const created = await invokeBulkOperation(supabase, {
+      return invokeBulkOperation(supabase, {
         action: 'create',
         source: 'manual',
         repoIds: input.repoIds,
         changes: input.changes,
       });
-      return runUntilSettled(created, 'execute', 'pending');
     },
     onSettled: refreshOrganizationData,
     onSuccess: (operation) => {

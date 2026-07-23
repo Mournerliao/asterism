@@ -392,6 +392,7 @@
     "generating": "Generating draft…",
     "generateError": "The draft could not be generated. Your selection and previous draft are unchanged; try again or cancel.",
     "discard": "Discard draft",
+    "discardConfirm": "Tap again to discard",
     "discarding": "Discarding…",
     "discardError": "The draft could not be discarded. It remains available; try again.",
     "confirmation": {
@@ -423,14 +424,15 @@
       "description": "Generate organization suggestions for {{count}} selected repositories.",
       "zero": "Select at least one repository before generating.",
       "overLimit": "{{count}} repositories are selected. Keep your selection, but reduce it to {{limit}} or fewer before generating.",
-      "noConnection": "Choose and test an active Generation Connection and model in Settings first.",
-      "fieldsTitle": "Fields sent to the selected Provider",
+      "noConnection": "Choose and test an active generation connection and model in Settings first.",
+      "openSettings": "Open Settings",
+      "fieldsTitle": "Fields sent to your AI provider",
       "repoFields": "Repository owner/name, description, primary language, and GitHub topics.",
       "organizationFields": "Your existing tags and collections as stable IDs and display names, plus current memberships.",
       "notesIncluded": "Private notes are included and truncated to {{limit}} Unicode code points per note.",
       "notesExcluded": "Private notes are excluded by your current setting.",
       "readmeExcluded": "README content and credentials are never sent.",
-      "replaceWarning": "A saved draft already exists. It will be replaced only after the new Provider response passes validation."
+      "replaceWarning": "A saved draft already exists. It will be replaced only after the new provider response passes validation."
     },
     "resume": {
       "title": "AI organization draft ready",
@@ -445,6 +447,7 @@
       "removals": "Removals",
       "newClassifications": "Suggested new classifications",
       "newClassificationsDescription": "Approve each new tag or collection independently. Its proposed repository additions remain blocked until approval.",
+      "approveAll": "Approve all {{count}}",
       "repoCount_one": "{{count}} repository",
       "repoCount_other": "{{count}} repositories",
       "add": "Add",
@@ -472,7 +475,7 @@
       "conflict": "This draft has newer review choices. The latest version was reloaded; review it before trying again.",
       "reviewError": "This review choice could not be saved. The persisted draft is unchanged; try again.",
       "noChangesTitle": "No changes recommended",
-      "noChangesDescription": "The Provider returned a valid empty suggestion set. Your organization remains unchanged."
+      "noChangesDescription": "Your provider returned a valid empty suggestion set. Your organization remains unchanged."
     }
   },
   "settings": {

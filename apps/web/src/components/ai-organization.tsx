@@ -28,8 +28,9 @@ import {
   Trash2Icon,
   XIcon,
 } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 
 export const AI_ORGANIZATION_REPO_LIMIT = 50;
 export const AI_ORGANIZATION_NOTE_LIMIT = 2_000;
@@ -102,10 +103,15 @@ export function AiOrganizationPreflight({
               </p>
             ) : null}
             {unavailable ? (
-              <p role="alert" className="flex items-start gap-2 text-warning">
-                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-                {t('aiOrganization.preflight.noConnection')}
-              </p>
+              <div className="flex flex-col items-start gap-2">
+                <p role="alert" className="flex items-start gap-2 text-warning">
+                  <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+                  {t('aiOrganization.preflight.noConnection')}
+                </p>
+                <Button type="button" size="sm" variant="outline" asChild>
+                  <Link to="/settings">{t('aiOrganization.preflight.openSettings')}</Link>
+                </Button>
+              </div>
             ) : (
               <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 rounded-lg border bg-card p-3">
                 <dt className="text-muted-foreground">{t('aiOrganization.provider')}</dt>
@@ -218,25 +224,40 @@ export function AiOrganizationDraftDialog({
   discarding: boolean;
   confirming: boolean;
   updatingReviewId: string | null;
-  onUpdate: (input: {
-    expectedRevision: number;
-    change: AiOrganizationReviewChange;
-  }) => Promise<AiOrganizationReviewUpdateResult>;
+  onUpdate: (change: AiOrganizationReviewChange) => Promise<AiOrganizationReviewUpdateResult>;
   onConfirm: (input: ConfirmAiOrganizationDraftInput) => Promise<ConfirmAiOrganizationDraftResult>;
   onDiscard: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
+  const [discardArmed, setDiscardArmed] = useState(false);
   const [discardFailed, setDiscardFailed] = useState(false);
+  const [approvingAll, setApprovingAll] = useState(false);
   const [reviewError, setReviewError] = useState<'conflict' | 'failed' | null>(null);
   const [confirmationError, setConfirmationError] = useState<
     'conflict' | 'stale' | 'failed' | null
   >(null);
+  const discardArmTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    return () => {
+      if (discardArmTimer.current) clearTimeout(discardArmTimer.current);
+    };
+  }, []);
+  useEffect(() => {
+    if (!open) {
+      if (discardArmTimer.current) {
+        clearTimeout(discardArmTimer.current);
+        discardArmTimer.current = null;
+      }
+      setDiscardArmed(false);
+    }
+  }, [open]);
   const empty =
     draft.suggestions.relationChanges.length + draft.suggestions.newClassifications.length === 0;
   const reviewPending = updatingReviewId !== null;
   const approvedNewCount = draft.suggestions.newClassifications.filter(
     (item) => item.approved,
   ).length;
+  const pendingApprovals = draft.suggestions.newClassifications.filter((item) => !item.approved);
   const selectedRelations = draft.suggestions.relationChanges.filter((item) => item.selected);
   const additionCount =
     selectedRelations.filter((item) => item.action === 'add').length +
@@ -247,13 +268,36 @@ export function AiOrganizationDraftDialog({
   const removalCount = selectedRelations.filter((item) => item.action === 'remove').length;
   const confirmationCount = additionCount + removalCount;
 
-  const update = async (change: AiOrganizationReviewChange) => {
+  const update = async (
+    change: AiOrganizationReviewChange,
+  ): Promise<'updated' | 'conflict' | 'failed'> => {
     setReviewError(null);
     try {
-      const result = await onUpdate({ expectedRevision: draft.revision, change });
-      if (result.status === 'conflict') setReviewError('conflict');
+      const result = await onUpdate(change);
+      if (result.status === 'conflict') {
+        setReviewError('conflict');
+        return 'conflict';
+      }
+      return 'updated';
     } catch {
       setReviewError('failed');
+      return 'failed';
+    }
+  };
+
+  const approveAll = async () => {
+    setApprovingAll(true);
+    try {
+      for (const item of pendingApprovals) {
+        const status = await update({
+          kind: 'classification',
+          suggestionId: item.id,
+          approved: true,
+        });
+        if (status !== 'updated') break;
+      }
+    } finally {
+      setApprovingAll(false);
     }
   };
 
@@ -297,7 +341,7 @@ export function AiOrganizationDraftDialog({
           aria-label={controlLabel}
           aria-pressed={item.selected}
           aria-busy={updatingReviewId === item.id}
-          disabled={reviewPending}
+          disabled={discarding || confirming || updatingReviewId === item.id}
           onClick={() =>
             update({
               kind: 'relation',
@@ -321,7 +365,25 @@ export function AiOrganizationDraftDialog({
     );
   };
 
+  const disarmDiscard = () => {
+    if (discardArmTimer.current) {
+      clearTimeout(discardArmTimer.current);
+      discardArmTimer.current = null;
+    }
+    setDiscardArmed(false);
+  };
+
   const discard = async () => {
+    if (discarding) return;
+    if (!discardArmed) {
+      setDiscardArmed(true);
+      discardArmTimer.current = setTimeout(() => {
+        discardArmTimer.current = null;
+        setDiscardArmed(false);
+      }, 5000);
+      return;
+    }
+    disarmDiscard();
     setDiscardFailed(false);
     try {
       await onDiscard();
@@ -385,13 +447,32 @@ export function AiOrganizationDraftDialog({
           ) : (
             <>
               <section aria-labelledby="ai-new-classifications-heading">
-                <SectionHeading
-                  id="ai-new-classifications-heading"
-                  level={3}
-                  title={t('aiOrganization.draft.newClassifications')}
-                  icon={SparklesIcon}
-                  count={draft.suggestions.newClassifications.length}
-                />
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <SectionHeading
+                    id="ai-new-classifications-heading"
+                    level={3}
+                    title={t('aiOrganization.draft.newClassifications')}
+                    icon={SparklesIcon}
+                    count={draft.suggestions.newClassifications.length}
+                  />
+                  {pendingApprovals.length > 1 ? (
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="outline"
+                      disabled={discarding || confirming || approvingAll || reviewPending}
+                      aria-busy={approvingAll}
+                      onClick={approveAll}
+                    >
+                      {approvingAll ? (
+                        <LoaderCircleIcon className="size-3.5 animate-spin motion-reduce:animate-none" />
+                      ) : (
+                        <CheckCircle2Icon className="size-3.5" />
+                      )}
+                      {t('aiOrganization.draft.approveAll', { count: pendingApprovals.length })}
+                    </Button>
+                  ) : null}
+                </div>
                 <p className="mt-1 text-caption text-muted-foreground">
                   {t('aiOrganization.draft.newClassificationsDescription')}
                 </p>
@@ -432,7 +513,9 @@ export function AiOrganizationDraftDialog({
                         }
                         aria-pressed={item.approved}
                         aria-busy={updatingReviewId === item.id}
-                        disabled={reviewPending}
+                        disabled={
+                          discarding || confirming || approvingAll || updatingReviewId === item.id
+                        }
                         onClick={() =>
                           update({
                             kind: 'classification',
@@ -583,41 +666,51 @@ export function AiOrganizationDraftDialog({
               </dd>
             </dl>
           </section>
-          {reviewError ? (
-            <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
-              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-              {reviewError === 'conflict'
-                ? t('aiOrganization.draft.conflict')
-                : t('aiOrganization.draft.reviewError')}
-            </p>
-          ) : null}
-          {confirmationError ? (
-            <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
-              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
-              {t(`aiOrganization.confirmation.error.${confirmationError}`)}
-            </p>
-          ) : null}
-          {discardFailed ? (
-            <p role="alert" className="text-caption text-destructive">
-              {t('aiOrganization.discardError')}
-            </p>
-          ) : null}
         </div>
+        {reviewError || confirmationError || discardFailed ? (
+          <div className="space-y-1.5 border-t pt-3">
+            {reviewError ? (
+              <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
+                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+                {reviewError === 'conflict'
+                  ? t('aiOrganization.draft.conflict')
+                  : t('aiOrganization.draft.reviewError')}
+              </p>
+            ) : null}
+            {confirmationError ? (
+              <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
+                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+                {t(`aiOrganization.confirmation.error.${confirmationError}`)}
+              </p>
+            ) : null}
+            {discardFailed ? (
+              <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
+                <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+                {t('aiOrganization.discardError')}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
         <DialogFooter>
           <Button
             type="button"
             size="sm"
-            variant="destructive"
+            variant={discardArmed ? 'destructive' : 'ghost'}
             disabled={discarding || confirming || reviewPending}
             aria-busy={discarding}
             onClick={discard}
+            onBlur={disarmDiscard}
           >
             {discarding ? (
               <LoaderCircleIcon className="size-4 animate-spin motion-reduce:animate-none" />
             ) : (
               <Trash2Icon className="size-4" />
             )}
-            {discarding ? t('aiOrganization.discarding') : t('aiOrganization.discard')}
+            {discarding
+              ? t('aiOrganization.discarding')
+              : discardArmed
+                ? t('aiOrganization.discardConfirm')
+                : t('aiOrganization.discard')}
           </Button>
           <Button
             type="button"
@@ -633,7 +726,9 @@ export function AiOrganizationDraftDialog({
             )}
             {confirming
               ? t('aiOrganization.confirmation.confirming')
-              : t('aiOrganization.confirmation.confirm')}
+              : confirmationCount > 0
+                ? `${t('aiOrganization.confirmation.confirm')} (${confirmationCount})`
+                : t('aiOrganization.confirmation.confirm')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -658,10 +753,7 @@ export function AiOrganizationDraftBanner({
   discarding: boolean;
   confirming: boolean;
   updatingReviewId: string | null;
-  onUpdate: (input: {
-    expectedRevision: number;
-    change: AiOrganizationReviewChange;
-  }) => Promise<AiOrganizationReviewUpdateResult>;
+  onUpdate: (change: AiOrganizationReviewChange) => Promise<AiOrganizationReviewUpdateResult>;
   onConfirm: (input: ConfirmAiOrganizationDraftInput) => Promise<ConfirmAiOrganizationDraftResult>;
   onDiscard: () => Promise<unknown>;
 }) {

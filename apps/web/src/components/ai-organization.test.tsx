@@ -168,6 +168,8 @@ describe('Browse AI organization flow', () => {
     await act(async () => button('Resume draft')?.click());
     expect(document.body.textContent).toContain('No changes recommended');
     await act(async () => button('Discard draft')?.click());
+    expect(onDiscard).not.toHaveBeenCalled();
+    await act(async () => button('Tap again to discard')?.click());
     expect(onDiscard).toHaveBeenCalledOnce();
   });
 
@@ -214,8 +216,9 @@ describe('Browse AI organization flow', () => {
     expect(cancelAddition?.getAttribute('aria-pressed')).toBe('true');
     await act(async () => cancelAddition?.click());
     expect(onUpdate).toHaveBeenCalledWith({
-      expectedRevision: 4,
-      change: { kind: 'relation', suggestionId: 'relation-1', selected: false },
+      kind: 'relation',
+      suggestionId: 'relation-1',
+      selected: false,
     });
 
     const approve = document.body.querySelector<HTMLButtonElement>(
@@ -224,12 +227,9 @@ describe('Browse AI organization flow', () => {
     expect(approve?.getAttribute('aria-pressed')).toBe('false');
     await act(async () => approve?.click());
     expect(onUpdate).toHaveBeenCalledWith({
-      expectedRevision: 4,
-      change: {
-        kind: 'classification',
-        suggestionId: 'classification-1',
-        approved: true,
-      },
+      kind: 'classification',
+      suggestionId: 'classification-1',
+      approved: true,
     });
   });
 
@@ -403,5 +403,66 @@ describe('Browse AI organization flow', () => {
     expect(document.body.querySelector('[role="alert"]')?.textContent).toContain(
       'changed in another tab',
     );
+  });
+
+  it('approves every pending classification in one action without locking unrelated rows', async () => {
+    const multiPendingDraft: AiOrganizationDraft = {
+      ...reviewDraft,
+      suggestions: {
+        ...reviewDraft.suggestions,
+        newClassifications: [
+          {
+            id: 'classification-1',
+            relationType: 'collection',
+            name: 'AI Reading',
+            repoIds: ['repo-1'],
+            approved: false,
+          },
+          {
+            id: 'classification-2',
+            relationType: 'tag',
+            name: 'Infra',
+            repoIds: ['repo-2'],
+            approved: false,
+          },
+        ],
+      },
+    };
+    const onUpdate = vi
+      .fn()
+      .mockResolvedValue({ status: 'updated', draft: { ...multiPendingDraft, revision: 5 } });
+    await act(async () => {
+      root.render(
+        <AiOrganizationDraftBanner
+          draft={multiPendingDraft}
+          repoNames={
+            new Map([
+              ['repo-1', 'owner/alpha'],
+              ['repo-2', 'owner/beta'],
+            ])
+          }
+          targetNames={new Map([['tag-1', 'Tools']])}
+          discarding={false}
+          confirming={false}
+          updatingReviewId={null}
+          onUpdate={onUpdate}
+          onConfirm={vi.fn()}
+          onDiscard={vi.fn()}
+        />,
+      );
+    });
+    await act(async () => button('Resume draft')?.click());
+    await act(async () => button('Approve all 2')?.click());
+    expect(onUpdate).toHaveBeenCalledTimes(2);
+    expect(onUpdate).toHaveBeenNthCalledWith(1, {
+      kind: 'classification',
+      suggestionId: 'classification-1',
+      approved: true,
+    });
+    expect(onUpdate).toHaveBeenNthCalledWith(2, {
+      kind: 'classification',
+      suggestionId: 'classification-2',
+      approved: true,
+    });
   });
 });

@@ -5,17 +5,28 @@ import {
   sortStarredRepos,
   type Tag,
 } from '@asterism/core';
-import { Button, GlassControlRow } from '@asterism/ui';
+import type { ConfirmAiOrganizationDraftInput } from '@asterism/db';
+import {
+  Button,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  GlassControlRow,
+} from '@asterism/ui';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangleIcon,
   LoaderCircleIcon,
   LogInIcon,
+  MoreHorizontalIcon,
   RefreshCwIcon,
   SearchXIcon,
   StarIcon,
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSession } from '../auth/use-session';
 import { AiOrganizationDraftBanner, AiOrganizationPreflight } from '../components/ai-organization';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
@@ -31,6 +42,7 @@ import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useAiConnections, useAiSettings } from '../data/use-ai-connections';
 import {
+  fetchBulkOperationById,
   useAiOrganizationDraft,
   useConfirmAiOrganizationDraft,
   useDiscardAiOrganizationDraft,
@@ -55,6 +67,7 @@ import {
 } from '../lib/bulk-selection';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
+import { supabase } from '../lib/supabase';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
@@ -66,6 +79,9 @@ function InitialLoadingState({ view }: { view: RepoViewMode }) {
 
 export function BrowsePage() {
   const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const { session } = useSession();
+  const userId = session?.user.id;
   const { view, transitionTo } = useBrowseView();
   const filters = useBrowseFilters();
   const { requestOpen, requestClose, registerContext } = useRepoInspector();
@@ -258,6 +274,21 @@ export function BrowsePage() {
       onComplete={() => bulkActions.complete.mutate(activeBulkOperation)}
     />
   ) : null;
+  const confirmAndStartAiExecution = async (input: ConfirmAiOrganizationDraftInput) => {
+    const result = await confirmAiDraft.mutateAsync(input);
+    if (userId) {
+      // 对话框已在确认事务后关闭；执行交给横幅管线，失败时横幅会显示可续跑的操作
+      void fetchBulkOperationById(supabase, queryClient, userId, result.operationId)
+        .then((operation) => {
+          if (operation && operation.status !== 'completed') {
+            bulkActions.resume.mutate(operation);
+          }
+        })
+        .catch(() => {});
+    }
+    return result;
+  };
+
   const aiDraftContent = aiDraft ? (
     <AiOrganizationDraftBanner
       draft={aiDraft}
@@ -266,12 +297,10 @@ export function BrowsePage() {
       discarding={discardAiDraft.isPending}
       confirming={confirmAiDraft.isPending}
       updatingReviewId={
-        updateAiDraftReview.isPending
-          ? (updateAiDraftReview.variables?.change.suggestionId ?? null)
-          : null
+        updateAiDraftReview.isPending ? (updateAiDraftReview.variables?.suggestionId ?? null) : null
       }
-      onUpdate={(input) => updateAiDraftReview.mutateAsync(input)}
-      onConfirm={(input) => confirmAiDraft.mutateAsync(input)}
+      onUpdate={(change) => updateAiDraftReview.mutateAsync(change)}
+      onConfirm={confirmAndStartAiExecution}
       onDiscard={() => discardAiDraft.mutateAsync()}
     />
   ) : null;
@@ -413,24 +442,6 @@ export function BrowsePage() {
                         >
                           {t(scopeActionKey, { count: total })}
                         </Button>
-                        {selectedRepoIds.size > 0 ? (
-                          <>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => setSelectedRepoIds(clearSelection())}
-                            >
-                              {t('bulk.clear')}
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setBulkExportOpen(true)}
-                            >
-                              {t('bulk.export.action')}
-                            </Button>
-                          </>
-                        ) : null}
                         <AiOrganizationPreflight
                           selectedRepoIds={[...selectedRepoIds]}
                           connection={activeAiConnection}
@@ -449,6 +460,27 @@ export function BrowsePage() {
                             {t('bulk.organize')}
                           </Button>
                         ) : null}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="sm" aria-label={t('bulk.moreActions')}>
+                              <MoreHorizontalIcon className="size-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              disabled={selectedRepoIds.size === 0}
+                              onSelect={() => setBulkExportOpen(true)}
+                            >
+                              {t('bulk.export.action')}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              disabled={selectedRepoIds.size === 0}
+                              onSelect={() => setSelectedRepoIds(clearSelection())}
+                            >
+                              {t('bulk.clear')}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -457,7 +489,7 @@ export function BrowsePage() {
                             setSelectedRepoIds(clearSelection());
                           }}
                         >
-                          {t('common.cancel')}
+                          {t('common.done')}
                         </Button>
                       </div>
                     </section>
@@ -506,10 +538,11 @@ export function BrowsePage() {
             bulkActions.create.mutate(
               { repoIds: [...selectedRepoIds], changes },
               {
-                onSuccess: () => {
+                onSuccess: (operation) => {
                   setBulkDialogOpen(false);
                   setBulkSelectionMode(false);
                   setSelectedRepoIds(clearSelection());
+                  if (operation.status !== 'completed') bulkActions.resume.mutate(operation);
                 },
               },
             )

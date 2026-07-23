@@ -386,12 +386,13 @@
   },
   "aiOrganization": {
     "action": "使用 AI 整理",
-    "provider": "Provider",
+    "provider": "供应商",
     "model": "模型",
     "generate": "生成草稿",
     "generating": "正在生成草稿…",
     "generateError": "无法生成草稿。当前选择与原草稿均未改变；请重试或取消。",
     "discard": "丢弃草稿",
+    "discardConfirm": "再次点击确认丢弃",
     "discarding": "正在丢弃…",
     "discardError": "无法丢弃草稿。草稿仍然可用；请重试。",
     "confirmation": {
@@ -400,12 +401,12 @@
       "newClassifications": "批准新建分类",
       "newClassificationsCount_one": "批准新建 {{count}} 个分类",
       "newClassificationsCount_other": "批准新建 {{count}} 个分类",
-      "additions": "添加关系",
-      "additionsCount_one": "添加 {{count}} 条关系",
-      "additionsCount_other": "添加 {{count}} 条关系",
-      "removals": "移除关系",
-      "removalsCount_one": "移除 {{count}} 条关系",
-      "removalsCount_other": "移除 {{count}} 条关系",
+      "additions": "新增归类",
+      "additionsCount_one": "新增 {{count}} 项归类",
+      "additionsCount_other": "新增 {{count}} 项归类",
+      "removals": "移除归类",
+      "removalsCount_one": "移除 {{count}} 项归类",
+      "removalsCount_other": "移除 {{count}} 项归类",
       "confirm": "确认整理",
       "confirming": "正在确认…",
       "error": {
@@ -423,14 +424,15 @@
       "description": "为已选择的 {{count}} 个仓库生成整理建议。",
       "zero": "请至少选择一个仓库后再生成。",
       "overLimit": "当前已选择 {{count}} 个仓库。选择会保留，但生成前需缩小到不超过 {{limit}} 个。",
-      "noConnection": "请先在设置中选择并测试一个活跃的 Generation Connection 与模型。",
-      "fieldsTitle": "发送给所选 Provider 的字段",
+      "noConnection": "请先在设置中选择并测试一个活跃的生成连接与模型。",
+      "openSettings": "前往设置",
+      "fieldsTitle": "发送给所选供应商的字段",
       "repoFields": "仓库 owner/name、描述、主要语言与 GitHub topics。",
       "organizationFields": "现有标签与集合的稳定 ID、显示名称，以及当前归属关系。",
       "notesIncluded": "会包含私密笔记，并将每条截断到 {{limit}} 个 Unicode code points。",
       "notesExcluded": "当前设置不会包含私密笔记。",
-      "readmeExcluded": "绝不会发送 README 内容或 credential。",
-      "replaceWarning": "已有保存的草稿。只有新的 Provider 响应通过校验后，才会替换旧草稿。"
+      "readmeExcluded": "绝不会发送 README 内容或密钥。",
+      "replaceWarning": "已有保存的草稿。只有新的供应商响应通过校验后，才会替换旧草稿。"
     },
     "resume": {
       "title": "AI 整理草稿已就绪",
@@ -441,10 +443,11 @@
       "title": "AI 整理草稿",
       "description": "{{count}} 个仓库 · {{provider}} · {{model}}。尚未应用任何改动。",
       "repositories": "按仓库审阅建议",
-      "additions": "添加关系",
-      "removals": "移除关系",
+      "additions": "新增归类",
+      "removals": "移除归类",
       "newClassifications": "建议新建分类",
-      "newClassificationsDescription": "每个新标签或集合都需单独批准；批准前，其对应的仓库添加关系保持阻止状态。",
+      "newClassificationsDescription": "每个新标签或集合都需单独批准；批准前，其对应的仓库归类保持阻止状态。",
+      "approveAll": "全部批准（{{count}}）",
       "repoCount_one": "{{count}} 个仓库",
       "repoCount_other": "{{count}} 个仓库",
       "add": "添加",
@@ -472,7 +475,7 @@
       "conflict": "此草稿已有更新的审阅选择，已重新加载最新版本；请检查后再试。",
       "reviewError": "无法保存此审阅选择，已持久化的草稿未改变；请重试。",
       "noChangesTitle": "没有建议改动",
-      "noChangesDescription": "Provider 返回了有效的空建议集。现有整理状态保持不变。"
+      "noChangesDescription": "供应商返回了有效的空建议集。现有整理状态保持不变。"
     }
   },
   "settings": {

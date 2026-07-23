@@ -1,4 +1,4 @@
-import type { SupabaseClient } from '@asterism/db';
+import { confirmAiOrganizationDraft, type SupabaseClient } from '@asterism/db';
 import { QueryClient } from '@tanstack/react-query';
 import { describe, expect, it, vi } from 'vitest';
 import {
@@ -9,10 +9,7 @@ import {
   repoTagKeys,
   tagKeys,
 } from './keys';
-import {
-  confirmAndExecuteAiOrganizationDraft,
-  refreshAiOrganizationConfirmationState,
-} from './use-ai-organization';
+import { refreshAiOrganizationConfirmationState } from './use-ai-organization';
 
 const suggestions = {
   version: 2 as const,
@@ -29,58 +26,23 @@ const suggestions = {
   newClassifications: [],
 };
 
-function operation(status: 'pending' | 'succeeded') {
-  return {
-    id: 'operation-1',
-    source: 'ai_draft',
-    sourceRepoIds: ['repo-1'],
-    status: status === 'pending' ? 'pending' : 'completed',
-    completedAt: status === 'pending' ? null : '2026-07-23T00:01:00.000Z',
-    createdAt: '2026-07-23T00:00:00.000Z',
-    updatedAt: '2026-07-23T00:00:00.000Z',
-    items: [
-      {
-        id: 'item-1',
-        repoId: 'repo-1',
-        relationType: 'tag',
-        targetId: 'tag-1',
-        action: 'add',
-        status,
-        attemptCount: status === 'pending' ? 0 : 1,
-        lastErrorCode: null,
-        lastErrorMessage: null,
-      },
-    ],
-  };
-}
-
 describe('AI organization confirmation recovery', () => {
-  it('confirms and immediately starts the existing bounded executor', async () => {
-    const invoke = vi
-      .fn()
-      .mockResolvedValueOnce({
-        data: { status: 'confirmed', operationId: 'operation-1' },
-        error: null,
-      })
-      .mockResolvedValueOnce({ data: { operation: operation('pending') }, error: null })
-      .mockResolvedValueOnce({ data: { operation: operation('succeeded') }, error: null });
+  it('commits only the confirmation transaction and leaves execution to the bulk-operation banner', async () => {
+    const invoke = vi.fn().mockResolvedValueOnce({
+      data: { status: 'confirmed', operationId: 'operation-1' },
+      error: null,
+    });
     const client = { functions: { invoke } } as unknown as SupabaseClient;
 
     await expect(
-      confirmAndExecuteAiOrganizationDraft(client, {
+      confirmAiOrganizationDraft(client, {
         draftId: 'draft-1',
         expectedRevision: 4,
         suggestions,
       }),
     ).resolves.toEqual({ status: 'confirmed', operationId: 'operation-1' });
-    expect(invoke.mock.calls.map(([name]) => name)).toEqual([
-      'manage-ai-organization',
-      'bulk-organize',
-      'bulk-organize',
-    ]);
-    expect(invoke).toHaveBeenLastCalledWith('bulk-organize', {
-      body: { action: 'execute', operationId: 'operation-1' },
-    });
+    // 确认事务只调用一次 manage-ai-organization，绝不内联触发 bulk-organize 执行
+    expect(invoke.mock.calls.map(([name]) => name)).toEqual(['manage-ai-organization']);
   });
 
   it('invalidates every authoritative query after a lost confirmation response', async () => {

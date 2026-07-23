@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> 根级开发服务器共享包预构建竞态已修复（2026-07-23）：`pnpm dev` 的 Turbo `dev` 任务现在先等待 workspace 依赖完成 `build`，避免 Vite 在 `packages/{core,ui,db}/dist` 仍为旧产物时启动并报新增命名导出不存在；共享包 watcher 随后继续承担增量编译。此次由 `@asterism/db` 源码已导出 `discardAiOrganizationDraft`、但旧 `dist/index.js` 尚未包含该导出触发。见 `logs/2026-07-23-root-dev-shared-package-prebuild.md`。
+
 > Phase 2 AI 切片 B 的第一个纵向切片已实现并验证（2026-07-23，GitHub #15）：Browse 现在可对固定的 1–50 个仓库发起 AI 整理生成，在调用前披露准确 Provider、model 与发送字段；受信 `manage-ai-organization` Edge Function 从 Postgres 重建权威上下文，只在用户明确启用时读取并按每条 2,000 个 Unicode code points 截断笔记，永不读取 README。原生 Provider Adapter 经既有 SSRF / allowlist / 同源重定向边界调用并严格校验版本化建议 schema；生成成功后原子替换每用户唯一活动草稿，失败保留旧草稿。草稿可跨刷新恢复、只读查看 additions / removals / new classifications、识别有效空建议并显式丢弃。`pnpm lint / typecheck / test / build` 全绿（core 132 / db 52 / functions 83 / web 145；build 仅既有主 chunk warning），真实登录态视觉复核覆盖桌面 / 窄屏与 light / dark；无新增 ADR。下一步为 #16「Review and persist AI organization decisions」，#17 仍依赖 #16。见 `logs/2026-07-23-issue-15-ai-organization-drafts.md`。
 
 > Phase 2 AI 切片 B 的剩余设计缺口已对齐并发布 PRD（2026-07-23，GitHub #14）：PRD 拆为 3 个串行纵向 issues——#15「Generate and resume bounded AI organization drafts」、#16「Review and persist AI organization decisions」、#17「Confirm AI drafts through durable bulk organization」；其中 #15 现已实现，#16 / #17 仍待完成。现有标签 / 集合建议引用稳定 ID，新分类使用带 `relationType` 的规范化名称；每用户最多一个活动草稿；单次最多 50 个仓库，每条已启用笔记最多发送前 2,000 个 Unicode code points；确认通过受信事务交接到 `source: "ai_draft"` 批量操作。见 `logs/2026-07-23-ai-organization-draft-alignment.md`。

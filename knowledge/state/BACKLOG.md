@@ -14,6 +14,8 @@
 - [x] **测试策略深度已明确**（2026-07-18）：Phase 1 以 Vitest 单元/集成测试 + 真实环境 smoke test 验收；不新增 E2E 工具、不设覆盖率百分比。重复核心旅程回归或进入跨端阶段时再评估自动化 E2E。详见 `contracts/conventions.md`。
 - [ ] **AI 整理评审剩余次要项**（2026-07-23，来自 UI/UX critique，非阻断）：banner 多条堆叠缺优先级/去重；手动批量整理对话框在大量标签/集合时缺搜索与当前归属提示；确认全成功但 operation 尚未翻转 completed 的瞬间可能出现"需要处理 + 绿勾 + 无按钮"的过渡态。见 `logs/2026-07-23-ai-organization-uiux-critique.md`。
 
+- [ ] **检索优先范式待落地实现（ADR 0026 Accepted，2026-07-23）**：三个开放问题已定案且 ADR 已 **Accepted**，知识库契约（`product.md` L78 / L128 + Advanced Features 注记、`ui-ux.md` L244、`data-model.md` 向量表 + RLS、`roadmap.md` L63）已同步对齐。**剩余为实现工作**：新建 `user_repo_embeddings` 迁移与 RLS、客户端 Transformers.js embedding 与懒下载缓存 UX、隐形混合搜索、石墨语义星图（确定性投影 + 分层渲染）、密度聚类与 promotion；并实测 e5-small 量化档位 / 降维算法 / 聚类参数。见 ADR 0026 与 `logs/2026-07-23-retrieval-first-paradigm-adr-0026.md`。
+
 ## 未落地的工作项（基础设施）
 
 - [x] **CI（GitHub Actions）已建**：`.github/workflows/ci.yml` 跑 lint / typecheck / test / build（pnpm + Node 22，纯 Node）。2026-06-29 落地。
@@ -35,7 +37,7 @@
 - [x] **Phase 2 AI 切片 A — BYOK Generation Connections（GitHub #13）**（2026-07-22 全面复审完成）：Generation Connection 的添加、编辑、替换凭据、模型发现/手填、测试、显式启停、删除、active connection/model 与笔记偏好已落地；连接表只经受信函数返回安全投影，`user_settings` 客户端只读并由数据库 trigger 强制 active pair。AES-256-GCM + AAD、版本化 master key、独立带外轮换、类型化 Provider Registry、SSRF + allowlist + 同源重定向边界均有自动化覆盖；en / zh-CN、Impeccable 检测和四道门禁全绿。AI 整理建议流程（`ai_organization_drafts`）仍为切片 B。见 `logs/2026-07-21-issue-13-byok-generation-connections.md`。
 - [x] **Phase 2 AI 切片 B — AI 整理建议草稿（GitHub #14）**（2026-07-23）：#15 生成 / 恢复有界草稿、#16 持久化人工审阅与 #17 受信确认到可靠批量操作均已完成。最终链路具备 review schema v2、revision CAS、准确确认计数、规范化分类复用、近似名称保守拒绝、事务消费、完整 payload 幂等、50 条有界执行与刷新恢复，并已在真实 Supabase 环境完成 RLS、响应丢失、等价 / 近似名称与执行结果验收。见 `logs/2026-07-23-issue-15-ai-organization-drafts.md`、`logs/2026-07-23-issue-16-ai-organization-review.md`、`logs/2026-07-23-issue-17-ai-organization-confirmation.md`。
 - [x] **Phase 2 不做 Saved View / Query History**（2026-07-18）：不持久化命名筛选，也不记录关键词或语义查询历史；未来出现明确复用需求时作为独立能力设计。
-- [x] **Embedding 与语义搜索已移出路线图**（2026-07-18，ADR 0022）：不实现 pgvector 向量表、索引任务、Semantic 模式、相似推荐或自动聚类；Browse 继续使用现有关键词搜索。未来只有在出现明确价值且能提供无需理解底层模型的一键、多语言方案时重新立项。
+- [x] **Embedding 与语义搜索已移出路线图**（2026-07-18，ADR 0022）：不实现 pgvector 向量表、索引任务、Semantic 模式、相似推荐或自动聚类；Browse 继续使用现有关键词搜索。未来只有在出现明确价值且能提供无需理解底层模型的一键、多语言方案时重新立项。→ **已由 ADR 0026（Accepted，2026-07-23）重新立项并 supersede 0022**：纯浏览器内 `multilingual-e5-small` 零配置、多语言、无需理解模型，满足当初的重启门槛；契约已同步，待落地实现。
 - [x] **AI 笔记数据边界已明确**（2026-07-18）：首次分类前展示发送字段与目标 Generation Provider；当前用户笔记只有在明确启用后才发送。关闭后不发送笔记；README 与其他用户私有数据永远不可访问。
 - [x] **Phase 2 Generation Provider 架构边界已明确**（2026-07-18）：首批内置 OpenAI、Google Gemini、Anthropic、OpenRouter，并支持具名自定义 OpenAI-compatible Connection。自定义模型允许手填；每个 Connection 一个 credential，不做完整 Gateway 的 key 池、fallback、预算或限流，也不回退到 Asterism 付费额度。见 ADR 0018、0022。
 - [x] **Phase 2 技术验证 — 自定义 endpoint 安全**（2026-07-20，ADR 0024）：已向目标 Supabase Edge Runtime 部署一次性探针实测——`Deno.resolveDns` 可用（可服务端先解析再校验），云 metadata 已被平台挡，但 loopback / 私网出站会真实发起，故分类器守卫（resolve 后校验 + 逐跳重定向重校验）恒开为必需；因任一实例可能托管多租户，自定义 endpoint 叠加部署者域名 allowlist（内置 Provider 免配、个人实例可 allow-all）。HTTPS DNS-rebinding TOCTOU 记为已知残余限制。见 ADR 0024。

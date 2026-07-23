@@ -11,7 +11,7 @@
 ## 关键指针（决策与契约在哪）
 
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。
-  - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + Edge Functions）；Realtime 部分由 ADR 0012 废止，pgvector 产品用途由 ADR 0022 移除
+  - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + Edge Functions）；Realtime 部分由 ADR 0012 废止，pgvector 产品用途曾由 ADR 0022 移除、现由 ADR 0026 重新启用
   - `0012-remove-realtime-from-product-scope.md`：业务数据不做主动推送收敛，按查询边界读取 Postgres 最新状态
   - `0013-remove-dexie-offline-cache.md`：当前不承诺离线浏览；Postgres 是唯一持久化权威源，TanStack Query 只做会话内缓存
   - `0002-pnpm-over-bun.md`：工具链选 pnpm（而非 Bun）的取舍
@@ -20,7 +20,8 @@
   - `0009-graphite-glass-visual-system.md`：当前石墨磨砂配色、玻璃边界与动效规则
   - `0018-typed-ai-provider-registry.md`：类型化 Generation Provider Registry，不把 Phase 2 做成完整 AI Gateway
   - `0024-custom-endpoint-ssrf-boundary.md`：自定义 endpoint SSRF 分类器守卫恒开 + 部署者域名 allowlist；HTTPS DNS-rebinding TOCTOU 为已知残余
-  - `0022-remove-embedding-and-semantic-search.md`：移除 Embedding、pgvector 语义搜索与相关设置，Phase 2 只保留 Generation 整理建议
+  - `0022-remove-embedding-and-semantic-search.md`：移除 Embedding、pgvector 语义搜索与相关设置（**已被 ADR 0026 取代 / Superseded**，2026-07-23：0026 在其缝隙上以「多语言小模型 + 非 BYOK + 浏览器内 + 同源自托管」重新立项并 Accepted；0022 保留为历史背景）
+  - `0026-ai-organization-flow-and-cluster-paradigm.md`：**检索优先范式（Accepted，2026-07-23）** —— 双平面（canonical 神圣 / derived 可弃 / promotion 唯一写入桥）+ 纯浏览器内 embedding（默认 `multilingual-e5-small`）+ 向量按用户存（`user_repo_embeddings`）+ 隐形混合搜索与石墨语义星图 + 涌现簇（安静的镜子）。Supersedes 0022 / Reframes 0020；契约（`product` / `ui-ux` / `data-model` / `roadmap`）已同步对齐，落地实现（迁移 / 客户端 embedding / 星图 / 聚类参数）待排期。
   - `0019-biome-tailwind-v4-css.md`：Biome 2.5.1 统一检查 Tailwind v4 CSS，不引入 Stylelint
 - **契约（什么是"对/完成"）**：`knowledge/contracts/*` —— `product` / `architecture` / `data-model` / `conventions` / `ui-ux`。
 - **设计源（Design Source）**：`contracts/ui-ux.md` + ADR 0009 是当前视觉与 token 权威；Ardot 文件 `698428420561751` 仅保留为历史布局/间距参考。

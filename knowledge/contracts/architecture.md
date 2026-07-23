@@ -119,7 +119,7 @@ sequenceDiagram
 
 BYOK credential 通过独立设置 Edge Function 保存：明文只进入当前函数内存，由服务端 master key 做 authenticated encryption；普通客户端查询只获得 provider、credential 状态与非敏感提示，不获得 ciphertext、nonce 或完整 credential。AI Edge Functions 在服务端按版本解密后，通过类型化 Provider Registry 调用对应原生 Adapter；Provider credential schema 可以不同，不以 `apiKey + baseUrl` 作为统一数据模型。
 
-Phase 2 只有 Generation Provider，用于生成标签 / 集合整理建议，不包含 Embedding Provider 或语义搜索。内置 Adapter 为 OpenAI、Google Gemini、Anthropic 与 OpenRouter；自定义 OpenAI-compatible Connection 由用户提供名称、HTTPS endpoint、credential 与模型 ID。`/models` 可用于发现模型，但不是兼容前提；发现失败时允许手填模型 ID。只有通过 Generation capability 测试的 Connection / model 才能用于分类。
+Phase 2 的 BYOK Provider 架构只有 Generation Provider，用于生成标签 / 集合整理建议，**不含服务端 Embedding Provider**：ADR 0026（Accepted）的语义检索刻意不走 BYOK Provider，而由**浏览器内 embedding**（非 BYOK 平台能力，向量存 `user_repo_embeddings`）驱动，故「无服务端 Embedding Provider」这条边界不变，「无语义搜索」已被 0026 重构为检索优先。内置 Adapter 为 OpenAI、Google Gemini、Anthropic 与 OpenRouter；自定义 OpenAI-compatible Connection 由用户提供名称、HTTPS endpoint、credential 与模型 ID。`/models` 可用于发现模型，但不是兼容前提；发现失败时允许手填模型 ID。只有通过 Generation capability 测试的 Connection / model 才能用于分类。
 
 每个 Connection 只持有一个 credential，不实现 credential 池、多 key 排序、跨 Provider 自动 fallback、预算或限流，也不得回退到 Asterism 付费的系统额度。自定义 Connection 的 Generation 测试调用标准 chat completion，并验证返回可解析、非空且满足建议 schema。详见 ADR 0017、0018、0022。
 

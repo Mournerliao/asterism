@@ -9,7 +9,7 @@
 - **`repos` 为全局共享、公共可读**：同一个 GitHub 仓库的元数据全局只存一份，所有用户共享读取，避免重复。
 - **用户私有数据按 `user_id` 隔离**：star 关系、标签、集合、笔记、设置等都归属具体用户，彼此不可见。
 - **关系尽量规范化**：多对多关系（仓库↔标签、仓库↔集合）用独立连接表表达。
-- **Phase 2 表按能力解耦落地**：不依赖 AI 的 `bulk_operations` / `bulk_operation_items` 先提供可靠批量写入；`ai_provider_connections`、`ai_organization_drafts` 与 `user_settings` 再承载可选的 AI（BYOK）能力。当前路线不建立 Embedding 或向量表。
+- **Phase 2 表按能力解耦落地**：不依赖 AI 的 `bulk_operations` / `bulk_operation_items` 先提供可靠批量写入；`ai_provider_connections`、`ai_organization_drafts` 与 `user_settings` 再承载可选的 AI（BYOK）能力。ADR 0026（Accepted）新增按用户存储的 `user_repo_embeddings` 向量表（derived 数据，浏览器内生成、客户端直写、永不写 canonical，见下）。
 
 约定：所有表含 `id`（主键，uuid 或 bigint，下文不再逐一重复）、`created_at`、`updated_at`（时间戳）。`user_id` 引用 Supabase `auth.users(id)`。
 
@@ -164,6 +164,18 @@
 
 约束：草稿按 `user_id` 隔离且每个用户最多一个活动草稿；刷新或离开页面后可继续审阅。现有关系建议默认选中并可逐项取消；建议新分类默认未批准，只有单独批准后其依赖关系才具备后续确认资格。每次审阅 mutation 必须携带期望 revision，并由受信函数通过 compare-and-set 原子推进；旧标签页发生冲突时保留较新草稿并要求客户端重新读取。草稿中的现有分类 ID 必须属于当前用户，未知 ID 不得持久化；新分类名称必须先完成 NFKC、大小写与空白规范化，规范化等价名称由数据库唯一约束保证只存在一个并复用其稳定 ID；保守的去标点近似键若命中非等价名称则确认失败并保留草稿，禁止静默重定向用户已批准的目标。开始新生成前提示用户将替换旧草稿，新生成成功后原子替换，生成失败保留旧草稿及其审阅选择；主动丢弃直接删除。确认必须在一个受信数据库事务中重新校验最终勾选，幂等创建已确认的新标签 / 集合，创建 `source: "ai_draft"` 的 `bulk_operations` 与全部 `bulk_operation_items`，并仅在这些记录成功落库后删除草稿；实际关系写入不属于该事务，但正常确认响应后客户端必须立即驱动既有有界执行器，响应丢失或执行中断时从权威 operation 状态恢复。草稿不得包含 API credential、其他用户数据或 README。
 
+### `user_repo_embeddings` — 仓库语义向量（derived 平面，ADR 0026）
+
+浏览器内 embedding 产出的语义向量，按用户存储、客户端直写；属 **derived 数据**，可随模型升级重算，永不写入 canonical。
+
+- `user_id` → `auth.users(id)`
+- `repo_id` → `repos(id)`
+- `embedding` — pgvector 向量；默认模型 `multilingual-e5-small` 为 384 维
+- `embedding_model` — 产出该向量的模型 ID（= `packages/core` 全局常量，版本化以支持可逆升级）
+- `content_hash` — 被嵌文本（`full_name` + `description` + `topics`）的哈希，用于探测过期并触发增量重嵌
+
+约束：`(user_id, repo_id)` 唯一。回填 = 求「无行 / `embedding_model` 失配 / `content_hash` 失配」集合，天然增量、可续跑。个人量级按 `user_id` 过滤后精确扫描即毫秒级，**先不建 ANN 索引**（HNSW / IVFFlat 留待规模变大再引入）；维度随默认模型变化需 `alter` + 全库重嵌。查询向量在浏览器内嵌入后，只把向量发到用户自有 Postgres 做距离检索，原文不出设备。
+
 ---
 
 ## Row Level Security · 行级安全（RLS）
@@ -174,7 +186,7 @@
   - SELECT：全局可读（所有已认证用户均可读）。
   - INSERT / UPDATE：仅由受信路径写入（同步逻辑 / Edge Functions / service role），普通用户不可直接写。
 
-- **`user_stars` / `tags` / `repo_tags` / `collections` / `collection_repos` / `notes`**
+- **`user_stars` / `tags` / `repo_tags` / `collections` / `collection_repos` / `notes` / `user_repo_embeddings`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
 

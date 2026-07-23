@@ -60,7 +60,7 @@
 - BYOK：每个 Connection 保存一个类型化 credential，由 Edge Function 持久化加密，支持测试、启用/停用、替换、删除与 master key 轮换（`ai_provider_connections`）；不建立多 key 池或 fallback 顺序。
 - 批量整理：先于 AI 落地。手动选择或“全选当前筛选结果”在确认时固化 repository ID 范围；标签 / 集合写入使用持久化批量操作与逐关系结果，成功项保留、失败项分类、只重试可重试失败，刷新或中断后可恢复。选中仓库可导出 JSON 部分备份、CSV 清单或 Markdown 可读归档；不持久化命名筛选，也不保存关键词或语义查询历史。
 - 权限边界：批量整理只写 Asterism 私有数据，不执行 GitHub star/unstar，不申请 `public_repo` scope。
-- 范围边界：Phase 2 不包含 Embedding、pgvector 语义搜索、相似仓库推荐或自动聚类；Browse 继续使用现有关键词搜索。
+- 范围边界：ADR 0026（Accepted）确立**检索优先范式**，取代此前「不含 Embedding / 语义搜索」的边界——引入浏览器内 embedding（默认 `multilingual-e5-small`，非 BYOK）、隐形混合搜索、涌现簇与 promotion；向量按用户存于 `user_repo_embeddings`、客户端直写。其落地为 0026 之后的独立里程碑（排期见 BACKLOG）；在此之前 Browse 维持现有关键词搜索。
 
 完成判据：用户配置通过测试的 Generation Connection 与自有 credential 后，可生成、审阅并取消部分 AI 整理建议，在明确确认后通过批量整理写入标签 / 集合；模型不得直接改写用户组织数据。内置与自定义兼容 Connection 遵循同一 Generation capability 测试和密钥安全合同；credential 不明文落库、不返回客户端、不进入仓库或日志，并可测试、启用/停用、替换、删除及完成 master key 轮换。系统不自动回退到 Asterism 付费额度，也不在本阶段建设多 key、跨 Provider fallback、预算或限流 Gateway；重度用户可完成可访问、可恢复的批量本地整理，全程不扩大 GitHub OAuth 写权限。Browse 搜索继续使用 Phase 1 的关键词能力。
 

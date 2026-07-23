@@ -414,16 +414,43 @@
     },
     "resume": {
       "title": "AI organization draft ready",
-      "description": "Resume the read-only suggestions for {{count}} repositories.",
+      "description": "Resume your saved review choices for {{count}} repositories.",
       "action": "Resume draft"
     },
     "draft": {
       "title": "AI organization draft",
       "description": "{{count}} repositories · {{provider}} · {{model}}. Nothing has been applied.",
-      "additions": "Add relationships",
-      "removals": "Remove relationships",
+      "repositories": "Repository suggestions",
+      "additions": "Additions",
+      "removals": "Removals",
       "newClassifications": "Suggested new classifications",
-      "repoCount": "{{count}} repositories",
+      "newClassificationsDescription": "Approve each new tag or collection independently. Its proposed repository additions remain blocked until approval.",
+      "repoCount_one": "{{count}} repository",
+      "repoCount_other": "{{count}} repositories",
+      "add": "Add",
+      "remove": "Remove",
+      "included": "Included",
+      "cancelled": "Cancelled",
+      "approved": "Approved",
+      "notApproved": "Not approved",
+      "approve": "Approve",
+      "cancelApproval": "Cancel approval",
+      "cancelAction": "Cancel suggestion",
+      "restoreAction": "Restore suggestion",
+      "approveLabel": "Approve new {{kind}} {{name}}",
+      "cancelApprovalLabel": "Cancel approval of new {{kind}} {{name}}",
+      "cancel": {
+        "add": "Cancel addition of {{target}} for {{repo}}",
+        "remove": "Cancel removal of {{target}} for {{repo}}"
+      },
+      "restore": {
+        "add": "Restore addition of {{target}} for {{repo}}",
+        "remove": "Restore removal of {{target}} for {{repo}}"
+      },
+      "dependencyApproved": "Classification approved",
+      "dependencyBlocked": "Requires classification approval",
+      "conflict": "This draft has newer review choices. The latest version was reloaded; review it before trying again.",
+      "reviewError": "This review choice could not be saved. The persisted draft is unchanged; try again.",
       "noChangesTitle": "No changes recommended",
       "noChangesDescription": "The Provider returned a valid empty suggestion set. Your organization remains unchanged."
     }

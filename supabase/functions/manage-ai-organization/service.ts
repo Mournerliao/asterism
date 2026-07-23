@@ -4,7 +4,11 @@ import type {
   ValidatedOrganizationDraft,
 } from '../../../packages/core/src/ai/generation-registry.ts';
 import { resolveActiveGenerationModel } from '../../../packages/core/src/ai/generation-selection.ts';
-import type { AiOrganizationDraftView } from './handler.ts';
+import type {
+  AiOrganizationDraftView,
+  AiOrganizationReviewChange,
+  AiOrganizationReviewSuggestions,
+} from './handler.ts';
 
 export const AI_NOTE_CODE_POINT_LIMIT = 2_000;
 
@@ -51,9 +55,14 @@ export interface AiOrganizationServiceDependencies {
     connectionId: string;
     adapter: GenerationAdapterId;
     model: string;
-    suggestions: ValidatedOrganizationDraft;
+    suggestions: AiOrganizationReviewSuggestions;
   }) => Promise<AiOrganizationDraftView>;
   getDraft: (userId: string) => Promise<AiOrganizationDraftView | null>;
+  updateDraftReview: (input: {
+    userId: string;
+    expectedRevision: number;
+    suggestions: AiOrganizationReviewSuggestions;
+  }) => Promise<AiOrganizationDraftView | null>;
   discardDraft: (userId: string) => Promise<boolean>;
 }
 
@@ -74,10 +83,64 @@ function indexValues<T extends { repoId: string }>(
   return result;
 }
 
+function toReviewSuggestions(draft: ValidatedOrganizationDraft): AiOrganizationReviewSuggestions {
+  return {
+    version: 2,
+    relationChanges: draft.relationChanges.map((suggestion, index) => ({
+      id: `relation-${index + 1}`,
+      ...suggestion,
+      selected: true,
+    })),
+    newClassifications: draft.newClassifications.map((suggestion, index) => ({
+      id: `classification-${index + 1}`,
+      ...suggestion,
+      approved: false,
+    })),
+  };
+}
+
+function applyReviewChange(
+  suggestions: AiOrganizationReviewSuggestions,
+  change: AiOrganizationReviewChange,
+): AiOrganizationReviewSuggestions | null {
+  if (change.kind === 'relation') {
+    if (!suggestions.relationChanges.some((item) => item.id === change.suggestionId)) return null;
+    return {
+      ...suggestions,
+      relationChanges: suggestions.relationChanges.map((item) =>
+        item.id === change.suggestionId ? { ...item, selected: change.selected } : item,
+      ),
+    };
+  }
+  if (!suggestions.newClassifications.some((item) => item.id === change.suggestionId)) return null;
+  return {
+    ...suggestions,
+    newClassifications: suggestions.newClassifications.map((item) =>
+      item.id === change.suggestionId ? { ...item, approved: change.approved } : item,
+    ),
+  };
+}
+
 export function createAiOrganizationService(dependencies: AiOrganizationServiceDependencies) {
   return {
     getDraft: dependencies.getDraft,
     discardDraft: dependencies.discardDraft,
+    async updateReview(
+      userId: string,
+      expectedRevision: number,
+      change: AiOrganizationReviewChange,
+    ): Promise<{ status: 'updated'; draft: AiOrganizationDraftView } | { status: 'conflict' }> {
+      const current = await dependencies.getDraft(userId);
+      if (!current || current.revision !== expectedRevision) return { status: 'conflict' };
+      const suggestions = applyReviewChange(current.suggestions, change);
+      if (!suggestions) throw new Error('invalid_review_suggestion');
+      const updated = await dependencies.updateDraftReview({
+        userId,
+        expectedRevision,
+        suggestions,
+      });
+      return updated ? { status: 'updated', draft: updated } : { status: 'conflict' };
+    },
     async generateDraft(userId: string, repoIds: string[]): Promise<AiOrganizationDraftView> {
       if (repoIds.length === 0 || repoIds.length > 50 || new Set(repoIds).size !== repoIds.length) {
         throw new Error('invalid_repository_scope');
@@ -137,7 +200,7 @@ export function createAiOrganizationService(dependencies: AiOrganizationServiceD
         connectionId: connection.id,
         adapter: connection.adapter,
         model: selection.model,
-        suggestions,
+        suggestions: toReviewSuggestions(suggestions),
       });
     },
   };

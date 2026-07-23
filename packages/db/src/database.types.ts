@@ -440,6 +440,14 @@ export interface Database {
         };
         Returns: Database['public']['Tables']['ai_organization_drafts']['Row'];
       };
+      update_ai_organization_draft_review: {
+        Args: {
+          p_user_id: string;
+          p_expected_revision: number;
+          p_suggestions: Json;
+        };
+        Returns: Database['public']['Tables']['ai_organization_drafts']['Row'][];
+      };
       create_bulk_operation: {
         Args: {
           p_user_id: string;

@@ -8,7 +8,7 @@ import {
 const draft: AiOrganizationDraftView = {
   id: 'draft-1',
   sourceRepoIds: ['repo-1'],
-  suggestions: { version: 1, relationChanges: [], newClassifications: [] },
+  suggestions: { version: 2, relationChanges: [], newClassifications: [] },
   generationConnectionId: 'connection-1',
   generationAdapter: 'openai',
   generationModel: 'gpt-4o-mini',
@@ -23,6 +23,7 @@ function deps(overrides: Partial<AiOrganizationDependencies> = {}): AiOrganizati
     authenticate: vi.fn().mockResolvedValue('user-1'),
     generateDraft: vi.fn().mockResolvedValue(draft),
     getDraft: vi.fn().mockResolvedValue(draft),
+    updateReview: vi.fn().mockResolvedValue({ status: 'updated', draft }),
     discardDraft: vi.fn().mockResolvedValue(true),
     ...overrides,
   };
@@ -48,6 +49,69 @@ describe('manage-ai-organization trusted HTTP interface', () => {
     expect(dependencies.getDraft).toHaveBeenCalledWith('user-1');
     expect((await handler(request({ action: 'discard' }))).status).toBe(200);
     expect(dependencies.discardDraft).toHaveBeenCalledWith('user-1');
+  });
+
+  it('persists one review choice with the expected revision and returns conflicts distinctly', async () => {
+    const dependencies = deps();
+    const handler = createManageAiOrganizationHandler(dependencies);
+    const response = await handler(
+      request({
+        action: 'update-review',
+        expectedRevision: 3,
+        change: { kind: 'relation', suggestionId: 'relation-1', selected: false },
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(dependencies.updateReview).toHaveBeenCalledWith('user-1', 3, {
+      kind: 'relation',
+      suggestionId: 'relation-1',
+      selected: false,
+    });
+
+    const conflict = deps({
+      updateReview: vi.fn().mockResolvedValue({ status: 'conflict' }),
+    });
+    const conflictResponse = await createManageAiOrganizationHandler(conflict)(
+      request({
+        action: 'update-review',
+        expectedRevision: 2,
+        change: {
+          kind: 'classification',
+          suggestionId: 'classification-1',
+          approved: true,
+        },
+      }),
+    );
+    expect(conflictResponse.status).toBe(200);
+    await expect(conflictResponse.json()).resolves.toEqual({ status: 'conflict' });
+  });
+
+  it('rejects malformed review changes before the service boundary', async () => {
+    const dependencies = deps();
+    const handler = createManageAiOrganizationHandler(dependencies);
+    expect(
+      (
+        await handler(
+          request({
+            action: 'update-review',
+            expectedRevision: 0,
+            change: { kind: 'relation', suggestionId: 'relation-1', selected: false },
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await handler(
+          request({
+            action: 'update-review',
+            expectedRevision: 1,
+            change: { kind: 'classification', suggestionId: '', approved: true },
+          }),
+        )
+      ).status,
+    ).toBe(400);
+    expect(dependencies.updateReview).not.toHaveBeenCalled();
   });
 
   it('rejects authentication failures and independently enforces the 1–50 unique scope', async () => {

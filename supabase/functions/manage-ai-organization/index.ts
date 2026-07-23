@@ -223,6 +223,21 @@ function createDataDependencies(
       return data ? mapDraft(data as unknown as Record<string, unknown>) : null;
     },
 
+    async updateDraftReview(input: {
+      userId: string;
+      expectedRevision: number;
+      suggestions: AiOrganizationDraftView['suggestions'];
+    }): Promise<AiOrganizationDraftView | null> {
+      const { data, error } = await admin.rpc('update_ai_organization_draft_review', {
+        p_user_id: input.userId,
+        p_expected_revision: input.expectedRevision,
+        p_suggestions: input.suggestions as unknown as Json,
+      });
+      if (error) throw new Error('draft_review_write_failed');
+      const row = Array.isArray(data) ? data[0] : data;
+      return row ? mapDraft(row as unknown as Record<string, unknown>) : null;
+    },
+
     async discardDraft(userId: string): Promise<boolean> {
       const { data, error } = await admin
         .from('ai_organization_drafts')

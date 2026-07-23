@@ -149,17 +149,17 @@
 ### `ai_organization_drafts` — AI 整理建议草稿
 
 - `user_id` → `auth.users(id)`，唯一；每个用户最多一个活动草稿
-- `suggestions` — 待确认的添加 / 移除关系与建议新建分类（jsonb，不含 credential）；现有分类目标保存 `relationType` + 稳定分类 ID，建议新建分类保存 `relationType` + 经服务端规范化的名称，不使用名称指代现有分类
+- `suggestions` — review schema v2 的待确认添加 / 移除关系与建议新建分类（jsonb，不含 credential）；现有关系建议保存稳定建议 ID、`relationType`、稳定分类 ID 与 `selected`，生成后默认选中；建议新建分类保存稳定建议 ID、`relationType`、经服务端规范化的名称、依赖的仓库 ID 与 `approved`，生成后默认未批准，不使用名称指代现有分类
 - `source_repo_ids` — 本次用户明确选择的仓库 ID 集合
-- `suggestion_version` — 已验证建议 schema 的版本；当前为 `1`
+- `suggestion_version` — 持久化审阅 schema 的版本；当前为 `2`（Provider 输出的严格生成 schema v1 在受信服务内转换，不直接持久化）
 - `generation_connection_id` → `ai_provider_connections(id)`
 - `generation_adapter` — 生成时的 Adapter 稳定标识，作为 Connection provenance 的一部分
 - `generation_model` — 生成草稿的模型标识
-- `review_state` — 当前切片固定为 `review`（只读待审阅）
-- `revision` — 每次成功替换递增；失败生成不改变
+- `review_state` — 当前为 `review`（人工审阅中，尚未确认写入）
+- `revision` — 每次成功替换或审阅选择更新递增；失败生成与失败审阅写入不改变
 - `created_at` / `updated_at` — 当前草稿生成与最近替换时间
 
-约束：草稿按 `user_id` 隔离且每个用户最多一个活动草稿；刷新或离开页面后可继续审阅。草稿中的现有分类 ID 必须属于当前用户，未知 ID 不得持久化；新分类名称必须先完成大小写、空白与近似名称检查。开始新生成前提示用户将替换旧草稿，新生成成功后原子替换，生成失败保留旧草稿；主动丢弃直接删除。确认必须在一个受信数据库事务中重新校验最终勾选，幂等创建已确认的新标签 / 集合，创建 `source: "ai_draft"` 的 `bulk_operations` 与全部 `bulk_operation_items`，并仅在这些记录成功落库后删除草稿；实际关系写入不属于该事务。草稿不得包含 API credential、其他用户数据或 README。
+约束：草稿按 `user_id` 隔离且每个用户最多一个活动草稿；刷新或离开页面后可继续审阅。现有关系建议默认选中并可逐项取消；建议新分类默认未批准，只有单独批准后其依赖关系才具备后续确认资格。每次审阅 mutation 必须携带期望 revision，并由受信函数通过 compare-and-set 原子推进；旧标签页发生冲突时保留较新草稿并要求客户端重新读取。草稿中的现有分类 ID 必须属于当前用户，未知 ID 不得持久化；新分类名称必须先完成大小写、空白与近似名称检查。开始新生成前提示用户将替换旧草稿，新生成成功后原子替换，生成失败保留旧草稿及其审阅选择；主动丢弃直接删除。确认必须在一个受信数据库事务中重新校验最终勾选，幂等创建已确认的新标签 / 集合，创建 `source: "ai_draft"` 的 `bulk_operations` 与全部 `bulk_operation_items`，并仅在这些记录成功落库后删除草稿；实际关系写入不属于该事务。草稿不得包含 API credential、其他用户数据或 README。
 
 ---
 

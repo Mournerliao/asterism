@@ -4,13 +4,14 @@ import {
   generateAiOrganizationDraft,
   getAiOrganizationDraft,
   isAiOrganizationDraft,
+  updateAiOrganizationDraftReview,
 } from './ai-organization';
 import type { SupabaseClient } from './client';
 
 const draft = {
   id: 'draft-1',
   sourceRepoIds: ['repo-1'],
-  suggestions: { version: 1, relationChanges: [], newClassifications: [] },
+  suggestions: { version: 2, relationChanges: [], newClassifications: [] },
   generationConnectionId: 'connection-1',
   generationAdapter: 'openai',
   generationModel: 'gpt-4o-mini',
@@ -61,5 +62,33 @@ describe('AI organization DB boundary', () => {
     await expect(
       discardAiOrganizationDraft(clientReturning({ discarded: 'yes' }).client),
     ).rejects.toThrow('invalid response');
+  });
+
+  it('persists review choices through the public boundary and exposes revision conflicts', async () => {
+    const updated = clientReturning({ status: 'updated', draft: { ...draft, revision: 2 } });
+    await expect(
+      updateAiOrganizationDraftReview(updated.client, {
+        expectedRevision: 1,
+        change: { kind: 'relation', suggestionId: 'relation-1', selected: false },
+      }),
+    ).resolves.toEqual({ status: 'updated', draft: { ...draft, revision: 2 } });
+    expect(updated.invoke).toHaveBeenCalledWith('manage-ai-organization', {
+      body: {
+        action: 'update-review',
+        expectedRevision: 1,
+        change: { kind: 'relation', suggestionId: 'relation-1', selected: false },
+      },
+    });
+
+    await expect(
+      updateAiOrganizationDraftReview(clientReturning({ status: 'conflict' }).client, {
+        expectedRevision: 1,
+        change: {
+          kind: 'classification',
+          suggestionId: 'classification-1',
+          approved: true,
+        },
+      }),
+    ).resolves.toEqual({ status: 'conflict' });
   });
 });

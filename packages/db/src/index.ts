@@ -25,12 +25,15 @@ export type {
   AiOrganizationAction,
   AiOrganizationDraft,
   AiOrganizationRelationType,
+  AiOrganizationReviewChange,
+  AiOrganizationReviewUpdateResult,
 } from './ai-organization';
 export {
   discardAiOrganizationDraft,
   generateAiOrganizationDraft,
   getAiOrganizationDraft,
   isAiOrganizationDraft,
+  updateAiOrganizationDraftReview,
 } from './ai-organization';
 export type { Session } from './auth';
 export { getSession, onAuthChange, signInWithGitHub, signOut } from './auth';

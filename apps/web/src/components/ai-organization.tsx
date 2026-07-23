@@ -1,4 +1,9 @@
-import type { AiConnection, AiOrganizationDraft } from '@asterism/db';
+import type {
+  AiConnection,
+  AiOrganizationDraft,
+  AiOrganizationReviewChange,
+  AiOrganizationReviewUpdateResult,
+} from '@asterism/db';
 import {
   Badge,
   Button,
@@ -11,11 +16,14 @@ import {
 } from '@asterism/ui';
 import {
   AlertTriangleIcon,
+  CheckCircle2Icon,
   LoaderCircleIcon,
   MinusIcon,
   PlusIcon,
+  RotateCcwIcon,
   SparklesIcon,
   Trash2Icon,
+  XIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -163,28 +171,26 @@ export function AiOrganizationPreflight({
   );
 }
 
-function SuggestionSection({
+function SectionHeading({
+  id,
+  level = 4,
   title,
   icon: Icon,
-  items,
+  count,
 }: {
+  id?: string;
+  level?: 3 | 4 | 5;
   title: string;
   icon: typeof PlusIcon;
-  items: React.ReactNode[];
+  count: number;
 }) {
+  const Heading = level === 3 ? 'h3' : level === 5 ? 'h5' : 'h4';
   return (
-    <section>
-      <h3 className="flex items-center gap-2 font-medium text-caption">
-        <Icon className="size-4" />
-        {title}
-        <Badge variant="secondary">{items.length}</Badge>
-      </h3>
-      {items.length > 0 ? (
-        <ul className="mt-2 space-y-2">{items}</ul>
-      ) : (
-        <p className="mt-2 text-caption text-muted-foreground">—</p>
-      )}
-    </section>
+    <Heading id={id} className="flex items-center gap-2 font-medium text-caption">
+      <Icon className="size-4" aria-hidden="true" />
+      {title}
+      <Badge variant="secondary">{count}</Badge>
+    </Heading>
   );
 }
 
@@ -195,6 +201,8 @@ export function AiOrganizationDraftDialog({
   repoNames,
   targetNames,
   discarding,
+  updatingReviewId,
+  onUpdate,
   onDiscard,
 }: {
   draft: AiOrganizationDraft;
@@ -203,40 +211,93 @@ export function AiOrganizationDraftDialog({
   repoNames: ReadonlyMap<string, string>;
   targetNames: ReadonlyMap<string, string>;
   discarding: boolean;
+  updatingReviewId: string | null;
+  onUpdate: (input: {
+    expectedRevision: number;
+    change: AiOrganizationReviewChange;
+  }) => Promise<AiOrganizationReviewUpdateResult>;
   onDiscard: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
   const [discardFailed, setDiscardFailed] = useState(false);
-  const additions = draft.suggestions.relationChanges.filter((item) => item.action === 'add');
-  const removals = draft.suggestions.relationChanges.filter((item) => item.action === 'remove');
-  const row = (item: (typeof additions)[number]) => (
-    <li
-      key={`${item.repoId}:${item.relationType}:${item.targetId}:${item.action}`}
-      className="rounded-md border bg-card px-3 py-2 text-caption"
-    >
-      <span className="font-medium">{repoNames.get(item.repoId) ?? item.repoId}</span>
-      <span className="mx-2 text-muted-foreground">→</span>
-      <span>{targetNames.get(item.targetId) ?? item.targetId}</span>
-      <Badge variant="outline" className="ml-2">
-        {t(`aiOrganization.kind.${item.relationType}`)}
-      </Badge>
-    </li>
-  );
-  const newItems = draft.suggestions.newClassifications.map((item) => (
-    <li
-      key={`${item.relationType}:${item.name}`}
-      className="rounded-md border bg-card px-3 py-2 text-caption"
-    >
-      <span className="font-medium">{item.name}</span>
-      <Badge variant="outline" className="ml-2">
-        {t(`aiOrganization.kind.${item.relationType}`)}
-      </Badge>
-      <span className="ml-2 text-muted-foreground">
-        {t('aiOrganization.draft.repoCount', { count: item.repoIds.length })}
-      </span>
-    </li>
-  ));
-  const empty = additions.length + removals.length + newItems.length === 0;
+  const [reviewError, setReviewError] = useState<'conflict' | 'failed' | null>(null);
+  const empty =
+    draft.suggestions.relationChanges.length + draft.suggestions.newClassifications.length === 0;
+  const reviewPending = updatingReviewId !== null;
+
+  const update = async (change: AiOrganizationReviewChange) => {
+    setReviewError(null);
+    try {
+      const result = await onUpdate({ expectedRevision: draft.revision, change });
+      if (result.status === 'conflict') setReviewError('conflict');
+    } catch {
+      setReviewError('failed');
+    }
+  };
+
+  const relationRow = (
+    item: AiOrganizationDraft['suggestions']['relationChanges'][number],
+    repoName: string,
+  ) => {
+    const targetName = targetNames.get(item.targetId) ?? item.targetId;
+    const actionLabel = t(`aiOrganization.draft.${item.action}`);
+    const controlLabel = item.selected
+      ? t(`aiOrganization.draft.cancel.${item.action}`, { target: targetName, repo: repoName })
+      : t(`aiOrganization.draft.restore.${item.action}`, { target: targetName, repo: repoName });
+    return (
+      <li
+        key={item.id}
+        className="flex flex-col gap-2 rounded-md border bg-card px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+      >
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-caption">
+          <Badge variant="outline">
+            {item.action === 'add' ? (
+              <PlusIcon className="size-3" aria-hidden="true" />
+            ) : (
+              <MinusIcon className="size-3" aria-hidden="true" />
+            )}
+            {actionLabel}
+          </Badge>
+          <span className="min-w-0 truncate font-medium">{targetName}</span>
+          <span className="text-muted-foreground">
+            {t(`aiOrganization.kind.${item.relationType}`)}
+          </span>
+          <span className={item.selected ? 'text-success' : 'text-muted-foreground'}>
+            {item.selected
+              ? t('aiOrganization.draft.included')
+              : t('aiOrganization.draft.cancelled')}
+          </span>
+        </div>
+        <Button
+          type="button"
+          size="xs"
+          variant={item.selected ? 'outline' : 'ghost'}
+          aria-label={controlLabel}
+          aria-pressed={item.selected}
+          aria-busy={updatingReviewId === item.id}
+          disabled={reviewPending}
+          onClick={() =>
+            update({
+              kind: 'relation',
+              suggestionId: item.id,
+              selected: !item.selected,
+            })
+          }
+        >
+          {updatingReviewId === item.id ? (
+            <LoaderCircleIcon className="size-3.5 animate-spin motion-reduce:animate-none" />
+          ) : item.selected ? (
+            <XIcon className="size-3.5" />
+          ) : (
+            <RotateCcwIcon className="size-3.5" />
+          )}
+          {item.selected
+            ? t('aiOrganization.draft.cancelAction')
+            : t('aiOrganization.draft.restoreAction')}
+        </Button>
+      </li>
+    );
+  };
 
   const discard = async () => {
     setDiscardFailed(false);
@@ -249,10 +310,13 @@ export function AiOrganizationDraftDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(next) => !discarding && onOpenChange(next)}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => !discarding && !reviewPending && onOpenChange(next)}
+    >
       <DialogContent
-        className="max-h-[calc(100dvh-2rem)] sm:max-w-[40rem]"
-        closeDisabled={discarding}
+        className="flex max-h-[calc(100dvh-2rem)] flex-col sm:max-w-[40rem]"
+        closeDisabled={discarding || reviewPending}
       >
         <DialogHeader className="pr-10">
           <DialogTitle>{t('aiOrganization.draft.title')}</DialogTitle>
@@ -264,9 +328,9 @@ export function AiOrganizationDraftDialog({
             })}
           </DialogDescription>
         </DialogHeader>
-        <div className="min-h-0 space-y-5 overflow-y-auto pr-1">
+        <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
           {empty ? (
-            <div className="rounded-lg border bg-card p-4">
+            <div className="rounded-lg border bg-card p-4" role="status">
               <p className="font-medium text-body">{t('aiOrganization.draft.noChangesTitle')}</p>
               <p className="mt-1 text-caption text-muted-foreground">
                 {t('aiOrganization.draft.noChangesDescription')}
@@ -274,23 +338,176 @@ export function AiOrganizationDraftDialog({
             </div>
           ) : (
             <>
-              <SuggestionSection
-                title={t('aiOrganization.draft.additions')}
-                icon={PlusIcon}
-                items={additions.map(row)}
-              />
-              <SuggestionSection
-                title={t('aiOrganization.draft.removals')}
-                icon={MinusIcon}
-                items={removals.map(row)}
-              />
-              <SuggestionSection
-                title={t('aiOrganization.draft.newClassifications')}
-                icon={SparklesIcon}
-                items={newItems}
-              />
+              <section aria-labelledby="ai-new-classifications-heading">
+                <SectionHeading
+                  id="ai-new-classifications-heading"
+                  level={3}
+                  title={t('aiOrganization.draft.newClassifications')}
+                  icon={SparklesIcon}
+                  count={draft.suggestions.newClassifications.length}
+                />
+                <p className="mt-1 text-caption text-muted-foreground">
+                  {t('aiOrganization.draft.newClassificationsDescription')}
+                </p>
+                <ul className="mt-2 space-y-2">
+                  {draft.suggestions.newClassifications.map((item) => (
+                    <li
+                      key={item.id}
+                      className="flex flex-col gap-2 rounded-md border bg-card px-3 py-2 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div className="flex min-w-0 flex-wrap items-center gap-2 text-caption">
+                        <span className="min-w-0 truncate font-medium">{item.name}</span>
+                        <Badge variant="outline">
+                          {t(`aiOrganization.kind.${item.relationType}`)}
+                        </Badge>
+                        <span className="text-muted-foreground">
+                          {t('aiOrganization.draft.repoCount', { count: item.repoIds.length })}
+                        </span>
+                        <span className={item.approved ? 'text-success' : 'text-muted-foreground'}>
+                          {item.approved
+                            ? t('aiOrganization.draft.approved')
+                            : t('aiOrganization.draft.notApproved')}
+                        </span>
+                      </div>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant={item.approved ? 'outline' : 'default'}
+                        aria-label={
+                          item.approved
+                            ? t('aiOrganization.draft.cancelApprovalLabel', {
+                                kind: t(`aiOrganization.kind.${item.relationType}`).toLowerCase(),
+                                name: item.name,
+                              })
+                            : t('aiOrganization.draft.approveLabel', {
+                                kind: t(`aiOrganization.kind.${item.relationType}`).toLowerCase(),
+                                name: item.name,
+                              })
+                        }
+                        aria-pressed={item.approved}
+                        aria-busy={updatingReviewId === item.id}
+                        disabled={reviewPending}
+                        onClick={() =>
+                          update({
+                            kind: 'classification',
+                            suggestionId: item.id,
+                            approved: !item.approved,
+                          })
+                        }
+                      >
+                        {updatingReviewId === item.id ? (
+                          <LoaderCircleIcon className="size-3.5 animate-spin motion-reduce:animate-none" />
+                        ) : item.approved ? (
+                          <XIcon className="size-3.5" />
+                        ) : (
+                          <CheckCircle2Icon className="size-3.5" />
+                        )}
+                        {item.approved
+                          ? t('aiOrganization.draft.cancelApproval')
+                          : t('aiOrganization.draft.approve')}
+                      </Button>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              <section aria-labelledby="ai-repositories-heading">
+                <h3 id="ai-repositories-heading" className="font-medium text-body">
+                  {t('aiOrganization.draft.repositories')}
+                </h3>
+                <div className="mt-3 space-y-4">
+                  {draft.sourceRepoIds.map((repoId) => {
+                    const repoName = repoNames.get(repoId) ?? repoId;
+                    const additions = draft.suggestions.relationChanges.filter(
+                      (item) => item.repoId === repoId && item.action === 'add',
+                    );
+                    const removals = draft.suggestions.relationChanges.filter(
+                      (item) => item.repoId === repoId && item.action === 'remove',
+                    );
+                    const newClassifications = draft.suggestions.newClassifications.filter((item) =>
+                      item.repoIds.includes(repoId),
+                    );
+                    if (additions.length + removals.length + newClassifications.length === 0) {
+                      return null;
+                    }
+                    return (
+                      <article key={repoId} className="border-t pt-4 first:border-t-0 first:pt-0">
+                        <h4 className="break-all font-medium text-body">{repoName}</h4>
+                        <div className="mt-3 space-y-4">
+                          {additions.length > 0 ? (
+                            <section>
+                              <SectionHeading
+                                level={5}
+                                title={t('aiOrganization.draft.additions')}
+                                icon={PlusIcon}
+                                count={additions.length}
+                              />
+                              <ul className="mt-2 space-y-2">
+                                {additions.map((item) => relationRow(item, repoName))}
+                              </ul>
+                            </section>
+                          ) : null}
+                          {removals.length > 0 ? (
+                            <section>
+                              <SectionHeading
+                                level={5}
+                                title={t('aiOrganization.draft.removals')}
+                                icon={MinusIcon}
+                                count={removals.length}
+                              />
+                              <ul className="mt-2 space-y-2">
+                                {removals.map((item) => relationRow(item, repoName))}
+                              </ul>
+                            </section>
+                          ) : null}
+                          {newClassifications.length > 0 ? (
+                            <section>
+                              <SectionHeading
+                                level={5}
+                                title={t('aiOrganization.draft.newClassifications')}
+                                icon={SparklesIcon}
+                                count={newClassifications.length}
+                              />
+                              <ul className="mt-2 space-y-2">
+                                {newClassifications.map((item) => (
+                                  <li
+                                    key={item.id}
+                                    className="flex flex-wrap items-center gap-2 rounded-md border bg-card px-3 py-2 text-caption"
+                                  >
+                                    <span className="font-medium">{item.name}</span>
+                                    <Badge variant="outline">
+                                      {t(`aiOrganization.kind.${item.relationType}`)}
+                                    </Badge>
+                                    <span
+                                      className={
+                                        item.approved ? 'text-success' : 'text-muted-foreground'
+                                      }
+                                    >
+                                      {item.approved
+                                        ? t('aiOrganization.draft.dependencyApproved')
+                                        : t('aiOrganization.draft.dependencyBlocked')}
+                                    </span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </section>
+                          ) : null}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
             </>
           )}
+          {reviewError ? (
+            <p role="alert" className="flex items-start gap-2 text-caption text-destructive">
+              <AlertTriangleIcon className="mt-0.5 size-4 shrink-0" />
+              {reviewError === 'conflict'
+                ? t('aiOrganization.draft.conflict')
+                : t('aiOrganization.draft.reviewError')}
+            </p>
+          ) : null}
           {discardFailed ? (
             <p role="alert" className="text-caption text-destructive">
               {t('aiOrganization.discardError')}
@@ -302,7 +519,7 @@ export function AiOrganizationDraftDialog({
             type="button"
             size="sm"
             variant="destructive"
-            disabled={discarding}
+            disabled={discarding || reviewPending}
             aria-busy={discarding}
             onClick={discard}
           >
@@ -312,15 +529,6 @@ export function AiOrganizationDraftDialog({
               <Trash2Icon className="size-4" />
             )}
             {discarding ? t('aiOrganization.discarding') : t('aiOrganization.discard')}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant="outline"
-            disabled={discarding}
-            onClick={() => onOpenChange(false)}
-          >
-            {t('common.close')}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -333,12 +541,19 @@ export function AiOrganizationDraftBanner({
   repoNames,
   targetNames,
   discarding,
+  updatingReviewId,
+  onUpdate,
   onDiscard,
 }: {
   draft: AiOrganizationDraft;
   repoNames: ReadonlyMap<string, string>;
   targetNames: ReadonlyMap<string, string>;
   discarding: boolean;
+  updatingReviewId: string | null;
+  onUpdate: (input: {
+    expectedRevision: number;
+    change: AiOrganizationReviewChange;
+  }) => Promise<AiOrganizationReviewUpdateResult>;
   onDiscard: () => Promise<unknown>;
 }) {
   const { t } = useTranslation();
@@ -364,6 +579,8 @@ export function AiOrganizationDraftBanner({
         repoNames={repoNames}
         targetNames={targetNames}
         discarding={discarding}
+        updatingReviewId={updatingReviewId}
+        onUpdate={onUpdate}
         onDiscard={onDiscard}
       />
     </section>

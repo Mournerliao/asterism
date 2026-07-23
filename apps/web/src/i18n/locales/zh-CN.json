@@ -414,16 +414,43 @@
     },
     "resume": {
       "title": "AI 整理草稿已就绪",
-      "description": "继续查看 {{count}} 个仓库的只读建议。",
+      "description": "继续审阅 {{count}} 个仓库，并恢复已保存的选择。",
       "action": "继续审阅草稿"
     },
     "draft": {
       "title": "AI 整理草稿",
       "description": "{{count}} 个仓库 · {{provider}} · {{model}}。尚未应用任何改动。",
+      "repositories": "按仓库审阅建议",
       "additions": "添加关系",
       "removals": "移除关系",
       "newClassifications": "建议新建分类",
-      "repoCount": "{{count}} 个仓库",
+      "newClassificationsDescription": "每个新标签或集合都需单独批准；批准前，其对应的仓库添加关系保持阻止状态。",
+      "repoCount_one": "{{count}} 个仓库",
+      "repoCount_other": "{{count}} 个仓库",
+      "add": "添加",
+      "remove": "移除",
+      "included": "已选择",
+      "cancelled": "已取消",
+      "approved": "已批准",
+      "notApproved": "未批准",
+      "approve": "批准",
+      "cancelApproval": "取消批准",
+      "cancelAction": "取消建议",
+      "restoreAction": "恢复建议",
+      "approveLabel": "批准新建 {{kind}}「{{name}}」",
+      "cancelApprovalLabel": "取消批准新建 {{kind}}「{{name}}」",
+      "cancel": {
+        "add": "取消为 {{repo}} 添加 {{target}}",
+        "remove": "取消为 {{repo}} 移除 {{target}}"
+      },
+      "restore": {
+        "add": "恢复为 {{repo}} 添加 {{target}}",
+        "remove": "恢复为 {{repo}} 移除 {{target}}"
+      },
+      "dependencyApproved": "分类已批准",
+      "dependencyBlocked": "需要先批准分类",
+      "conflict": "此草稿已有更新的审阅选择，已重新加载最新版本；请检查后再试。",
+      "reviewError": "无法保存此审阅选择，已持久化的草稿未改变；请重试。",
       "noChangesTitle": "没有建议改动",
       "noChangesDescription": "Provider 返回了有效的空建议集。现有整理状态保持不变。"
     }

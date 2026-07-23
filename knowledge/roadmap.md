@@ -11,7 +11,7 @@
 | --- | --- | --- |
 | Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
 | Phase 1 | Web MVP | Done（2026-07-18） |
-| Phase 2 | AI（BYOK）+ 批量整理 | 进行中（批量整理与 BYOK 已完成，AI 整理建议待实现） |
+| Phase 2 | AI（BYOK）+ 批量整理 | 进行中（批量整理、BYOK、AI 草稿生成与持久化审阅已完成，确认交接待实现） |
 | Phase 3 | 浏览器扩展 Extension | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |
 

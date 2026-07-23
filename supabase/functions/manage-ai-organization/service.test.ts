@@ -44,7 +44,7 @@ function dependencies(
     replaceDraft: vi.fn().mockResolvedValue({
       id: 'draft-1',
       sourceRepoIds: [repoId],
-      suggestions: { version: 1, relationChanges: [], newClassifications: [] },
+      suggestions: { version: 2, relationChanges: [], newClassifications: [] },
       generationConnectionId: 'connection-1',
       generationAdapter: 'openai',
       generationModel: 'model-1',
@@ -54,6 +54,7 @@ function dependencies(
       updatedAt: 'now',
     }),
     getDraft: vi.fn().mockResolvedValue(null),
+    updateDraftReview: vi.fn().mockResolvedValue(null),
     discardDraft: vi.fn().mockResolvedValue(false),
     ...overrides,
   };
@@ -123,5 +124,127 @@ describe('AI organization authoritative service', () => {
       createAiOrganizationService(deps).generateDraft('user-1', [repoId]),
     ).rejects.toThrow('provider_timeout');
     expect(deps.replaceDraft).not.toHaveBeenCalled();
+  });
+
+  it('materializes selected relations and unapproved new classifications before persistence', async () => {
+    const deps = dependencies({
+      callProvider: vi.fn().mockResolvedValue({
+        version: 1,
+        relationChanges: [
+          {
+            repoId,
+            relationType: 'tag',
+            action: 'remove',
+            targetId: 'tag-1',
+          },
+        ],
+        newClassifications: [
+          {
+            relationType: 'collection',
+            name: 'AI Reading',
+            repoIds: [repoId],
+          },
+        ],
+      }),
+    });
+    await createAiOrganizationService(deps).generateDraft('user-1', [repoId]);
+    expect(deps.replaceDraft).toHaveBeenCalledWith(
+      expect.objectContaining({
+        suggestions: {
+          version: 2,
+          relationChanges: [
+            {
+              id: 'relation-1',
+              repoId,
+              relationType: 'tag',
+              action: 'remove',
+              targetId: 'tag-1',
+              selected: true,
+            },
+          ],
+          newClassifications: [
+            {
+              id: 'classification-1',
+              relationType: 'collection',
+              name: 'AI Reading',
+              repoIds: [repoId],
+              approved: false,
+            },
+          ],
+        },
+      }),
+    );
+  });
+
+  it('persists one review choice and preserves the newer draft on revision conflict', async () => {
+    const reviewDraft = {
+      id: 'draft-1',
+      sourceRepoIds: [repoId],
+      suggestions: {
+        version: 2 as const,
+        relationChanges: [
+          {
+            id: 'relation-1',
+            repoId,
+            relationType: 'tag' as const,
+            action: 'remove' as const,
+            targetId: 'tag-1',
+            selected: true,
+          },
+        ],
+        newClassifications: [
+          {
+            id: 'classification-1',
+            relationType: 'collection' as const,
+            name: 'AI Reading',
+            repoIds: [repoId],
+            approved: false,
+          },
+        ],
+      },
+      generationConnectionId: 'connection-1',
+      generationAdapter: 'openai',
+      generationModel: 'model-1',
+      reviewState: 'review' as const,
+      revision: 4,
+      createdAt: 'now',
+      updatedAt: 'now',
+    };
+    const updatedDraft = {
+      ...reviewDraft,
+      suggestions: {
+        ...reviewDraft.suggestions,
+        relationChanges: [{ ...reviewDraft.suggestions.relationChanges[0], selected: false }],
+      },
+      revision: 5,
+    };
+    const deps = dependencies({
+      getDraft: vi.fn().mockResolvedValue(reviewDraft),
+      updateDraftReview: vi.fn().mockResolvedValue(updatedDraft),
+    });
+    await expect(
+      createAiOrganizationService(deps).updateReview('user-1', 4, {
+        kind: 'relation',
+        suggestionId: 'relation-1',
+        selected: false,
+      }),
+    ).resolves.toEqual({ status: 'updated', draft: updatedDraft });
+    expect(deps.updateDraftReview).toHaveBeenCalledWith({
+      userId: 'user-1',
+      expectedRevision: 4,
+      suggestions: updatedDraft.suggestions,
+    });
+
+    const conflict = dependencies({
+      getDraft: vi.fn().mockResolvedValue({ ...reviewDraft, revision: 5 }),
+    });
+    await expect(
+      createAiOrganizationService(conflict).updateReview('user-1', 4, {
+        kind: 'classification',
+        suggestionId: 'classification-1',
+        approved: true,
+      }),
+    ).resolves.toEqual({ status: 'conflict' });
+    expect(conflict.updateDraftReview).not.toHaveBeenCalled();
   });
 });

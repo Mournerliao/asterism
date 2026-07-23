@@ -34,6 +34,7 @@ import {
   useAiOrganizationDraft,
   useDiscardAiOrganizationDraft,
   useGenerateAiOrganizationDraft,
+  useUpdateAiOrganizationDraftReview,
 } from '../data/use-ai-organization';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
@@ -79,6 +80,7 @@ export function BrowsePage() {
   const { data: aiDraft, isLoading: aiDraftLoading } = useAiOrganizationDraft();
   const generateAiDraft = useGenerateAiOrganizationDraft();
   const discardAiDraft = useDiscardAiOrganizationDraft();
+  const updateAiDraftReview = useUpdateAiOrganizationDraftReview();
   const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
@@ -260,6 +262,8 @@ export function BrowsePage() {
       repoNames={repoNames}
       targetNames={targetNames}
       discarding={discardAiDraft.isPending}
+      updatingReviewId={updateAiDraftReview.variables?.change.suggestionId ?? null}
+      onUpdate={(input) => updateAiDraftReview.mutateAsync(input)}
       onDiscard={() => discardAiDraft.mutateAsync()}
     />
   ) : null;

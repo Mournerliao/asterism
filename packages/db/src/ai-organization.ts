@@ -2,22 +2,29 @@ import type { SupabaseClient } from './client';
 
 export type AiOrganizationRelationType = 'tag' | 'collection';
 export type AiOrganizationAction = 'add' | 'remove';
+export type AiOrganizationReviewChange =
+  | { kind: 'relation'; suggestionId: string; selected: boolean }
+  | { kind: 'classification'; suggestionId: string; approved: boolean };
 
 export interface AiOrganizationDraft {
   id: string;
   sourceRepoIds: string[];
   suggestions: {
-    version: 1;
+    version: 2;
     relationChanges: Array<{
+      id: string;
       repoId: string;
       relationType: AiOrganizationRelationType;
       action: AiOrganizationAction;
       targetId: string;
+      selected: boolean;
     }>;
     newClassifications: Array<{
+      id: string;
       relationType: AiOrganizationRelationType;
       name: string;
       repoIds: string[];
+      approved: boolean;
     }>;
   };
   generationConnectionId: string;
@@ -62,6 +69,10 @@ function isRelationType(value: unknown): value is AiOrganizationRelationType {
   return value === 'tag' || value === 'collection';
 }
 
+function isId(value: unknown): value is string {
+  return typeof value === 'string' && value.length > 0 && value.length <= 128;
+}
+
 export function isAiOrganizationDraft(value: unknown): value is AiOrganizationDraft {
   if (
     !isRecord(value) ||
@@ -85,7 +96,7 @@ export function isAiOrganizationDraft(value: unknown): value is AiOrganizationDr
   if (
     !isRecord(suggestions) ||
     !hasExactKeys(suggestions, ['newClassifications', 'relationChanges', 'version']) ||
-    suggestions.version !== 1
+    suggestions.version !== 2
   ) {
     return false;
   }
@@ -98,20 +109,24 @@ export function isAiOrganizationDraft(value: unknown): value is AiOrganizationDr
   const relationsValid = suggestions.relationChanges.every(
     (entry) =>
       isRecord(entry) &&
-      hasExactKeys(entry, ['action', 'relationType', 'repoId', 'targetId']) &&
+      hasExactKeys(entry, ['action', 'id', 'relationType', 'repoId', 'selected', 'targetId']) &&
+      isId(entry.id) &&
       typeof entry.repoId === 'string' &&
       isRelationType(entry.relationType) &&
       (entry.action === 'add' || entry.action === 'remove') &&
-      typeof entry.targetId === 'string',
+      typeof entry.targetId === 'string' &&
+      typeof entry.selected === 'boolean',
   );
   const newValid = suggestions.newClassifications.every(
     (entry) =>
       isRecord(entry) &&
-      hasExactKeys(entry, ['name', 'relationType', 'repoIds']) &&
+      hasExactKeys(entry, ['approved', 'id', 'name', 'relationType', 'repoIds']) &&
+      isId(entry.id) &&
       isRelationType(entry.relationType) &&
       typeof entry.name === 'string' &&
       Array.isArray(entry.repoIds) &&
-      entry.repoIds.every((repoId) => typeof repoId === 'string'),
+      entry.repoIds.every((repoId) => typeof repoId === 'string') &&
+      typeof entry.approved === 'boolean',
   );
   return (
     relationsValid &&
@@ -172,4 +187,27 @@ export async function discardAiOrganizationDraft(client: SupabaseClient): Promis
     throw new Error('manage-ai-organization returned an invalid response');
   }
   return discarded;
+}
+
+export type AiOrganizationReviewUpdateResult =
+  | { status: 'updated'; draft: AiOrganizationDraft }
+  | { status: 'conflict' };
+
+export async function updateAiOrganizationDraftReview(
+  client: SupabaseClient,
+  input: { expectedRevision: number; change: AiOrganizationReviewChange },
+): Promise<AiOrganizationReviewUpdateResult> {
+  const data = await invoke(client, {
+    action: 'update-review',
+    expectedRevision: input.expectedRevision,
+    change: input.change,
+  });
+  const response = data as { status?: unknown; draft?: unknown } | null;
+  if (response?.status === 'conflict' && Object.keys(response).length === 1) {
+    return { status: 'conflict' };
+  }
+  if (response?.status === 'updated' && isAiOrganizationDraft(response.draft)) {
+    return { status: 'updated', draft: response.draft };
+  }
+  throw new Error('manage-ai-organization returned an invalid response');
 }

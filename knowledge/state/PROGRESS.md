@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> Phase 2 AI 切片 B 的第二个纵向切片已实现并验证（2026-07-23，GitHub #16）：持久化草稿升级为 review schema v2，现有关系建议默认选中且可逐项取消 / 恢复，建议新分类默认未批准并单独审批，其仓库关系在审批前保持明确阻止。所有选择经受信 `manage-ai-organization` Edge Function 与 `packages/db` 边界持久化，每次 mutation 携带 expected revision，并由仅 service-role 可调用的数据库 RPC 做 compare-and-set；旧标签页得到稳定 conflict、保留较新决定并触发客户端重新读取。Browse 审阅按仓库分组，添加 / 移除 / 新分类不依赖颜色区分，支持键盘、语义状态、en / zh-CN、窄屏及 light / dark；有效空草稿仍可丢弃或替换。`pnpm lint / typecheck / test / build` 全绿（core 132 / db 53 / functions 87 / web 148；build 仅既有主 chunk warning），Impeccable 检测无违规；无新增 ADR。下一步为 #17「Confirm AI drafts through durable bulk organization」。见 `logs/2026-07-23-issue-16-ai-organization-review.md`。
+
 > 根级开发服务器共享包预构建竞态已修复（2026-07-23）：`pnpm dev` 的 Turbo `dev` 任务现在先等待 workspace 依赖完成 `build`，避免 Vite 在 `packages/{core,ui,db}/dist` 仍为旧产物时启动并报新增命名导出不存在；共享包 watcher 随后继续承担增量编译。此次由 `@asterism/db` 源码已导出 `discardAiOrganizationDraft`、但旧 `dist/index.js` 尚未包含该导出触发。见 `logs/2026-07-23-root-dev-shared-package-prebuild.md`。
 
 > Phase 2 AI 切片 B 的第一个纵向切片已实现并验证（2026-07-23，GitHub #15）：Browse 现在可对固定的 1–50 个仓库发起 AI 整理生成，在调用前披露准确 Provider、model 与发送字段；受信 `manage-ai-organization` Edge Function 从 Postgres 重建权威上下文，只在用户明确启用时读取并按每条 2,000 个 Unicode code points 截断笔记，永不读取 README。原生 Provider Adapter 经既有 SSRF / allowlist / 同源重定向边界调用并严格校验版本化建议 schema；生成成功后原子替换每用户唯一活动草稿，失败保留旧草稿。草稿可跨刷新恢复、只读查看 additions / removals / new classifications、识别有效空建议并显式丢弃。`pnpm lint / typecheck / test / build` 全绿（core 132 / db 52 / functions 83 / web 145；build 仅既有主 chunk warning），真实登录态视觉复核覆盖桌面 / 窄屏与 light / dark；无新增 ADR。下一步为 #16「Review and persist AI organization decisions」，#17 仍依赖 #16。见 `logs/2026-07-23-issue-15-ai-organization-drafts.md`。

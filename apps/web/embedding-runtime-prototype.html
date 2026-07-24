@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PROTOTYPE — embedding runtime</title>
+  </head>
+  <body>
+    <main>
+      <h1>PROTOTYPE — multilingual-e5-small runtime</h1>
+      <p>
+        Question: which published quantization can satisfy the roughly 100 MB bootstrap, and does a
+        WebGPU-first attempt recover to WASM without blocking keyword search?
+      </p>
+      <p>
+        This throwaway harness measures one normalized passage embedding. It intentionally uses the
+        upstream model host; production must self-host the selected files.
+      </p>
+      <div>
+        <button id="run-webgpu" type="button">Run q8: WebGPU → WASM</button>
+        <button id="run-wasm" type="button">Run q8: WASM only</button>
+      </div>
+      <pre id="state"></pre>
+    </main>
+    <script type="module" src="/src/prototypes/embedding-runtime-prototype.ts"></script>
+  </body>
+</html>

@@ -28,6 +28,10 @@
 
 真实应用浏览器视觉复核未执行（沿用 #19 的本地服务器授权限制）；核心融合、距离检索与门控降级均以自动化测试覆盖。
 
+## 构建健壮化（同日后续）
+
+上文「离线下载模型超时」这一构建脆弱点已根治，不再只是「非代码问题」的托词：`prepare-embedding-assets.mjs` 现提供三条降级路——①**代理**：读 `HTTPS_PROXY`（及 `http_proxy`/`ALL_PROXY` 等常规变量），用 Node 内置 `http` 的 `CONNECT` 隧道 + `tls` 转发下载（零新增依赖），因为 Node 的 `fetch` 本身不读系统/OS 代理（`NODE_USE_ENV_PROXY` 要 Node 24+，本项目 Node 22；`undici` 又在 `apps/web` 解析不到）；②**镜像**：`HF_ENDPOINT` / `ASTERISM_MODEL_BASE`（如 `https://hf-mirror.com`，供 HF 受限网络拉真实资产）；③**跳过**：`ASTERISM_ALLOW_MISSING_EMBEDDING_ASSETS=1`（拿不到就打警告继续、产物运行时回退关键词搜索；SHA-256 失配仍硬失败）。下载失败重试 3 次。turbo.json 中改变产物的三个变量进 `build.env`（入缓存键），只改路由的代理变量进 `build.passThroughEnv`，确保 strict env 模式都能透传。已在无网沙箱实测：无代理走原 `fetch`（`UND_ERR_CONNECT_TIMEOUT`）、设 `HTTPS_PROXY=http://127.0.0.1:1` 时错误变为对**代理地址**的 `ECONNREFUSED`（证明确已改走代理），配合跳过开关 `pnpm build` 退出码 0、`apps/web/dist` 正常产出（`index.html` + 29 assets），`pnpm lint` 全绿。根因确认为 Node 构建期 `fetch` 不走浏览器/系统代理直连 `huggingface.co` 超时，而非「浏览器能访问即可下载」。
+
 ## 后续
 
 #21 石墨语义星图可复用同一 Worker client 与本人向量做确定性 2D 投影 + 分层渲染，作为列表并列可切换的第二视图；建议先用 `/prototype` 收口降维算法与渲染分层再进入实现。#22 涌现簇 + promotion 仍依赖 #21。

@@ -1,7 +1,19 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "tasks": {
-    "build": { "dependsOn": ["^build"], "outputs": ["dist/**", ".output/**"] },
+    "build": {
+      "dependsOn": ["^build"],
+      "env": ["HF_ENDPOINT", "ASTERISM_ALLOW_MISSING_EMBEDDING_ASSETS"],
+      "passThroughEnv": [
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "ALL_PROXY",
+        "https_proxy",
+        "http_proxy",
+        "all_proxy"
+      ],
+      "outputs": ["dist/**", ".output/**"]
+    },
     "dev": { "dependsOn": ["^build"], "cache": false, "persistent": true },
     "lint": {},
     "typecheck": { "dependsOn": ["^build"] },

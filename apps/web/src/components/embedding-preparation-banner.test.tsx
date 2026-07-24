@@ -60,5 +60,6 @@ describe('EmbeddingPreparationBanner', () => {
 
     expect(container.textContent).toContain('Keyword search is still available');
     expect(container.textContent).toContain('Retry');
+    expect(container.textContent).not.toContain('WASM unavailable');
   });
 });

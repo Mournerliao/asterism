@@ -1,3 +1,4 @@
+import { DEFAULT_EMBEDDING_MODEL } from '@asterism/core';
 import type { FeatureExtractionPipeline } from '@huggingface/transformers';
 import type {
   EmbeddingRuntimeBackend,
@@ -5,7 +6,7 @@ import type {
   EmbeddingWorkerResponse,
 } from '../lib/embedding-runtime';
 
-const MODEL_PATH = 'multilingual-e5-small';
+const MODEL_FILE = 'onnx/model_quantized.onnx';
 const scope = globalThis as unknown as {
   postMessage: (response: EmbeddingWorkerResponse) => void;
   addEventListener: (
@@ -26,6 +27,9 @@ function modelProgress(event: unknown) {
   if (
     typeof event === 'object' &&
     event !== null &&
+    'file' in event &&
+    typeof event.file === 'string' &&
+    event.file.endsWith(MODEL_FILE) &&
     'progress' in event &&
     typeof event.progress === 'number'
   ) {
@@ -51,12 +55,14 @@ async function loadExtractor(
     env.backends.onnx.wasm.proxy = false;
   }
 
-  return pipeline('feature-extraction', MODEL_PATH, {
+  let reportedProgress = 0;
+  return pipeline('feature-extraction', DEFAULT_EMBEDDING_MODEL, {
     device: backend,
     dtype: 'q8',
     progress_callback: (event) => {
       const progress = modelProgress(event);
-      if (progress !== undefined) {
+      if (progress !== undefined && progress >= reportedProgress) {
+        reportedProgress = progress;
         scope.postMessage({ type: 'model-progress', requestId, progress });
       }
     },

@@ -56,21 +56,38 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
   const userId = session?.user.id;
   const [optedIn, setOptedIn] = useState(false);
   const [state, setState] = useState<EmbeddingBootstrapState>(INITIAL_STATE);
-  const runningRef = useRef<Promise<void> | null>(null);
+  const [rerunRequested, setRerunRequested] = useState(false);
+  const activeUserRef = useRef(userId);
+  activeUserRef.current = userId;
+  const consentedUserRef = useRef<string | null>(null);
+  const generationRef = useRef(0);
+  const runningRef = useRef<{
+    generation: number;
+    promise: Promise<void>;
+    userId: string;
+  } | null>(null);
   const completedSignatureRef = useRef<string | null>(null);
   const signature = useMemo(
     () => records.map((record) => `${record.repoId}:${repoContentHash(record.repo)}`).join('|'),
     [records],
   );
+  const signatureRef = useRef(signature);
+  signatureRef.current = signature;
 
   useEffect(() => {
+    generationRef.current += 1;
+    runningRef.current = null;
+    completedSignatureRef.current = null;
+    setRerunRequested(false);
+    setState(INITIAL_STATE);
     if (!userId) {
+      consentedUserRef.current = null;
       setOptedIn(false);
-      setState(INITIAL_STATE);
-      completedSignatureRef.current = null;
       return;
     }
-    setOptedIn(readOptIn(userId));
+    const hasConsent = readOptIn(userId);
+    consentedUserRef.current = hasConsent ? userId : null;
+    setOptedIn(hasConsent);
   }, [userId]);
 
   const run = useCallback(
@@ -80,15 +97,27 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
       }
       if (rememberChoice) {
         saveOptIn(userId);
+        consentedUserRef.current = userId;
         setOptedIn(true);
       }
-      if (runningRef.current) {
-        return runningRef.current;
+      const generation = generationRef.current;
+      const running = runningRef.current;
+      if (running?.userId === userId && running.generation === generation) {
+        return running.promise;
       }
 
       const currentSignature = signature;
+      const isCurrent = () =>
+        activeUserRef.current === userId && generationRef.current === generation;
+      const updateState = (
+        updater: (current: EmbeddingBootstrapState) => EmbeddingBootstrapState,
+      ) => {
+        if (isCurrent()) {
+          setState(updater);
+        }
+      };
       const task = (async () => {
-        setState({ ...INITIAL_STATE, phase: 'checking' });
+        updateState(() => ({ ...INITIAL_STATE, phase: 'checking' }));
         try {
           let runtime: Awaited<
             ReturnType<typeof import('../lib/embedding-runtime')['getEmbeddingRuntime']>
@@ -114,25 +143,27 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
             },
             persist: (write) => upsertRepoEmbedding(supabase, { userId, ...write }),
             onPending: (total) =>
-              setState((current) => ({
+              updateState((current) => ({
                 ...current,
                 phase: total === 0 ? 'ready' : 'loading-model',
                 total,
               })),
             onModelProgress: (modelProgress) =>
-              setState((current) => ({ ...current, modelProgress })),
+              updateState((current) => ({ ...current, modelProgress })),
             onPrepared: (backend, total) =>
-              setState((current) => ({
+              updateState((current) => ({
                 ...current,
                 phase: 'backfilling',
                 backend,
                 total,
               })),
             onBackfillProgress: ({ completed, total }) =>
-              setState((current) => ({ ...current, completed, total })),
+              updateState((current) => ({ ...current, completed, total })),
           });
-          completedSignatureRef.current = currentSignature;
-          setState((current) => ({
+          if (isCurrent()) {
+            completedSignatureRef.current = currentSignature;
+          }
+          updateState((current) => ({
             ...current,
             phase: 'ready',
             backend: result.backend ?? current.backend,
@@ -142,16 +173,21 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
             error: null,
           }));
         } catch (error) {
-          setState((current) => ({
+          updateState((current) => ({
             ...current,
             phase: 'degraded',
             error: error instanceof Error ? error.message : String(error),
           }));
         }
       })().finally(() => {
-        runningRef.current = null;
+        if (runningRef.current?.promise === task) {
+          runningRef.current = null;
+        }
+        if (isCurrent() && signatureRef.current !== currentSignature) {
+          setRerunRequested(true);
+        }
       });
-      runningRef.current = task;
+      runningRef.current = { generation, promise: task, userId };
       return task;
     },
     [records, signature, userId],
@@ -160,14 +196,19 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
   useEffect(() => {
     if (
       optedIn &&
+      consentedUserRef.current === userId &&
       state.phase !== 'degraded' &&
       records.length > 0 &&
-      completedSignatureRef.current !== signature &&
-      !runningRef.current
+      (rerunRequested || completedSignatureRef.current !== signature) &&
+      !(
+        runningRef.current?.userId === userId &&
+        runningRef.current.generation === generationRef.current
+      )
     ) {
+      setRerunRequested(false);
       void run(false);
     }
-  }, [optedIn, records.length, run, signature, state.phase]);
+  }, [optedIn, records.length, rerunRequested, run, signature, state.phase, userId]);
 
   return {
     ...state,

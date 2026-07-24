@@ -14,6 +14,8 @@ interface StarredJoinRow {
   repos: Tables<'repos'> | null;
 }
 
+const POSTGREST_PAGE_SIZE = 1_000;
+
 /** 把 `repos` 表行（snake_case）映射为领域 `Repo`（camelCase）。 */
 export function mapRepoRow(row: Tables<'repos'>): Repo {
   return {
@@ -43,18 +45,27 @@ export async function listStarredRepos(
   client: SupabaseClient,
   userId: string,
 ): Promise<StarredRepoRecord[]> {
-  const { data, error } = await client
-    .from('user_stars')
-    .select('starred_at, repos(*)')
-    .eq('user_id', userId)
-    .order('starred_at', { ascending: false, nullsFirst: false })
-    .returns<StarredJoinRow[]>();
+  const rows: StarredJoinRow[] = [];
+  for (let offset = 0; ; offset += POSTGREST_PAGE_SIZE) {
+    const { data, error } = await client
+      .from('user_stars')
+      .select('starred_at, repos(*)')
+      .eq('user_id', userId)
+      .order('starred_at', { ascending: false, nullsFirst: false })
+      .order('repo_id', { ascending: true })
+      .range(offset, offset + POSTGREST_PAGE_SIZE - 1)
+      .returns<StarredJoinRow[]>();
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < POSTGREST_PAGE_SIZE) {
+      break;
+    }
   }
 
-  const rows = data ?? [];
   const records: StarredRepoRecord[] = [];
   for (const row of rows) {
     if (row.repos) {

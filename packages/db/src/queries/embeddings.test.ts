@@ -12,6 +12,7 @@ interface QueryCall {
   select?: string;
   upsert?: { values: Record<string, unknown>; options?: { onConflict?: string } };
   eq: Array<{ column: string; value: unknown }>;
+  ranges: Array<{ from: number; to: number }>;
 }
 
 /**
@@ -19,17 +20,31 @@ interface QueryCall {
  * （`upsert` 与读路径末端的 `eq`）返回真实 Promise，模拟被 await 的查询。
  * 用于断言每条读写都按 user_id 收窄（RLS 回归面的 CI-green 部分）与 vector 文本往返。
  */
-function createClientMock(result: { data?: unknown; error: unknown }) {
+function createClientMock(
+  result: { data?: unknown; error: unknown } | Array<{ data?: unknown; error: unknown }>,
+) {
   const calls: QueryCall[] = [];
+  let readIndex = 0;
 
   const client = {
     from(table: string) {
-      const call: QueryCall = { table, eq: [] };
+      const call: QueryCall = { table, eq: [], ranges: [] };
       calls.push(call);
       const readBuilder = {
         eq(column: string, value: unknown) {
           call.eq.push({ column, value });
-          return Promise.resolve(result);
+          return readBuilder;
+        },
+        order() {
+          return readBuilder;
+        },
+        range(from: number, to: number) {
+          call.ranges.push({ from, to });
+          const page = Array.isArray(result)
+            ? (result[readIndex] ?? { data: [], error: null })
+            : result;
+          readIndex += 1;
+          return Promise.resolve(page);
         },
       };
       return {
@@ -148,6 +163,36 @@ describe('listRepoEmbeddingMeta', () => {
     expect(call.eq).toContainEqual({ column: 'user_id', value: 'user-1' });
     expect(meta).toEqual([
       { repoId: 'repo-1', embeddingModel: 'multilingual-e5-small', contentHash: 'h1' },
+    ]);
+  });
+
+  it('paginates until every owner embedding row is loaded', async () => {
+    const firstPage = Array.from({ length: 1_000 }, (_, index) => ({
+      repo_id: `repo-${index}`,
+      embedding_model: 'multilingual-e5-small',
+      content_hash: `h${index}`,
+    }));
+    const { client, calls } = createClientMock([
+      { data: firstPage, error: null },
+      {
+        data: [
+          {
+            repo_id: 'repo-1000',
+            embedding_model: 'multilingual-e5-small',
+            content_hash: 'h1000',
+          },
+        ],
+        error: null,
+      },
+    ]);
+
+    const meta = await listRepoEmbeddingMeta(client, 'user-1');
+
+    expect(meta).toHaveLength(1_001);
+    expect(calls).toHaveLength(2);
+    expect(calls.map((call) => call.ranges[0])).toEqual([
+      { from: 0, to: 999 },
+      { from: 1_000, to: 1_999 },
     ]);
   });
 });

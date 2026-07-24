@@ -28,13 +28,19 @@ interface PendingRequest {
   resolve: (value: unknown) => void;
   reject: (error: Error) => void;
   onProgress?: (progress: number) => void;
+  timeout: ReturnType<typeof setTimeout>;
 }
+
+const REQUEST_TIMEOUT_MS = 5 * 60 * 1_000;
 
 export class EmbeddingWorkerClient {
   private nextRequestId = 1;
   private readonly pending = new Map<number, PendingRequest>();
 
-  constructor(private readonly worker: EmbeddingWorkerLike) {
+  constructor(
+    private readonly worker: EmbeddingWorkerLike,
+    private readonly onFatalError?: () => void,
+  ) {
     worker.addEventListener('message', this.handleMessage);
     worker.addEventListener('error', this.handleError);
   }
@@ -52,6 +58,7 @@ export class EmbeddingWorkerClient {
     this.worker.removeEventListener('error', this.handleError);
     this.worker.terminate();
     for (const request of this.pending.values()) {
+      clearTimeout(request.timeout);
       request.reject(new Error('Embedding worker was disposed'));
     }
     this.pending.clear();
@@ -65,10 +72,15 @@ export class EmbeddingWorkerClient {
     this.nextRequestId += 1;
 
     return new Promise<T>((resolve, reject) => {
+      const timeout = setTimeout(() => {
+        this.pending.delete(requestId);
+        reject(new Error('Embedding worker request timed out'));
+      }, REQUEST_TIMEOUT_MS);
       this.pending.set(requestId, {
         resolve: resolve as (value: unknown) => void,
         reject,
         onProgress,
+        timeout,
       });
       this.worker.postMessage({ ...message, requestId } as EmbeddingWorkerRequest);
     });
@@ -90,6 +102,7 @@ export class EmbeddingWorkerClient {
     }
 
     this.pending.delete(response.requestId);
+    clearTimeout(pending.timeout);
     if (response.type === 'failed') {
       pending.reject(new Error(response.message));
     } else if (response.type === 'prepared') {
@@ -102,9 +115,11 @@ export class EmbeddingWorkerClient {
   private readonly handleError = (event: MessageEvent<EmbeddingWorkerResponse> | ErrorEvent) => {
     const message = 'message' in event ? event.message : 'Embedding worker failed';
     for (const request of this.pending.values()) {
+      clearTimeout(request.timeout);
       request.reject(new Error(message));
     }
     this.pending.clear();
+    this.onFatalError?.();
   };
 }
 
@@ -112,12 +127,19 @@ let runtime: EmbeddingWorkerClient | undefined;
 
 export function getEmbeddingRuntime() {
   if (!runtime) {
-    runtime = new EmbeddingWorkerClient(
+    const client = new EmbeddingWorkerClient(
       new Worker(new URL('../workers/embedding.worker.ts', import.meta.url), {
         type: 'module',
         name: 'asterism-embeddings',
       }),
+      () => {
+        if (runtime === client) {
+          client.dispose();
+          runtime = undefined;
+        }
+      },
     );
+    runtime = client;
   }
   return runtime;
 }

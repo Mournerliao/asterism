@@ -21,7 +21,6 @@ export function EmbeddingPreparationBanner({
   completed,
   total,
   backend,
-  error,
   onStart,
   onRetry,
 }: EmbeddingPreparationBannerProps) {
@@ -75,9 +74,6 @@ export function EmbeddingPreparationBanner({
             <p className="mt-1 text-caption text-muted-foreground">
               {t('embeddings.degradedDescription')}
             </p>
-            {error ? (
-              <p className="mt-1 truncate text-micro text-muted-foreground">{error}</p>
-            ) : null}
           </div>
         </div>
         <Button variant="outline" size="sm" onClick={onRetry}>

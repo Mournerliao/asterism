@@ -1,8 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { EmbeddingWorkerClient, type EmbeddingWorkerLike } from './embedding-runtime';
 
 class FakeEmbeddingWorker implements EmbeddingWorkerLike {
   messages: unknown[] = [];
+  terminated = false;
   private messageListeners = new Set<(event: MessageEvent) => void>();
   private errorListeners = new Set<(event: ErrorEvent) => void>();
 
@@ -32,11 +33,19 @@ class FakeEmbeddingWorker implements EmbeddingWorkerLike {
     }
   }
 
-  terminate() {}
+  terminate() {
+    this.terminated = true;
+  }
 
   emitMessage(data: unknown) {
     for (const listener of this.messageListeners) {
       listener({ data } as MessageEvent);
+    }
+  }
+
+  emitError(message: string) {
+    for (const listener of this.errorListeners) {
+      listener({ message } as ErrorEvent);
     }
   }
 }
@@ -90,5 +99,17 @@ describe('EmbeddingWorkerClient', () => {
     });
 
     await expect(embedding).rejects.toThrow('WASM unavailable');
+  });
+
+  it('invalidates a fatally crashed worker so the singleton can be rebuilt', async () => {
+    const worker = new FakeEmbeddingWorker();
+    const onFatalError = vi.fn();
+    const client = new EmbeddingWorkerClient(worker, onFatalError);
+    const embedding = client.embed(['passage: one']);
+
+    worker.emitError('worker crashed');
+
+    await expect(embedding).rejects.toThrow('worker crashed');
+    expect(onFatalError).toHaveBeenCalledOnce();
   });
 });

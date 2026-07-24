@@ -5,6 +5,8 @@ import {
 } from '@asterism/core';
 import type { SupabaseClient } from '../client';
 
+const POSTGREST_PAGE_SIZE = 1_000;
+
 /** 一条完整的仓库语义向量（含向量本身）。 */
 export interface RepoEmbeddingRecord {
   repoId: string;
@@ -77,16 +79,31 @@ export async function listRepoEmbeddings(
   client: SupabaseClient,
   userId: string,
 ): Promise<RepoEmbeddingRecord[]> {
-  const { data, error } = await client
-    .from('user_repo_embeddings')
-    .select('repo_id, embedding, embedding_model, content_hash')
-    .eq('user_id', userId);
+  const rows: Array<{
+    repo_id: string;
+    embedding: string;
+    embedding_model: string;
+    content_hash: string;
+  }> = [];
+  for (let offset = 0; ; offset += POSTGREST_PAGE_SIZE) {
+    const { data, error } = await client
+      .from('user_repo_embeddings')
+      .select('repo_id, embedding, embedding_model, content_hash')
+      .eq('user_id', userId)
+      .order('repo_id', { ascending: true })
+      .range(offset, offset + POSTGREST_PAGE_SIZE - 1);
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < POSTGREST_PAGE_SIZE) {
+      break;
+    }
   }
 
-  return (data ?? []).map((row) => ({
+  return rows.map((row) => ({
     repoId: row.repo_id,
     embedding: parseVectorLiteral(row.embedding),
     embeddingModel: row.embedding_model,
@@ -102,16 +119,30 @@ export async function listRepoEmbeddingMeta(
   client: SupabaseClient,
   userId: string,
 ): Promise<RepoEmbeddingMeta[]> {
-  const { data, error } = await client
-    .from('user_repo_embeddings')
-    .select('repo_id, embedding_model, content_hash')
-    .eq('user_id', userId);
+  const rows: Array<{
+    repo_id: string;
+    embedding_model: string;
+    content_hash: string;
+  }> = [];
+  for (let offset = 0; ; offset += POSTGREST_PAGE_SIZE) {
+    const { data, error } = await client
+      .from('user_repo_embeddings')
+      .select('repo_id, embedding_model, content_hash')
+      .eq('user_id', userId)
+      .order('repo_id', { ascending: true })
+      .range(offset, offset + POSTGREST_PAGE_SIZE - 1);
 
-  if (error) {
-    throw error;
+    if (error) {
+      throw error;
+    }
+    const page = data ?? [];
+    rows.push(...page);
+    if (page.length < POSTGREST_PAGE_SIZE) {
+      break;
+    }
   }
 
-  return (data ?? []).map((row) => ({
+  return rows.map((row) => ({
     repoId: row.repo_id,
     embeddingModel: row.embedding_model,
     contentHash: row.content_hash,

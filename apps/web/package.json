@@ -4,9 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "predev": "pnpm --filter @asterism/web^... build",
+    "predev": "pnpm --filter @asterism/web^... build && node scripts/prepare-embedding-assets.mjs",
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/prepare-embedding-assets.mjs && vite build",
     "test": "vitest run",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
@@ -15,6 +15,7 @@
     "@asterism/core": "workspace:*",
     "@asterism/db": "workspace:*",
     "@asterism/ui": "workspace:*",
+    "@huggingface/transformers": "4.2.0",
     "@tanstack/react-query": "^5.101.2",
     "@tanstack/react-virtual": "^3.14.4",
     "dompurify": "^3.4.12",

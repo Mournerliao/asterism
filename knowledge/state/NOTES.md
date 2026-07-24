@@ -21,7 +21,7 @@
   - `0018-typed-ai-provider-registry.md`：类型化 Generation Provider Registry，不把 Phase 2 做成完整 AI Gateway
   - `0024-custom-endpoint-ssrf-boundary.md`：自定义 endpoint SSRF 分类器守卫恒开 + 部署者域名 allowlist；HTTPS DNS-rebinding TOCTOU 为已知残余
   - `0022-remove-embedding-and-semantic-search.md`：移除 Embedding、pgvector 语义搜索与相关设置（**已被 ADR 0026 取代 / Superseded**，2026-07-23：0026 在其缝隙上以「多语言小模型 + 非 BYOK + 浏览器内 + 同源自托管」重新立项并 Accepted；0022 保留为历史背景）
-  - `0026-ai-organization-flow-and-cluster-paradigm.md`：**检索优先范式（Accepted，2026-07-23）** —— 双平面（canonical 神圣 / derived 可弃 / promotion 唯一写入桥）+ 纯浏览器内 embedding（默认 `multilingual-e5-small`）+ 向量按用户存（`user_repo_embeddings`）+ 隐形混合搜索与石墨语义星图 + 涌现簇（安静的镜子）。Supersedes 0022 / Reframes 0020；契约（`product` / `ui-ux` / `data-model` / `roadmap`）已同步对齐，落地实现（迁移 / 客户端 embedding / 星图 / 聚类参数）待排期。
+  - `0026-ai-organization-flow-and-cluster-paradigm.md`：**检索优先范式（Accepted，2026-07-23）** —— 双平面（canonical 神圣 / derived 可弃 / promotion 唯一写入桥）+ 纯浏览器内 embedding（默认 `multilingual-e5-small`）+ 向量按用户存（`user_repo_embeddings`）+ 隐形混合搜索与石墨语义星图 + 涌现簇（安静的镜子）。Supersedes 0022 / Reframes 0020；#18 数据地基与 #19 浏览器 q8 运行时 / 增量回填已落地，待实现 #20 混合搜索、#21 星图与 #22 聚类 / promotion。
   - `0019-biome-tailwind-v4-css.md`：Biome 2.5.1 统一检查 Tailwind v4 CSS，不引入 Stylelint
 - **契约（什么是"对/完成"）**：`knowledge/contracts/*` —— `product` / `architecture` / `data-model` / `conventions` / `ui-ux`。
 - **设计源（Design Source）**：`contracts/ui-ux.md` + ADR 0009 是当前视觉与 token 权威；Ardot 文件 `698428420561751` 仅保留为历史布局/间距参考。
@@ -41,6 +41,7 @@
 
 ## 待办提醒（便签级）
 
+- **浏览器 embedding 资产与实测（2026-07-24，#19）**：固定 `Xenova/multilingual-e5-small@761b726…` 的 q8 ONNX（118,308,185 bytes，SHA-256 `f80102d3…c193`），`@huggingface/transformers` 4.2.0；构建脚本写入忽略目录 `.cache/embedding-assets/v1/public`，运行期只从 `/models/` 与 `/embedding-runtime/` 同源读取，禁止远程模型。批量大小固定 16；真实 Chromium 暖缓存 WebGPU 16 条 454ms、WASM 236ms，本机虽 WASM 更快仍按契约 WebGPU 优先并可靠回退。资产来源与复现见 `apps/web/EMBEDDING_ASSETS.md`。
 - **当前设计系统**（2026-07-10）：配色已从 Primer 改为 Graphite Glass（ADR 0009）；8px 圆角、Geist 字体与 4px 间距栅格不变。玻璃只用于交互层，背景无噪点，Logo 为单色电光蓝。
 - **工作区根目录未迁移**：本次初始化**未执行 `move_agent_to_root`**，当前会话仍以原工作区根为准，仓库位于 `/Users/asherliao/Projects/asterism`。后续若需以该仓库为工作区根，再单独切换。
 - **Edge Function 部署是「每环境手工一次」**（2026-06-30）：`sync-stars` 之前没部署导致 Sync 报 404，已 `supabase functions deploy sync-stars`（项目 `hqtrmulypxwdqvzlkhke`，现 `ACTIVE v1`）。换项目 / 新部署者必须重跑该命令，否则同步必报错。`supabase functions list/deploy --project-ref` 会生成 `supabase/.temp/`（已 gitignore）。`SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` 由平台自动注入，无需手配 secret。

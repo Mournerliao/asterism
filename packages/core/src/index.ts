@@ -95,6 +95,8 @@ export { EXPORT_VERSION } from './data-port/types';
 export type {
   DesiredRepoEmbedding,
   EmbeddableRepo,
+  EmbeddingBackfillProgress,
+  EmbeddingBackfillTarget,
   EmbeddingStalenessReason,
   RepoEmbeddingBackfillItem,
   StoredRepoEmbedding,
@@ -103,9 +105,15 @@ export {
   computeContentHash,
   DEFAULT_EMBEDDING_DIMENSIONS,
   DEFAULT_EMBEDDING_MODEL,
+  E5_PASSAGE_PREFIX,
+  E5_QUERY_PREFIX,
+  EMBEDDING_BACKFILL_BATCH_SIZE,
   embeddableRepoText,
   repoContentHash,
+  runEmbeddingBackfill,
   selectReposToEmbed,
+  toPassageInput,
+  toQueryInput,
 } from './embeddings/embeddings';
 export type {
   CollectStarredOptions,

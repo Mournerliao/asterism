@@ -122,6 +122,19 @@
     "reconnectError": "Couldn't start GitHub reconnect.",
     "progress": "Syncing GitHub Stars…"
   },
+  "embeddings": {
+    "prepareTitle": "Prepare smarter search",
+    "prepareDescription": "Download the search model once (about 100–150 MB) and prepare semantic vectors for your repositories. Files are served and cached from this Asterism origin; keyword search keeps working throughout.",
+    "prepareAction": "Prepare search",
+    "checking": "Checking search preparation…",
+    "downloading": "Downloading and caching the search model…",
+    "backfilling": "Preparing repository {{completed}} of {{total}}…",
+    "modelProgress": "Search model download progress",
+    "backfillProgress": "Repository preparation progress",
+    "backend": "Running locally with {{backend}}",
+    "degradedTitle": "Smarter search isn't ready on this device",
+    "degradedDescription": "Keyword search is still available. You can retry preparation when this device has more resources."
+  },
   "browse": {
     "title": "All Repositories",
     "count": "{{total}} starred repositories",

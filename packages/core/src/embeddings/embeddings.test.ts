@@ -3,9 +3,15 @@ import {
   computeContentHash,
   DEFAULT_EMBEDDING_DIMENSIONS,
   DEFAULT_EMBEDDING_MODEL,
+  E5_PASSAGE_PREFIX,
+  E5_QUERY_PREFIX,
+  EMBEDDING_BACKFILL_BATCH_SIZE,
   embeddableRepoText,
   repoContentHash,
+  runEmbeddingBackfill,
   selectReposToEmbed,
+  toPassageInput,
+  toQueryInput,
 } from './embeddings';
 
 describe('default embedding model', () => {
@@ -64,6 +70,128 @@ describe('repoContentHash', () => {
   it('equals hashing the assembled embeddable text', () => {
     const repo = { fullName: 'owner/name', description: 'desc', topics: ['x'] };
     expect(repoContentHash(repo)).toBe(computeContentHash(embeddableRepoText(repo)));
+  });
+});
+
+describe('e5 instruction prefixes', () => {
+  it('pins the passage / query prefixes', () => {
+    expect(E5_PASSAGE_PREFIX).toBe('passage: ');
+    expect(E5_QUERY_PREFIX).toBe('query: ');
+  });
+});
+
+describe('toPassageInput', () => {
+  it('prefixes the assembled embeddable text with passage:', () => {
+    const repo = { fullName: 'owner/name', description: 'desc', topics: ['x'] };
+    expect(toPassageInput(repo)).toBe(`passage: ${embeddableRepoText(repo)}`);
+  });
+
+  it('keeps the prefix outside the hashed text so it never triggers a re-embed', () => {
+    const repo = { fullName: 'owner/name', description: 'desc', topics: ['x'] };
+    expect(toPassageInput(repo).endsWith(embeddableRepoText(repo))).toBe(true);
+    expect(repoContentHash(repo)).toBe(computeContentHash(embeddableRepoText(repo)));
+  });
+});
+
+describe('toQueryInput', () => {
+  it('prefixes a query with query: and trims surrounding whitespace', () => {
+    expect(toQueryInput('  rust cli  ')).toBe('query: rust cli');
+  });
+
+  it('shares the prefix scheme with passage assembly but a different instruction', () => {
+    expect(toQueryInput('x')).toBe(`${E5_QUERY_PREFIX}x`);
+    expect(toPassageInput({ fullName: 'x', description: null, topics: [] })).toBe(
+      `${E5_PASSAGE_PREFIX}x`,
+    );
+  });
+});
+
+describe('runEmbeddingBackfill', () => {
+  const target = (index: number) => ({
+    repoId: `repo-${index}`,
+    contentHash: `hash-${index}`,
+    input: `passage: repo-${index}`,
+  });
+
+  it('embeds resumable targets in bounded 16-item chunks and persists each completed row', async () => {
+    const embeddedBatches: string[][] = [];
+    const persisted: string[] = [];
+    const progress: Array<{ completed: number; total: number }> = [];
+    const targets = Array.from({ length: 18 }, (_, index) => target(index));
+
+    const result = await runEmbeddingBackfill({
+      targets,
+      embedBatch: async (inputs) => {
+        embeddedBatches.push([...inputs]);
+        return inputs.map(() => Array.from({ length: DEFAULT_EMBEDDING_DIMENSIONS }, () => 0.25));
+      },
+      persist: async (item) => {
+        persisted.push(item.repoId);
+      },
+      onProgress: (value) => progress.push(value),
+    });
+
+    expect(EMBEDDING_BACKFILL_BATCH_SIZE).toBe(16);
+    expect(embeddedBatches.map((batch) => batch.length)).toEqual([16, 2]);
+    expect(persisted).toEqual(targets.map((item) => item.repoId));
+    expect(progress.at(-1)).toEqual({ completed: 18, total: 18 });
+    expect(result).toEqual({ completed: 18, total: 18 });
+  });
+
+  it('is a near no-op when every repository is already fresh', async () => {
+    let embedCalls = 0;
+    let persistCalls = 0;
+
+    const result = await runEmbeddingBackfill({
+      targets: [],
+      embedBatch: async () => {
+        embedCalls += 1;
+        return [];
+      },
+      persist: async () => {
+        persistCalls += 1;
+      },
+    });
+
+    expect(result).toEqual({ completed: 0, total: 0 });
+    expect(embedCalls).toBe(0);
+    expect(persistCalls).toBe(0);
+  });
+
+  it('keeps completed rows durable when a later row fails so the next pending query can resume', async () => {
+    const persisted: string[] = [];
+
+    await expect(
+      runEmbeddingBackfill({
+        targets: [target(0), target(1), target(2)],
+        embedBatch: async (inputs) =>
+          inputs.map(() => Array.from({ length: DEFAULT_EMBEDDING_DIMENSIONS }, () => 0.25)),
+        persist: async (item) => {
+          if (item.repoId === 'repo-2') {
+            throw new Error('temporary write failure');
+          }
+          persisted.push(item.repoId);
+        },
+      }),
+    ).rejects.toThrow('temporary write failure');
+
+    expect(persisted).toEqual(['repo-0', 'repo-1']);
+  });
+
+  it('rejects malformed model output before writing it', async () => {
+    let persistCalls = 0;
+
+    await expect(
+      runEmbeddingBackfill({
+        targets: [target(0)],
+        embedBatch: async () => [[0.1, 0.2]],
+        persist: async () => {
+          persistCalls += 1;
+        },
+      }),
+    ).rejects.toThrow('Expected a 384-dimensional embedding');
+
+    expect(persistCalls).toBe(0);
   });
 });
 

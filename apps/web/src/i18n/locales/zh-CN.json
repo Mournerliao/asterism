@@ -122,6 +122,19 @@
     "reconnectError": "无法发起 GitHub 重新连接。",
     "progress": "正在同步 GitHub Stars…"
   },
+  "embeddings": {
+    "prepareTitle": "准备更智能的搜索",
+    "prepareDescription": "一次性下载搜索模型（约 100–150 MB），并为你的仓库准备语义向量。文件仅从当前 Asterism 同源提供并缓存；整个过程不影响关键词搜索。",
+    "prepareAction": "准备搜索",
+    "checking": "正在检查搜索准备状态…",
+    "downloading": "正在下载并缓存搜索模型…",
+    "backfilling": "正在准备第 {{completed}} / {{total}} 个仓库…",
+    "modelProgress": "搜索模型下载进度",
+    "backfillProgress": "仓库准备进度",
+    "backend": "正在本地使用 {{backend}} 运行",
+    "degradedTitle": "此设备尚未准备好智能搜索",
+    "degradedDescription": "关键词搜索仍可使用。可在此设备资源更充足时重试准备。"
+  },
   "browse": {
     "title": "全部仓库",
     "count": "{{total}} 个 Star 仓库",

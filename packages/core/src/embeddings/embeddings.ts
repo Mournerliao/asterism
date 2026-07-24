@@ -68,6 +68,78 @@ export function repoContentHash(repo: EmbeddableRepo): string {
   return computeContentHash(embeddableRepoText(repo));
 }
 
+/**
+ * e5 指令前缀（ADR 0026 §3）：被嵌文档加 `passage:`，查询加 `query:`。
+ * 前缀是嵌入运行时（回填 / 检索）的关注点、与仓库内容无关，故不进 content-hash；
+ * 若协议发生变化，必须同步升级 `DEFAULT_EMBEDDING_MODEL` 版本以触发全库重嵌。
+ */
+export const E5_PASSAGE_PREFIX = 'passage: ';
+export const E5_QUERY_PREFIX = 'query: ';
+
+/**
+ * 组装「文档侧」嵌入输入（回填用）：`passage:` 前缀 + 被嵌文本。
+ * 与 `repoContentHash` 共用同一份 `embeddableRepoText`，保证哈希探测与实际嵌入的文本一致。
+ */
+export function toPassageInput(repo: EmbeddableRepo): string {
+  return `${E5_PASSAGE_PREFIX}${embeddableRepoText(repo)}`;
+}
+
+/**
+ * 组装「查询侧」嵌入输入（检索用，#20 消费）：`query:` 前缀 + 去除首尾空白的查询串。
+ */
+export function toQueryInput(query: string): string {
+  return `${E5_QUERY_PREFIX}${query.trim()}`;
+}
+
+export const EMBEDDING_BACKFILL_BATCH_SIZE = 16;
+
+export interface EmbeddingBackfillTarget {
+  repoId: RepoId;
+  contentHash: string;
+  input: string;
+}
+
+export interface EmbeddingBackfillProgress {
+  completed: number;
+  total: number;
+}
+
+export async function runEmbeddingBackfill(input: {
+  targets: readonly EmbeddingBackfillTarget[];
+  embedBatch: (inputs: readonly string[]) => Promise<readonly number[][]>;
+  persist: (target: EmbeddingBackfillTarget, embedding: number[]) => Promise<void>;
+  onProgress?: (progress: EmbeddingBackfillProgress) => void;
+}): Promise<EmbeddingBackfillProgress> {
+  const total = input.targets.length;
+  let completed = 0;
+
+  for (let offset = 0; offset < total; offset += EMBEDDING_BACKFILL_BATCH_SIZE) {
+    const batch = input.targets.slice(offset, offset + EMBEDDING_BACKFILL_BATCH_SIZE);
+    const embeddings = await input.embedBatch(batch.map((target) => target.input));
+    if (embeddings.length !== batch.length) {
+      throw new Error(`Expected ${batch.length} embeddings, received ${embeddings.length}`);
+    }
+
+    for (let index = 0; index < batch.length; index += 1) {
+      const target = batch[index];
+      const embedding = embeddings[index];
+      if (!(target && embedding)) {
+        throw new Error('Embedding output did not match the requested batch');
+      }
+      if (embedding.length !== DEFAULT_EMBEDDING_DIMENSIONS) {
+        throw new Error(
+          `Expected a ${DEFAULT_EMBEDDING_DIMENSIONS}-dimensional embedding, received ${embedding.length}`,
+        );
+      }
+      await input.persist(target, embedding);
+      completed += 1;
+      input.onProgress?.({ completed, total });
+    }
+  }
+
+  return { completed, total };
+}
+
 /** 某仓库进入「待嵌集合」的原因。 */
 export type EmbeddingStalenessReason = 'missing' | 'model_mismatch' | 'content_mismatch';
 

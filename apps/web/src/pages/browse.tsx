@@ -31,6 +31,7 @@ import { AiOrganizationDraftBanner, AiOrganizationPreflight } from '../component
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
+import { EmbeddingPreparationBanner } from '../components/embedding-preparation-banner';
 import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
@@ -52,6 +53,7 @@ import {
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
+import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
@@ -87,6 +89,8 @@ export function BrowsePage() {
   const { requestOpen, requestClose, registerContext } = useRepoInspector();
   const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
   const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
+  const records = useMemo(() => data ?? [], [data]);
+  const embeddingBootstrap = useEmbeddingBootstrap(records);
   const { data: tags, isLoading: tagsLoading } = useTags();
   const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
@@ -147,7 +151,6 @@ export function BrowsePage() {
     repoScrollElement.scrollTop = 0;
   }, [view, repoScrollElement]);
 
-  const records = useMemo(() => data ?? [], [data]);
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
   const tagsByRepoId = useMemo(() => {
     const map = new Map<string, string[]>();
@@ -514,6 +517,11 @@ export function BrowsePage() {
               <RepoFilterBar facets={facets} tags={tags ?? []} />
             </GlassControlRow>
             {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
+            <EmbeddingPreparationBanner
+              {...embeddingBootstrap}
+              onStart={() => void embeddingBootstrap.start()}
+              onRetry={() => void embeddingBootstrap.retry()}
+            />
             {bulkOperationContent}
             {aiDraftContent}
           </div>

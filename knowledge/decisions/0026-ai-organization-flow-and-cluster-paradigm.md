@@ -121,7 +121,7 @@ create index if not exists user_repo_embeddings_user_id_idx on public.user_repo_
 - **Reframes 0020**：AI 不再写 canonical 数据，危险的无人值守写入不存在，0020 的「防污染」担忧溶解。人工确认精神仍在（promotion 是显式动作），但从「守门」降级为「主动增益」。
 - **废弃 `ai_organization_drafts` 路径**：旧的批处理审批草稿（canonical 写入前的待确认表）是被 reframe 掉的对象；promotion 不经由该草稿机制，而是用户在 derived 星图上直接发起的轻审阅。
 - **复用 0023 / 0025**：promotion 落地仍走持久化逐项批量账本与 `BulkOperationBanner`（`source: promotion`），不产生第二套可靠性语义。
-- **已同步改写的契约遗留（Accept 时完成）**：0022 遗产中的禁语义条款已随本 ADR Accept 一并对齐——`product.md`（L25 AI 能力 scope、L78 关键词搜索 → 隐形混合搜索、L128 语义搜索重启门槛已满足、Advanced Features 加重构注记）、`ui-ux.md`（L244 Browse Search 隐形混合搜索）、`data-model.md`（解除禁向量表 + 新增 `user_repo_embeddings` 表与 RLS）、`roadmap.md`（L63 范围边界）、`architecture.md`（L122 Provider 边界：留「无服务端 Embedding Provider」、重构「无语义搜索」）。**Accepted ≠ 已落地**：实现（迁移 / 客户端 embedding / 星图 / 聚类）仍待排期，不得据本 ADR 声称功能已交付。
+- **已同步改写的契约遗留（Accept 时完成）**：0022 遗产中的禁语义条款已随本 ADR Accept 一并对齐——`product.md`（L25 AI 能力 scope、L78 关键词搜索 → 隐形混合搜索、L128 语义搜索重启门槛已满足、Advanced Features 加重构注记）、`ui-ux.md`（L244 Browse Search 隐形混合搜索）、`data-model.md`（解除禁向量表 + 新增 `user_repo_embeddings` 表与 RLS）、`roadmap.md`（L63 范围边界）、`architecture.md`（L122 Provider 边界：留「无服务端 Embedding Provider」、重构「无语义搜索」）。#18 数据地基与 #19 浏览器运行时 / 回填已于 2026-07-24 落地；混合搜索、星图与聚类仍分别由 #20–#22 交付，不得提前声称整条能力已完成。
 
 ## 影响与成本（老实列）
 
@@ -131,11 +131,11 @@ create index if not exists user_repo_embeddings_user_id_idx on public.user_repo_
 - **向量冗余存储**（跨用户重复）：个人量级可忽略；大规模 ANN 索引与分区留作后续。
 - **放弃服务端更强模型 / 更高质量 embedding**：对个人 / 隐私优先定位是可接受取舍，未来有硬需求另立 ADR（不提前造）。
 
-## 开放问题（实现期待实测）
+## 实现期验证与剩余开放问题
 
-- `multilingual-e5-small` 在浏览器的量化档位（q8 / q4）与 WebGPU / WASM 回退的实测取舍。
+- **已解决（#19，2026-07-24）**：真实 Chromium 原型对比后选择 q8；模型 ONNX 为 118,308,185 bytes（q4 399 MB、q4f16 205 MB，均更大），固定 revision 与 SHA-256 后由应用同源自托管。暖缓存、batch 16 的 WebGPU 初始化 / 推理为 1.00s / 454ms，WASM 为 608ms / 236ms；冷 WebGPU 首次下载 + 编译 39.25s。运行时仍按契约 WebGPU 优先、失败回退 WASM，因为跨设备加速能力不能由本机单点反推；任一后端失败都保留关键词搜索。
 - **（#2 剩余实现细节）** 确定性语义投影的降维算法选型（UMAP / PCA / t-SNE 等）与可复现性保证；星图分层渲染的技术栈（Canvas / WebGL）与「远景聚合 → 拉近显个体」的规模阈值。
 - **（#3 已定案）** Derived 簇 = 纯向量密度聚类（不混 topic / language）；命名默认从 topics / 高频词提取，generation 仅可选增益；promotion 固化为快照写 `collections`、复用 0023 账本（`source: promotion`）；性格为「安静的镜子」（系统不主动提示）。
-- 回填与「检测—下载」的具体 UX 与触发点、跨设备协同细节。
+- **已解决（#19，2026-07-24）**：有仓库时展示非阻断的显式「准备搜索」动作并披露约 100–150 MB；同意按用户 + 模型版本记在本机。先查 owner 的缺失 / 过期集合，空集合不加载 Worker；非空集合才懒加载模型，以 16 条分块、逐行 RLS upsert 形成检查点。刷新 / 失败可由已成功行继续，sync 新增与内容 / 模型变化自动触发增量回填；换设备可复用服务端已有文档向量。
 - 搜索精确扫描 vs ANN 的切换阈值。
 - **（#3 已定案，剩实现细节）** 密度聚类（HDBSCAN 类）的具体参数（最小簇大小、距离度量）与在浏览器 / 服务端的计算位置；簇重算的触发时机与缓存。

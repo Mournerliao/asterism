@@ -8,6 +8,7 @@ import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { RepoCard } from './repo-card';
 import { RepoTable } from './repo-table';
+import { SemanticSectionLabel } from './semantic-section-separator';
 
 const MIN_CARD_WIDTH = 370;
 const CARD_GAP = 16;
@@ -15,6 +16,8 @@ const MAX_COLUMNS = 3;
 
 type RepoCollectionProps = {
   records: StarredRepoRecord[];
+  /** 语义近邻起始下标（records 中）；null / 缺省表示无近邻，不渲染分隔线。 */
+  semanticStartIndex?: number | null;
   tagsByRepo?: Map<string, Tag[]>;
   collectionCountByRepo?: Map<string, number>;
   noteRepoIds?: Set<string>;
@@ -53,6 +56,7 @@ function useColumns(ref: React.RefObject<HTMLElement | null>): number {
 
 const RepoGridView = memo(function RepoGridView({
   records,
+  semanticStartIndex,
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
@@ -64,7 +68,10 @@ const RepoGridView = memo(function RepoGridView({
   const collectionRef = useRef<HTMLDivElement>(null);
   const scrollMargin = useScrollMargin(collectionRef, scrollElement);
   const columns = useColumns(collectionRef);
-  const rowCount = Math.ceil(records.length / columns);
+  // 只虚拟化（可能很大的）关键词命中集；有界的语义近邻（≤semanticLimit）在分隔线下静态追加。
+  const primaryCount = semanticStartIndex ?? records.length;
+  const semanticRecords = semanticStartIndex != null ? records.slice(semanticStartIndex) : [];
+  const rowCount = Math.ceil(primaryCount / columns);
 
   const virtualizer = useVirtualizer({
     count: rowCount,
@@ -77,24 +84,24 @@ const RepoGridView = memo(function RepoGridView({
   // biome-ignore lint/correctness/useExhaustiveDependencies: columns/records 改变即需重测
   useEffect(() => {
     virtualizer.measure();
-  }, [virtualizer, columns, records.length, scrollMargin]);
+  }, [virtualizer, columns, primaryCount, scrollMargin]);
 
   useEffect(() => {
     if (!selectedRepoId || !scrollElement) {
       return;
     }
     const index = records.findIndex((record) => record.repoId === selectedRepoId);
-    if (index >= 0) {
+    if (index >= 0 && index < primaryCount) {
       virtualizer.scrollToIndex(Math.floor(index / columns), { align: 'auto' });
     }
-  }, [columns, records, scrollElement, selectedRepoId, virtualizer]);
+  }, [columns, primaryCount, records, scrollElement, selectedRepoId, virtualizer]);
 
   return (
     <div ref={collectionRef} className="relative w-full">
       <div className="relative w-full" style={{ height: `${virtualizer.getTotalSize()}px` }}>
         {virtualizer.getVirtualItems().map((row) => {
           const start = row.index * columns;
-          const rowRecords = records.slice(start, start + columns);
+          const rowRecords = records.slice(start, Math.min(start + columns, primaryCount));
           return (
             <div
               key={row.key}
@@ -124,12 +131,36 @@ const RepoGridView = memo(function RepoGridView({
           );
         })}
       </div>
+      {semanticRecords.length > 0 ? (
+        <div className="pt-2">
+          <SemanticSectionLabel className="pb-4" />
+          <div
+            className="grid gap-4"
+            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+          >
+            {semanticRecords.map((record) => (
+              <RepoCard
+                key={record.repo.githubId}
+                className="repo-semantic-enter"
+                record={record}
+                tags={tagsByRepo?.get(record.repoId)}
+                collectionCount={collectionCountByRepo?.get(record.repoId)}
+                hasNote={noteRepoIds?.has(record.repoId)}
+                selected={record.repoId === selectedRepoId}
+                onSelect={onSelect}
+                bulkSelection={bulkSelection}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 });
 
 const RepoListView = memo(function RepoListView({
   records,
+  semanticStartIndex,
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
@@ -141,6 +172,7 @@ const RepoListView = memo(function RepoListView({
   return (
     <RepoTable
       records={records}
+      semanticStartIndex={semanticStartIndex}
       tagsByRepo={tagsByRepo}
       collectionCountByRepo={collectionCountByRepo}
       noteRepoIds={noteRepoIds}
@@ -156,6 +188,7 @@ const RepoListView = memo(function RepoListView({
 // 只有真正 props 变化(如 scrollElement 从 null 变为真实节点)的一侧才会重新渲染。
 export const RepoCollection = memo(function RepoCollection({
   records,
+  semanticStartIndex,
   view,
   tagsByRepo,
   collectionCountByRepo,
@@ -169,6 +202,7 @@ export const RepoCollection = memo(function RepoCollection({
     return (
       <RepoListView
         records={records}
+        semanticStartIndex={semanticStartIndex}
         tagsByRepo={tagsByRepo}
         collectionCountByRepo={collectionCountByRepo}
         noteRepoIds={noteRepoIds}
@@ -183,6 +217,7 @@ export const RepoCollection = memo(function RepoCollection({
   return (
     <RepoGridView
       records={records}
+      semanticStartIndex={semanticStartIndex}
       tagsByRepo={tagsByRepo}
       collectionCountByRepo={collectionCountByRepo}
       noteRepoIds={noteRepoIds}

@@ -22,6 +22,12 @@ export interface RepoEmbeddingMeta {
   contentHash: string;
 }
 
+/** 语义近邻检索的一条结果：仓库 + 与查询向量的距离（越小越近）。 */
+export interface RepoEmbeddingNeighbor {
+  repoId: string;
+  distance: number;
+}
+
 /** owner 直写一条向量所需的输入。 */
 export interface UpsertRepoEmbeddingInput {
   userId: string;
@@ -160,4 +166,25 @@ export async function listReposToEmbed(
 ): Promise<RepoEmbeddingBackfillItem[]> {
   const stored = await listRepoEmbeddingMeta(client, input.userId);
   return selectReposToEmbed({ model: input.model, desired: input.desired, stored });
+}
+
+/**
+ * 语义近邻检索：将本地嵌好的查询向量上送给 security invoker RPC，在本人向量上
+ * 按 pgvector 余弦距离（`<=>`）取最近 `matchCount` 条。函数体按 auth.uid() 收窄且 RLS 亦生效，
+ * 因此无跨用户泄露面（ADR 0026 §7）；原文/笔记永不离开设备，仅向量上送。
+ */
+export async function searchRepoEmbeddings(
+  client: SupabaseClient,
+  input: { queryEmbedding: number[]; matchCount?: number },
+): Promise<RepoEmbeddingNeighbor[]> {
+  const { data, error } = await client.rpc('search_user_repo_embeddings', {
+    query_embedding: toVectorLiteral(input.queryEmbedding),
+    ...(input.matchCount != null ? { match_count: input.matchCount } : {}),
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({ repoId: row.repo_id, distance: row.distance }));
 }

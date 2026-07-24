@@ -14,7 +14,7 @@
 - [x] **测试策略深度已明确**（2026-07-18）：Phase 1 以 Vitest 单元/集成测试 + 真实环境 smoke test 验收；不新增 E2E 工具、不设覆盖率百分比。重复核心旅程回归或进入跨端阶段时再评估自动化 E2E。详见 `contracts/conventions.md`。
 - [ ] **AI 整理评审剩余次要项**（2026-07-23，来自 UI/UX critique，非阻断）：banner 多条堆叠缺优先级/去重；手动批量整理对话框在大量标签/集合时缺搜索与当前归属提示；确认全成功但 operation 尚未翻转 completed 的瞬间可能出现"需要处理 + 绿勾 + 无按钮"的过渡态。见 `logs/2026-07-23-ai-organization-uiux-critique.md`。
 
-- [ ] **检索优先范式继续落地（ADR 0026 Accepted，2026-07-23）**：#18 `user_repo_embeddings` + owner-only RLS 与 #19 浏览器内 q8 embedding 运行时、同源资产、增量回填和降级 UX 已完成。剩余为 **#20 隐形混合搜索**、**#21 石墨语义星图**（确定性投影 + 分层渲染）与 **#22 密度聚类 + promotion**；其中 #20 / #21 可并行，#22 仍依赖 #21。仍需分别实测降维算法与聚类参数。见 ADR 0026、`logs/2026-07-24-issue-18-embeddings-foundation.md` 与 `logs/2026-07-24-issue-19-browser-embedding-runtime.md`。
+- [ ] **检索优先范式继续落地（ADR 0026 Accepted，2026-07-23）**：#18 `user_repo_embeddings` + owner-only RLS、#19 浏览器内 q8 embedding 运行时 / 同源资产 / 增量回填 / 降级 UX 与 #20 隐形混合搜索（keyword + 向量融合的单一排序、security-invoker 距离检索、仅上送向量、降级不阻断）已完成。剩余为 **#21 石墨语义星图**（确定性投影 + 分层渲染）与 **#22 密度聚类 + promotion**；#22 仍依赖 #21。仍需分别实测降维算法与聚类参数。见 ADR 0026、`logs/2026-07-24-issue-18-embeddings-foundation.md`、`logs/2026-07-24-issue-19-browser-embedding-runtime.md` 与 `logs/2026-07-24-issue-20-invisible-hybrid-search.md`。
 
 ## 未落地的工作项（基础设施）
 

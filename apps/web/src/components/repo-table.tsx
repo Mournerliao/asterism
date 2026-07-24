@@ -11,10 +11,13 @@ import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { OverflowChipRow } from './overflow-chip-row';
+import { SemanticSectionLabel } from './semantic-section-separator';
 import { TagPill } from './tag-badge';
 
 const DESKTOP_ROW_HEIGHT = 64;
 const MOBILE_ROW_HEIGHT = 104;
+/** 静态（非虚拟化）语义近邻行不参与虚拟测量。 */
+const NOOP_MEASURE_ELEMENT = () => {};
 type TableLayout = 'mobile' | 'compact' | 'wide';
 
 function tableGridClass(layout: TableLayout): string {
@@ -141,6 +144,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   rowIndex,
   measureElement,
   bulkSelection,
+  className,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
@@ -152,6 +156,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   rowIndex: number;
   measureElement: (element: HTMLTableRowElement | null) => void;
   bulkSelection?: BulkSelectionController;
+  className?: string;
 }) {
   const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
@@ -228,6 +233,7 @@ export const RepoTableRow = memo(function RepoTableRow({
         bulkSelected && 'bg-accent/30',
         !bulkSelection && selected && 'bg-accent/30 shadow-[inset_0_0_0_1px_var(--ring)]',
         (handleOpen || bulkSelection) && 'cursor-pointer',
+        className,
       )}
     >
       {bulkSelection ? (
@@ -388,6 +394,7 @@ function TableHeader({ layout }: { layout: TableLayout }) {
 
 export const RepoTable = memo(function RepoTable({
   records,
+  semanticStartIndex,
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
@@ -397,6 +404,7 @@ export const RepoTable = memo(function RepoTable({
   bulkSelection,
 }: {
   records: StarredRepoRecord[];
+  semanticStartIndex?: number | null;
   tagsByRepo?: Map<string, Tag[]>;
   collectionCountByRepo?: Map<string, number>;
   noteRepoIds?: Set<string>;
@@ -419,8 +427,12 @@ export const RepoTable = memo(function RepoTable({
     setResolvedScroll(findScrollParent(tableRef.current));
   }, [scrollElement]);
 
+  // 只虚拟化关键词命中集；有界语义近邻在分隔线下静态追加（与网格视图一致）。
+  const primaryCount = semanticStartIndex ?? records.length;
+  const semanticRecords = semanticStartIndex != null ? records.slice(semanticStartIndex) : [];
+
   const virtualizer = useVirtualizer({
-    count: records.length,
+    count: primaryCount,
     getScrollElement: () => resolvedScroll,
     estimateSize: () => (layout === 'mobile' ? MOBILE_ROW_HEIGHT : DESKTOP_ROW_HEIGHT),
     overscan: 10,
@@ -443,10 +455,10 @@ export const RepoTable = memo(function RepoTable({
       return;
     }
     const index = records.findIndex((record) => record.repoId === selectedRepoId);
-    if (index >= 0) {
+    if (index >= 0 && index < primaryCount) {
       virtualizer.scrollToIndex(index, { align: 'auto' });
     }
-  }, [records, resolvedScroll, selectedRepoId, virtualizer]);
+  }, [primaryCount, records, resolvedScroll, selectedRepoId, virtualizer]);
 
   return (
     <table
@@ -499,6 +511,31 @@ export const RepoTable = memo(function RepoTable({
               style={{ height: paddingBottom }}
             />
           </tr>
+        ) : null}
+        {semanticRecords.length > 0 ? (
+          <>
+            <tr className="block">
+              <td aria-hidden="true" colSpan={4} className="block px-3 py-2.5">
+                <SemanticSectionLabel />
+              </td>
+            </tr>
+            {semanticRecords.map((record, offset) => (
+              <RepoTableRow
+                key={record.repo.githubId}
+                className="repo-semantic-enter"
+                record={record}
+                tags={tagsByRepo?.get(record.repoId)}
+                collectionCount={collectionCountByRepo?.get(record.repoId)}
+                hasNote={noteRepoIds?.has(record.repoId)}
+                selected={record.repoId === selectedRepoId}
+                layout={layout}
+                onSelect={onSelect}
+                rowIndex={primaryCount + offset + 2}
+                measureElement={NOOP_MEASURE_ELEMENT}
+                bulkSelection={bulkSelection}
+              />
+            ))}
+          </>
         ) : null}
       </tbody>
     </table>

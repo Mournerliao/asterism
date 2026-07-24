@@ -73,6 +73,7 @@ export {
 } from './queries/collections';
 export type {
   RepoEmbeddingMeta,
+  RepoEmbeddingNeighbor,
   RepoEmbeddingRecord,
   UpsertRepoEmbeddingInput,
 } from './queries/embeddings';
@@ -80,6 +81,7 @@ export {
   listRepoEmbeddingMeta,
   listRepoEmbeddings,
   listReposToEmbed,
+  searchRepoEmbeddings,
   upsertRepoEmbedding,
 } from './queries/embeddings';
 export { getNote, listNoteRepoIds, listNotes, saveNote } from './queries/notes';

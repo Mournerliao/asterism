@@ -1,10 +1,4 @@
-import {
-  deriveRepoFacets,
-  filterStarredRepos,
-  hasActiveFilter,
-  sortStarredRepos,
-  type Tag,
-} from '@asterism/core';
+import { deriveRepoFacets, hasActiveFilter, rankHybridRepos, type Tag } from '@asterism/core';
 import type { ConfirmAiOrganizationDraftInput } from '@asterism/db';
 import {
   Button,
@@ -56,6 +50,7 @@ import { useCollections } from '../data/use-collections';
 import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
+import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
@@ -165,14 +160,24 @@ export function BrowsePage() {
     return map;
   }, [repoTags]);
 
-  const visible = useMemo(
+  const semanticEnabled = embeddingBootstrap.optedIn && embeddingBootstrap.backend !== null;
+  const { distanceByRepoId } = useSemanticNeighbors(filters.query, { enabled: semanticEnabled });
+  const hybrid = useMemo(
     () =>
-      sortStarredRepos(
-        filterStarredRepos(records, toRepoFilter(filters), Date.now(), tagsByRepoId),
-        filters.sort,
-      ),
-    [records, filters, tagsByRepoId],
+      rankHybridRepos({
+        items: records,
+        filter: toRepoFilter(filters),
+        sort: filters.sort,
+        now: Date.now(),
+        tagsByRepoId,
+        distanceByRepoId,
+        semanticLimit: SEMANTIC_MATCH_COUNT,
+      }),
+    [records, filters, tagsByRepoId, distanceByRepoId],
   );
+  const visible = useMemo(() => [...hybrid.primary, ...hybrid.semantic], [hybrid]);
+  // 语义近邻起始下标：关键词命中之后的第一条；无近邻时为 null（不渲染分隔线）。
+  const semanticStartIndex = hybrid.semantic.length > 0 ? hybrid.primary.length : null;
   const visibleRepoIds = useMemo(() => visible.map((record) => record.repoId), [visible]);
   const inspectorContext = useMemo(() => ({ sourceKey: 'browse', records: visible }), [visible]);
   const openInspector = useCallback(
@@ -363,6 +368,7 @@ export function BrowsePage() {
     <BrowseRepoList
       view={view}
       records={visible}
+      semanticStartIndex={semanticStartIndex}
       tagsByRepo={tagsByRepo}
       collectionCountByRepo={collectionCountByRepo}
       noteRepoIds={noteRepoIdSet}

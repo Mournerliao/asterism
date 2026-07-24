@@ -523,6 +523,10 @@ export interface Database {
         Args: { p_user_id: string; p_operation_id: string };
         Returns: boolean;
       };
+      search_user_repo_embeddings: {
+        Args: { query_embedding: string; match_count?: number };
+        Returns: { repo_id: string; distance: number }[];
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

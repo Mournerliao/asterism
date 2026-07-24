@@ -4,6 +4,7 @@ import {
   listRepoEmbeddingMeta,
   listRepoEmbeddings,
   listReposToEmbed,
+  searchRepoEmbeddings,
   upsertRepoEmbedding,
 } from './embeddings';
 
@@ -215,5 +216,66 @@ describe('listReposToEmbed', () => {
 
     expect(firstCall(calls).eq).toContainEqual({ column: 'user_id', value: 'user-1' });
     expect(backfill).toEqual([{ repoId: 'new', reason: 'missing' }]);
+  });
+});
+
+interface RpcCall {
+  fn: string;
+  args: Record<string, unknown>;
+}
+
+/**
+ * `rpc` 桩：记录函数名与入参，返回真实 Promise。语义近邻检索走 security invoker RPC
+ * （auth.uid() 收窄），是客户端唯一的 rpc 读路径，桩形状与读/写查询不同。
+ */
+function createRpcClientMock(result: { data?: unknown; error: unknown }) {
+  const calls: RpcCall[] = [];
+  const client = {
+    rpc(fn: string, args: Record<string, unknown>) {
+      calls.push({ fn, args });
+      return Promise.resolve(result);
+    },
+  } as unknown as SupabaseClient;
+  return { client, calls };
+}
+
+describe('searchRepoEmbeddings', () => {
+  it('sends the pgvector literal + match_count and maps neighbors by ascending distance', async () => {
+    const { client, calls } = createRpcClientMock({
+      data: [
+        { repo_id: 'repo-1', distance: 0.08 },
+        { repo_id: 'repo-2', distance: 0.19 },
+      ],
+      error: null,
+    });
+
+    const neighbors = await searchRepoEmbeddings(client, {
+      queryEmbedding: [0.1, 0.2, 0.3],
+      matchCount: 12,
+    });
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.fn).toBe('search_user_repo_embeddings');
+    expect(calls[0]?.args).toEqual({ query_embedding: '[0.1,0.2,0.3]', match_count: 12 });
+    expect(neighbors).toEqual([
+      { repoId: 'repo-1', distance: 0.08 },
+      { repoId: 'repo-2', distance: 0.19 },
+    ]);
+  });
+
+  it('omits match_count when not provided so the RPC default applies', async () => {
+    const { client, calls } = createRpcClientMock({ data: [], error: null });
+
+    await searchRepoEmbeddings(client, { queryEmbedding: [0.5] });
+
+    expect(calls[0]?.args).toEqual({ query_embedding: '[0.5]' });
+  });
+
+  it('throws when the RPC is rejected', async () => {
+    const { client } = createRpcClientMock({ error: new Error('row-level security') });
+
+    await expect(searchRepoEmbeddings(client, { queryEmbedding: [0.1] })).rejects.toThrow(
+      'row-level security',
+    );
   });
 });

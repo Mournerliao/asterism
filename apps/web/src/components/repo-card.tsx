@@ -75,6 +75,7 @@ export const RepoCard = memo(function RepoCard({
   selected = false,
   onSelect,
   bulkSelection,
+  className,
 }: {
   record: StarredRepoRecord;
   tags?: Tag[];
@@ -83,6 +84,7 @@ export const RepoCard = memo(function RepoCard({
   selected?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   bulkSelection?: BulkSelectionController;
+  className?: string;
 }) {
   const { repo, starredAt } = record;
   const { t, i18n } = useTranslation();
@@ -108,6 +110,7 @@ export const RepoCard = memo(function RepoCard({
         'group relative flex h-auto min-h-[208px] flex-col gap-3 rounded-lg p-4 transition-[border-color,background-color,box-shadow,filter] duration-150 [transition-timing-function:var(--ease-out-quart)] hover:border-ring/50 hover:shadow-[0_2px_6px_rgba(22,26,34,0.08)] active:brightness-[0.98] sm:h-[208px] dark:hover:shadow-none',
         (selected || bulkSelected) &&
           'border-ring/70 bg-accent/25 shadow-[inset_0_0_0_1px_var(--ring)]',
+        className,
       )}
     >
       {handleOpen || bulkSelection ? (

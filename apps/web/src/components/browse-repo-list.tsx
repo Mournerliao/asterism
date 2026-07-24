@@ -11,6 +11,7 @@ const VIEW_MODES = ['grid', 'list'] as const satisfies readonly RepoViewMode[];
 export const BrowseRepoList = memo(function BrowseRepoList({
   view,
   records,
+  semanticStartIndex,
   tagsByRepo,
   collectionCountByRepo,
   noteRepoIds,
@@ -21,6 +22,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
 }: {
   view: RepoViewMode;
   records: StarredRepoRecord[];
+  semanticStartIndex?: number | null;
   tagsByRepo?: Map<string, Tag[]>;
   collectionCountByRepo?: Map<string, number>;
   noteRepoIds?: Set<string>;
@@ -45,6 +47,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
           <div key={mode} className={mode === view ? undefined : 'hidden'}>
             <RepoCollection
               records={records}
+              semanticStartIndex={semanticStartIndex}
               view={mode}
               tagsByRepo={tagsByRepo}
               collectionCountByRepo={collectionCountByRepo}

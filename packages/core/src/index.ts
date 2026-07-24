@@ -159,3 +159,5 @@ export {
   hasActiveFilter,
   sortStarredRepos,
 } from './repos/filter';
+export type { HybridRankInput, HybridRankResult } from './repos/hybrid-search';
+export { rankHybridRepos } from './repos/hybrid-search';

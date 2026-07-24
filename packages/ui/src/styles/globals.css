@@ -353,3 +353,26 @@
     opacity: 1;
   }
 }
+
+@keyframes repo-semantic-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 隐形混合搜索：语义近邻在 hairline 分隔线下浮入（120–240ms，尊重 reduced-motion）。 */
+.repo-semantic-enter {
+  animation: repo-semantic-enter 200ms var(--ease-out-quart);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .repo-semantic-enter {
+    animation: none;
+  }
+}

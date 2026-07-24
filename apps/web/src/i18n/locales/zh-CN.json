@@ -165,6 +165,7 @@
     "retry": "重试",
     "noResultsTitle": "没有匹配的仓库",
     "noResultsDescription": "试试调整筛选条件或搜索关键词。",
+    "semanticSectionLabel": "语义相关",
     "table": {
       "label": "仓库列表",
       "repository": "仓库",

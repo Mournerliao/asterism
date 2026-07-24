@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-export type RepoViewMode = 'grid' | 'list';
+export type RepoViewMode = 'grid' | 'list' | 'star-map';
 
 interface BrowseViewState {
   view: RepoViewMode;

@@ -1,11 +1,12 @@
 import { SegmentedControl } from '@asterism/ui';
-import { LayoutGrid, List } from 'lucide-react';
+import { LayoutGrid, List, Sparkles } from 'lucide-react';
 import { memo, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { RepoViewMode } from '../stores/browse-view';
 
 const GRID_ICON = <LayoutGrid />;
 const LIST_ICON = <List />;
+const STAR_MAP_ICON = <Sparkles />;
 
 /**
  * 视图切换：选中态本地乐观更新（仅重渲染本组件），再通知父级做 transition。
@@ -43,6 +44,7 @@ export const RepoViewToggle = memo(function RepoViewToggle({
       options={[
         { value: 'grid', label: t('browse.viewGrid'), icon: GRID_ICON },
         { value: 'list', label: t('browse.viewList'), icon: LIST_ICON },
+        { value: 'star-map', label: t('browse.viewStarMap'), icon: STAR_MAP_ICON },
       ]}
     />
   );

@@ -1,12 +1,14 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { memo, useEffect, useState } from 'react';
+import type { StarMapPoint } from '../data/use-star-map-projection';
 import type { BulkSelectionController } from '../lib/bulk-selection';
 import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { RepoCollection } from './repo-collection';
+import { StarMapView } from './star-map-view';
 
-const VIEW_MODES = ['grid', 'list'] as const satisfies readonly RepoViewMode[];
+const LIST_VIEW_MODES = ['grid', 'list'] as const satisfies readonly RepoViewMode[];
 
 export const BrowseRepoList = memo(function BrowseRepoList({
   view,
@@ -19,6 +21,13 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   onSelect,
   scrollElement,
   bulkSelection,
+  starMapPoints,
+  starMapRepoIdToIndex,
+  starMapLoading,
+  starMapEmbeddingReady,
+  starMapHitRepoIds,
+  starMapNeighborRepoIds,
+  onStarMapSelectRepo,
 }: {
   view: RepoViewMode;
   records: StarredRepoRecord[];
@@ -30,6 +39,13 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
   bulkSelection?: BulkSelectionController;
+  starMapPoints: StarMapPoint[];
+  starMapRepoIdToIndex: Map<string, number>;
+  starMapLoading: boolean;
+  starMapEmbeddingReady: boolean;
+  starMapHitRepoIds: Set<string>;
+  starMapNeighborRepoIds: Set<string>;
+  onStarMapSelectRepo?: (repoId: string | null) => void;
 }) {
   // 访问过的视图保持挂载，后续切换只做显隐，避开虚拟列表重建成本。
   const [mountedViews, setMountedViews] = useState<ReadonlySet<RepoViewMode>>(
@@ -42,7 +58,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
 
   return (
     <div className="relative min-h-[280px] w-full">
-      {VIEW_MODES.map((mode) =>
+      {LIST_VIEW_MODES.map((mode) =>
         mountedViews.has(mode) ? (
           <div key={mode} className={mode === view ? undefined : 'hidden'}>
             <RepoCollection
@@ -60,6 +76,21 @@ export const BrowseRepoList = memo(function BrowseRepoList({
           </div>
         ) : null,
       )}
+      {mountedViews.has('star-map') ? (
+        <div className={view === 'star-map' ? 'h-[calc(100svh-220px)] min-h-[400px]' : 'hidden'}>
+          <StarMapView
+            points={starMapPoints}
+            repoIdToIndex={starMapRepoIdToIndex}
+            isLoading={starMapLoading}
+            hitRepoIds={starMapHitRepoIds}
+            neighborRepoIds={starMapNeighborRepoIds}
+            selectedRepoId={selectedRepoId}
+            onSelectRepo={onStarMapSelectRepo}
+            embeddingReady={starMapEmbeddingReady}
+            active={view === 'star-map'}
+          />
+        </div>
+      ) : null}
     </div>
   );
 });

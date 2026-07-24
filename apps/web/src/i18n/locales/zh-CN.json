@@ -166,6 +166,14 @@
     "noResultsTitle": "没有匹配的仓库",
     "noResultsDescription": "试试调整筛选条件或搜索关键词。",
     "semanticSectionLabel": "语义相关",
+    "viewStarMap": "星图",
+    "starMap": {
+      "label": "语义星图",
+      "panHint": "拖拽平移，滚轮缩放",
+      "emptyTitle": "星图需要预备向量",
+      "emptyDescription": "请先准备更智能的搜索以启用语义星图。",
+      "projecting": "正在投影…"
+    },
     "table": {
       "label": "仓库列表",
       "repository": "仓库",

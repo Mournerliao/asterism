@@ -166,6 +166,14 @@
     "noResultsTitle": "No matching repositories",
     "noResultsDescription": "Try adjusting your filters or search keywords.",
     "semanticSectionLabel": "Related by meaning",
+    "viewStarMap": "Star map",
+    "starMap": {
+      "label": "Semantic star map",
+      "panHint": "Drag to pan, scroll to zoom",
+      "emptyTitle": "Star map requires prepared vectors",
+      "emptyDescription": "Prepare smarter search first to enable the semantic star map.",
+      "projecting": "Projecting…"
+    },
     "table": {
       "label": "Repository list",
       "repository": "Repository",

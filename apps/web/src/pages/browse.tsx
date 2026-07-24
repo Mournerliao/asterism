@@ -51,6 +51,7 @@ import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
+import { useStarMapProjection } from '../data/use-star-map-projection';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
@@ -71,6 +72,7 @@ import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
 
 function InitialLoadingState({ view }: { view: RepoViewMode }) {
+  if (view === 'star-map') return <RepoGridSkeleton />;
   return view === 'list' ? <RepoListSkeleton /> : <RepoGridSkeleton />;
 }
 
@@ -162,6 +164,7 @@ export function BrowsePage() {
 
   const semanticEnabled = embeddingBootstrap.optedIn && embeddingBootstrap.backend !== null;
   const { distanceByRepoId } = useSemanticNeighbors(filters.query, { enabled: semanticEnabled });
+  const starMap = useStarMapProjection({ enabled: semanticEnabled });
   const hybrid = useMemo(
     () =>
       rankHybridRepos({
@@ -179,6 +182,16 @@ export function BrowsePage() {
   // 语义近邻起始下标：关键词命中之后的第一条；无近邻时为 null（不渲染分隔线）。
   const semanticStartIndex = hybrid.semantic.length > 0 ? hybrid.primary.length : null;
   const visibleRepoIds = useMemo(() => visible.map((record) => record.repoId), [visible]);
+
+  // Star map "light up a path": search hits + their semantic neighbors
+  const starMapHitRepoIds = useMemo(() => {
+    if (!filters.query.trim()) return new Set<string>();
+    return new Set(visible.map((r) => r.repoId));
+  }, [visible, filters.query]);
+  const starMapNeighborRepoIds = useMemo(() => {
+    if (distanceByRepoId.size === 0) return new Set<string>();
+    return new Set(distanceByRepoId.keys());
+  }, [distanceByRepoId]);
   const inspectorContext = useMemo(() => ({ sourceKey: 'browse', records: visible }), [visible]);
   const openInspector = useCallback(
     (record: (typeof visible)[number], modality: 'keyboard' | 'pointer') =>
@@ -376,6 +389,20 @@ export function BrowsePage() {
       onSelect={openInspector}
       scrollElement={repoScrollElement}
       bulkSelection={selectionController}
+      starMapPoints={starMap.points}
+      starMapRepoIdToIndex={starMap.repoIdToIndex}
+      starMapLoading={starMap.isLoading}
+      starMapEmbeddingReady={semanticEnabled}
+      starMapHitRepoIds={starMapHitRepoIds}
+      starMapNeighborRepoIds={starMapNeighborRepoIds}
+      onStarMapSelectRepo={(repoId) => {
+        if (repoId) {
+          const record = visible.find((r) => r.repoId === repoId);
+          if (record) requestOpen(record, inspectorContext, 'pointer');
+        } else {
+          requestClose();
+        }
+      }}
     />
   );
 

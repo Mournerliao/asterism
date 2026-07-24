@@ -135,6 +135,8 @@ export type { Repo, RepoId } from './models/repo';
 export { repoFullName } from './models/repo';
 export type { Tag, TagId } from './models/tag';
 export { pickTagColor, TAG_COLORS } from './models/tag';
+export type { NormalizeOptions, Point2D } from './projection';
+export { pca2d, projectAndNormalize, robustNormalizeLayout } from './projection';
 export type {
   ArchiveSplit,
   DashboardInsights,

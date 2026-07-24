@@ -24,6 +24,10 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/prototype/**"],
+      "linter": { "rules": { "style": { "noNonNullAssertion": "off" } } }
     }
   ]
 }

@@ -16,6 +16,15 @@
 - [ ] 列表视图作为键盘 / 读屏等价路径始终可用。
 - [ ] en / zh-CN、reduced-motion、无 WebGL 优雅降级；`pnpm lint / typecheck / test / build` 全绿；更新 `knowledge/state/*` 与 `logs/`。
 
+## Prototype 结论（2026-07-24 实测）
+
+dev-only 一次性原型 `/dev/star-map-prototype`（`apps/web/src/prototype/star-map/*`），零新增依赖、浏览器实测，回答 ADR 0026 §7 两个未知数：
+
+- **Q1 确定性降维可复现**：手搓 PCA（top-2 主成分幂迭代，固定 init、无 RNG）与 PCA-init 确定性精修（邻域吸引，无 RNG）重投影 **Δmax = 0.00e+0（stable ✓）** —— 同批向量每次坐标逐位一致，地图肌肉记忆成立。反面随机初始力导向 **Δmax = 9.24e-1（scrambles ✗）** —— 归一化空间里几乎横跨整张图，换 seed（= 新会话 / 设备）即全乱。→ **采用 PCA top-2 为默认确定性投影**，可选确定性精修增强局部邻域；**禁用任何随机初始化力导向**（法则二）。
+- **Q2 分层渲染 + 阈值 + 技术栈**：**Canvas2D 足够，WebGL 非必需**（无 WebGL 天然降级）。阈值 `INDIVIDUAL_CAP=900`：可见点 >900 走密度场（`GRID=72` 网格 cell 填充，O(cells)），≤900 走个体节点；均视口裁剪。实测 N=5000 全量 PCA、density **FPS 117 / visible 4649**；个体 N=800 **FPS 66 / visible 519**。投影 PCA@5000 ≈ 1.0–1.1s（一次性，真实场景预计算 / 缓存）；精修与力导向因 O(N²·D) 精确 kNN 需限 N。→ 远景密度 + 近景个体 + 裁剪即满足「大库不同时渲染数千点」。
+- **实现须注意（原型暴露的真实坑）**：PCA + 全局 min/max 归一化被离群点主导，点云挤到角落、画布利用率低 → 用**稳健归一化**（分位裁剪 / 按标准差缩放 / 离群点单列），勿裸 min/max。
+- **视觉**：密度场为石墨网格、**无 glow / 无噪点**（法则一 / 三），仅命中 / 邻近 / 选中电光蓝（法则四「点亮路径」已在交互中演示）。截图 `.scratch/retrieval-first/star-map-01-pca-default.png`、`star-map-02-density-5000.png`。
+
 ## Blocked by
 
 - #19 — 浏览器内 embedding 运行时与全库回填（需库内已有向量）。可与 #20 并行。

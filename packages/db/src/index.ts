@@ -71,6 +71,17 @@ export {
   listCollections,
   updateCollection,
 } from './queries/collections';
+export type {
+  RepoEmbeddingMeta,
+  RepoEmbeddingRecord,
+  UpsertRepoEmbeddingInput,
+} from './queries/embeddings';
+export {
+  listRepoEmbeddingMeta,
+  listRepoEmbeddings,
+  listReposToEmbed,
+  upsertRepoEmbedding,
+} from './queries/embeddings';
 export { getNote, listNoteRepoIds, listNotes, saveNote } from './queries/notes';
 export type { RepoTagLink } from './queries/repo-tags';
 export { addRepoTag, listRepoTags, removeRepoTag } from './queries/repo-tags';

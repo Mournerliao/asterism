@@ -431,6 +431,39 @@ export interface Database {
           },
         ];
       };
+      user_repo_embeddings: {
+        Row: {
+          id: string;
+          user_id: string;
+          repo_id: string;
+          // pgvector `vector(384)` 经 PostgREST 以文本形式（'[..]'）往返；查询层做 number[] 互转。
+          embedding: string;
+          embedding_model: string;
+          content_hash: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          repo_id: string;
+          embedding: string;
+          embedding_model: string;
+          content_hash: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['user_repo_embeddings']['Insert']>;
+        Relationships: [
+          {
+            foreignKeyName: 'user_repo_embeddings_repo_id_fkey';
+            columns: ['repo_id'];
+            isOneToOne: false;
+            referencedRelation: 'repos';
+            referencedColumns: ['id'];
+          },
+        ];
+      };
     };
     Views: Record<string, never>;
     Functions: {

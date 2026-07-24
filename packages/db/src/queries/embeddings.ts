@@ -1,0 +1,132 @@
+import {
+  type DesiredRepoEmbedding,
+  type RepoEmbeddingBackfillItem,
+  selectReposToEmbed,
+} from '@asterism/core';
+import type { SupabaseClient } from '../client';
+
+/** 一条完整的仓库语义向量（含向量本身）。 */
+export interface RepoEmbeddingRecord {
+  repoId: string;
+  embedding: number[];
+  embeddingModel: string;
+  contentHash: string;
+}
+
+/** 仓库语义向量的元数据（不含向量，供探测过期）。 */
+export interface RepoEmbeddingMeta {
+  repoId: string;
+  embeddingModel: string;
+  contentHash: string;
+}
+
+/** owner 直写一条向量所需的输入。 */
+export interface UpsertRepoEmbeddingInput {
+  userId: string;
+  repoId: string;
+  embedding: number[];
+  embeddingModel: string;
+  contentHash: string;
+}
+
+/** number[] → pgvector 文本字面量（PostgREST 对 vector 列的输入格式）。 */
+function toVectorLiteral(embedding: number[]): string {
+  return `[${embedding.join(',')}]`;
+}
+
+/** pgvector 往返值（PostgREST 对 vector 列返回 '[..]' 文本字面量）→ number[]。 */
+function parseVectorLiteral(value: string): number[] {
+  const trimmed = value.trim();
+  const inner = trimmed.startsWith('[') && trimmed.endsWith(']') ? trimmed.slice(1, -1) : trimmed;
+  if (inner.trim().length === 0) {
+    return [];
+  }
+  return inner.split(',').map((part) => Number.parseFloat(part));
+}
+
+/**
+ * owner 向量 upsert：按唯一约束 (user_id, repo_id) 写入本人一条向量行。
+ * 走普通 RLS（with check user_id = auth.uid()），无需受信写入路径——derived 数据、
+ * 只可能影响自己的搜索，无跨用户投毒面（ADR 0026 §4）。
+ */
+export async function upsertRepoEmbedding(
+  client: SupabaseClient,
+  input: UpsertRepoEmbeddingInput,
+): Promise<void> {
+  const { error } = await client.from('user_repo_embeddings').upsert(
+    {
+      user_id: input.userId,
+      repo_id: input.repoId,
+      embedding: toVectorLiteral(input.embedding),
+      embedding_model: input.embeddingModel,
+      content_hash: input.contentHash,
+    },
+    { onConflict: 'user_id,repo_id' },
+  );
+
+  if (error) {
+    throw error;
+  }
+}
+
+/**
+ * 读取当前用户的全部向量（含向量本身），供本地距离检索 / 换设备复用。
+ * 读取走 RLS 并显式按 user_id 收窄。
+ */
+export async function listRepoEmbeddings(
+  client: SupabaseClient,
+  userId: string,
+): Promise<RepoEmbeddingRecord[]> {
+  const { data, error } = await client
+    .from('user_repo_embeddings')
+    .select('repo_id, embedding, embedding_model, content_hash')
+    .eq('user_id', userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    repoId: row.repo_id,
+    embedding: parseVectorLiteral(row.embedding),
+    embeddingModel: row.embedding_model,
+    contentHash: row.content_hash,
+  }));
+}
+
+/**
+ * 读取当前用户全部向量的元数据（不拉向量本身，轻量）：探测过期的输入。
+ * 读取走 RLS 并显式按 user_id 收窄。
+ */
+export async function listRepoEmbeddingMeta(
+  client: SupabaseClient,
+  userId: string,
+): Promise<RepoEmbeddingMeta[]> {
+  const { data, error } = await client
+    .from('user_repo_embeddings')
+    .select('repo_id, embedding_model, content_hash')
+    .eq('user_id', userId);
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map((row) => ({
+    repoId: row.repo_id,
+    embeddingModel: row.embedding_model,
+    contentHash: row.content_hash,
+  }));
+}
+
+/**
+ * 「求缺失 / 过期集合」查询：读取本人已存向量元数据，套用 core 的纯函数
+ * `selectReposToEmbed` 得到待嵌集合（无行 / 模型失配 / 内容失配）。
+ * 期望集合 `desired` 由调用方从已加载的 star 仓库派生（repoId + 当前 content_hash）。
+ */
+export async function listReposToEmbed(
+  client: SupabaseClient,
+  input: { userId: string; model: string; desired: readonly DesiredRepoEmbedding[] },
+): Promise<RepoEmbeddingBackfillItem[]> {
+  const stored = await listRepoEmbeddingMeta(client, input.userId);
+  return selectReposToEmbed({ model: input.model, desired: input.desired, stored });
+}

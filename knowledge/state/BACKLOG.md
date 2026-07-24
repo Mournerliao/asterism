@@ -14,7 +14,7 @@
 - [x] **测试策略深度已明确**（2026-07-18）：Phase 1 以 Vitest 单元/集成测试 + 真实环境 smoke test 验收；不新增 E2E 工具、不设覆盖率百分比。重复核心旅程回归或进入跨端阶段时再评估自动化 E2E。详见 `contracts/conventions.md`。
 - [ ] **AI 整理评审剩余次要项**（2026-07-23，来自 UI/UX critique，非阻断）：banner 多条堆叠缺优先级/去重；手动批量整理对话框在大量标签/集合时缺搜索与当前归属提示；确认全成功但 operation 尚未翻转 completed 的瞬间可能出现"需要处理 + 绿勾 + 无按钮"的过渡态。见 `logs/2026-07-23-ai-organization-uiux-critique.md`。
 
-- [ ] **检索优先范式待落地实现（ADR 0026 Accepted，2026-07-23）**：三个开放问题已定案且 ADR 已 **Accepted**，知识库契约（`product.md` L78 / L128 + Advanced Features 注记、`ui-ux.md` L244、`data-model.md` 向量表 + RLS、`roadmap.md` L63）已同步对齐。**剩余为实现工作**：新建 `user_repo_embeddings` 迁移与 RLS、客户端 Transformers.js embedding 与懒下载缓存 UX、隐形混合搜索、石墨语义星图（确定性投影 + 分层渲染）、密度聚类与 promotion；并实测 e5-small 量化档位 / 降维算法 / 聚类参数。见 ADR 0026 与 `logs/2026-07-23-retrieval-first-paradigm-adr-0026.md`。
+- [ ] **检索优先范式待落地实现（ADR 0026 Accepted，2026-07-23）**：三个开放问题已定案且 ADR 已 **Accepted**，知识库契约（`product.md` L78 / L128 + Advanced Features 注记、`ui-ux.md` L244、`data-model.md` 向量表 + RLS、`roadmap.md` L63）已同步对齐。**剩余为实现工作**：新建 `user_repo_embeddings` 迁移与 RLS、客户端 Transformers.js embedding 与懒下载缓存 UX、隐形混合搜索、石墨语义星图（确定性投影 + 分层渲染）、密度聚类与 promotion；并实测 e5-small 量化档位 / 降维算法 / 聚类参数。**已于 2026-07-24 用 `to-tickets` 拆为 GitHub Issues #18–#22 并按原生 blocked-by 依赖排序**：#18 Embeddings 地基（无 blocker，可立即开工）→ #19 浏览器内 embedding 运行时 + 回填 → #20 隐形混合搜索 ‖ #21 石墨语义星图 → #22 涌现簇 + promotion；逐票 `/implement`、每票间清空 context。见 ADR 0026 与 `logs/2026-07-23-retrieval-first-paradigm-adr-0026.md`。
 
 ## 未落地的工作项（基础设施）
 

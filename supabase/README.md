@@ -18,8 +18,9 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260723160000_ai_organization_review.sql` | AI 草稿人工审阅：把既有草稿升级为 review schema v2，并新增仅 service role 可执行的 revision CAS 更新函数 |
 | `20260723190000_ai_organization_confirmation.sql` | AI 草稿确认：安全合并历史等价分类并建立规范化唯一约束、近似名称 guard、以草稿 ID + revision + 完整选择幂等消费确认请求，并在单个受信事务中创建 `source: "ai_draft"` 批量操作与逐关系项目后删除草稿 |
 | `20260723193000_fix_ai_organization_confirmation.sql` | AI 草稿确认函数兼容修正：消除真实 Postgres 中 PL/pgSQL 变量与 SQL 标识符的歧义，保持确认事务语义不变 |
+| `20260724120000_user_repo_embeddings.sql` | 检索优先地基：`user_repo_embeddings`（384 维向量 + `embedding_model` + `content_hash`，`(user_id, repo_id)` 唯一、级联删除、`set_updated_at` 触发器，与 `notes` 同构），owner-only RLS；规模尚小先不建 ANN 索引（详见 ADR 0026） |
 
-> Phase 3 的 `repo_embeddings` 暂未建表（见 `knowledge/contracts/data-model.md`）。
+> `user_repo_embeddings` 的语义向量属 derived 数据、按用户客户端直写；规模尚小，暂不建 ANN（HNSW / IVFFlat）索引（见 ADR 0026 与 `knowledge/contracts/data-model.md`）。
 
 迁移可重复执行（`if not exists` / `create or replace` / `drop policy if exists`）。
 
@@ -50,8 +51,14 @@ select tablename, rowsecurity from pg_tables where schemaname = 'public' order b
 
 `repos / user_stars / tags / repo_tags / collections / collection_repos / notes /
 bulk_operations / bulk_operation_items / ai_provider_connections / user_settings /
-ai_organization_drafts` 的
+ai_organization_drafts / user_repo_embeddings` 的
 `rowsecurity` 应均为 `true`。
+
+> 检索优先向量表 `user_repo_embeddings` 的 owner-only 隔离与 `notes` 同构
+> （`user_repo_embeddings_owner_all`：`user_id = auth.uid()` 同时约束 using / with check）。
+> 真实环境冒烟：以用户 A 的会话写入一行向量，再以用户 B 的会话对该行 `select` /
+> `update` / `delete` 应命中 0 行（跨用户读写被拒）；客户端读写始终按 `user_id` 收窄
+> 的回归由 `packages/db` 单测守护。
 
 ## GitHub OAuth 配置（后台手动一次）
 

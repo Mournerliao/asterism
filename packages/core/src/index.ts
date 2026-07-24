@@ -93,6 +93,21 @@ export type {
 } from './data-port/types';
 export { EXPORT_VERSION } from './data-port/types';
 export type {
+  DesiredRepoEmbedding,
+  EmbeddableRepo,
+  EmbeddingStalenessReason,
+  RepoEmbeddingBackfillItem,
+  StoredRepoEmbedding,
+} from './embeddings/embeddings';
+export {
+  computeContentHash,
+  DEFAULT_EMBEDDING_DIMENSIONS,
+  DEFAULT_EMBEDDING_MODEL,
+  embeddableRepoText,
+  repoContentHash,
+  selectReposToEmbed,
+} from './embeddings/embeddings';
+export type {
   CollectStarredOptions,
   FetchStarredPage,
   RawStarEdge,

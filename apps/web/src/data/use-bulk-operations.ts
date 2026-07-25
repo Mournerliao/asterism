@@ -1,6 +1,7 @@
 import {
   type BulkChange,
   type BulkOperation,
+  type BulkOperationSource,
   invokeBulkOperation,
   listBulkOperations,
 } from '@asterism/db';
@@ -62,11 +63,15 @@ export function useBulkOperationActions() {
 
   const create = useMutation({
     // 只创建操作；执行由横幅接管（onSuccess 里触发 resume），不在对话框内阻塞
-    mutationFn: async (input: { repoIds: string[]; changes: BulkChange[] }) => {
+    mutationFn: async (input: {
+      repoIds: string[];
+      changes: BulkChange[];
+      source?: BulkOperationSource;
+    }) => {
       if (!userId) throw new Error(NO_USER);
       return invokeBulkOperation(supabase, {
         action: 'create',
-        source: 'manual',
+        source: input.source ?? 'manual',
         repoIds: input.repoIds,
         changes: input.changes,
       });

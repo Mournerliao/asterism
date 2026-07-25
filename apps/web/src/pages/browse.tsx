@@ -30,6 +30,7 @@ import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
 import { BrowseToolbarSkeleton } from '../components/page-loading-states';
+import { PromotionReviewDialog } from '../components/promotion-review-dialog';
 import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
@@ -46,11 +47,13 @@ import {
 } from '../data/use-ai-organization';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
-import { useCollections } from '../data/use-collections';
+import { useCollections, useCreateCollection } from '../data/use-collections';
 import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
+import type { StarMapCluster } from '../data/use-star-map-clusters';
+import { useStarMapClusters } from '../data/use-star-map-clusters';
 import { useStarMapProjection } from '../data/use-star-map-projection';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
@@ -101,6 +104,7 @@ export function BrowsePage() {
   const updateAiDraftReview = useUpdateAiOrganizationDraftReview();
   const confirmAiDraft = useConfirmAiOrganizationDraft();
   const bulkActions = useBulkOperationActions();
+  const createCollectionMutation = useCreateCollection();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
     reposLoading ||
@@ -165,6 +169,25 @@ export function BrowsePage() {
   const semanticEnabled = embeddingBootstrap.optedIn && embeddingBootstrap.backend !== null;
   const { distanceByRepoId } = useSemanticNeighbors(filters.query, { enabled: semanticEnabled });
   const starMap = useStarMapProjection({ enabled: semanticEnabled });
+
+  const starMapClusterRepos = useMemo(
+    () =>
+      records.map((r) => ({
+        repoId: r.repoId,
+        fullName: r.repo.fullName,
+        description: r.repo.description,
+        topics: r.repo.topics,
+      })),
+    [records],
+  );
+  const starMapClusters = useStarMapClusters(
+    starMap.embeddings,
+    starMap.points,
+    starMapClusterRepos,
+  );
+
+  const [promotingCluster, setPromotingCluster] = useState<StarMapCluster | null>(null);
+  const [promotionSubmitting, setPromotionSubmitting] = useState(false);
   const hybrid = useMemo(
     () =>
       rankHybridRepos({
@@ -403,6 +426,9 @@ export function BrowsePage() {
           requestClose();
         }
       }}
+      starMapClusters={starMapClusters.clusters}
+      starMapClusterByRepo={starMapClusters.clusterByRepo}
+      onStarMapPromoteCluster={setPromotingCluster}
     />
   );
 
@@ -599,6 +625,37 @@ export function BrowsePage() {
           repoTags={repoTags ?? []}
           collectionRepos={collectionRepos ?? []}
         />
+        {promotingCluster ? (
+          <PromotionReviewDialog
+            cluster={promotingCluster}
+            isSubmitting={promotionSubmitting}
+            onCancel={() => setPromotingCluster(null)}
+            onConfirm={async (name, repoIds) => {
+              setPromotionSubmitting(true);
+              try {
+                const collection = await createCollectionMutation.mutateAsync({ name });
+                bulkActions.create.mutate(
+                  {
+                    repoIds,
+                    changes: [
+                      { relationType: 'collection', targetId: collection.id, action: 'add' },
+                    ],
+                    source: 'promotion',
+                  },
+                  {
+                    onSuccess: (operation) => {
+                      setPromotingCluster(null);
+                      if (operation.status !== 'completed') bulkActions.resume.mutate(operation);
+                    },
+                    onSettled: () => setPromotionSubmitting(false),
+                  },
+                );
+              } catch {
+                setPromotionSubmitting(false);
+              }
+            }}
+          />
+        ) : null}
       </div>
     );
   }

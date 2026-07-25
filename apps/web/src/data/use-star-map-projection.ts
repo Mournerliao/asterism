@@ -16,6 +16,7 @@ export interface StarMapProjection {
   points: StarMapPoint[];
   repoIdToIndex: Map<string, number>;
   isLoading: boolean;
+  embeddings: import('@asterism/db').RepoEmbeddingRecord[] | undefined;
 }
 
 /**
@@ -59,5 +60,5 @@ export function useStarMapProjection(options: { enabled: boolean }): StarMapProj
     return { points, repoIdToIndex };
   }, [embeddings]);
 
-  return { ...result, isLoading: enabled && isLoading };
+  return { ...result, isLoading: enabled && isLoading, embeddings };
 }

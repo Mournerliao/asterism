@@ -21,7 +21,7 @@
   - `0018-typed-ai-provider-registry.md`：类型化 Generation Provider Registry，不把 Phase 2 做成完整 AI Gateway
   - `0024-custom-endpoint-ssrf-boundary.md`：自定义 endpoint SSRF 分类器守卫恒开 + 部署者域名 allowlist；HTTPS DNS-rebinding TOCTOU 为已知残余
   - `0022-remove-embedding-and-semantic-search.md`：移除 Embedding、pgvector 语义搜索与相关设置（**已被 ADR 0026 取代 / Superseded**，2026-07-23：0026 在其缝隙上以「多语言小模型 + 非 BYOK + 浏览器内 + 同源自托管」重新立项并 Accepted；0022 保留为历史背景）
-  - `0026-ai-organization-flow-and-cluster-paradigm.md`：**检索优先范式（Accepted，2026-07-23）** —— 双平面（canonical 神圣 / derived 可弃 / promotion 唯一写入桥）+ 纯浏览器内 embedding（默认 `multilingual-e5-small`）+ 向量按用户存（`user_repo_embeddings`）+ 隐形混合搜索与石墨语义星图 + 涌现簇（安静的镜子）。Supersedes 0022 / Reframes 0020；#18 数据地基与 #19 浏览器 q8 运行时 / 增量回填已落地，待实现 #20 混合搜索、#21 星图与 #22 聚类 / promotion。
+  - `0026-ai-organization-flow-and-cluster-paradigm.md`：**检索优先范式（Accepted，2026-07-23）** —— 双平面（canonical 神圣 / derived 可弃 / promotion 唯一写入桥）+ 纯浏览器内 embedding（默认 `multilingual-e5-small`）+ 向量按用户存（`user_repo_embeddings`）+ 隐形混合搜索与石墨语义星图 + 涌现簇（安静的镜子）。Supersedes 0022 / Reframes 0020；#18–#21 均已落地（数据地基 → 浏览器运行时 → 混合搜索 → 星图），剩余 **#22 涌现簇 + promotion** 可立即领取。
   - `0019-biome-tailwind-v4-css.md`：Biome 2.5.1 统一检查 Tailwind v4 CSS，不引入 Stylelint
 - **契约（什么是"对/完成"）**：`knowledge/contracts/*` —— `product` / `architecture` / `data-model` / `conventions` / `ui-ux`。
 - **设计源（Design Source）**：`contracts/ui-ux.md` + ADR 0009 是当前视觉与 token 权威；Ardot 文件 `698428420561751` 仅保留为历史布局/间距参考。

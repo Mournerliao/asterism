@@ -172,7 +172,9 @@
       "panHint": "拖拽平移，滚轮缩放",
       "emptyTitle": "星图需要预备向量",
       "emptyDescription": "请先准备更智能的搜索以启用语义星图。",
-      "projecting": "正在投影…"
+      "projecting": "正在投影\u2026",
+      "clusterCount": "{{count}} 个仓库",
+      "promote": "固化为集合"
     },
     "table": {
       "label": "仓库列表",
@@ -584,5 +586,14 @@
       "runTest": "开始测试",
       "testing": "测试中…"
     }
+  },
+  "promotion": {
+    "title": "将簇固化为集合",
+    "nameLabel": "集合名称",
+    "namePlaceholder": "输入集合名称",
+    "reposLabel": "仓库（{{count}}）",
+    "removeRepo": "移除仓库",
+    "cancel": "取消",
+    "confirm": "固化 {{count}} 个仓库"
   }
 }

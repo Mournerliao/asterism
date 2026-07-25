@@ -172,7 +172,9 @@
       "panHint": "Drag to pan, scroll to zoom",
       "emptyTitle": "Star map requires prepared vectors",
       "emptyDescription": "Prepare smarter search first to enable the semantic star map.",
-      "projecting": "Projecting…"
+      "projecting": "Projecting\u2026",
+      "clusterCount": "{{count}} repos",
+      "promote": "Promote to collection"
     },
     "table": {
       "label": "Repository list",
@@ -584,5 +586,14 @@
       "runTest": "Run test",
       "testing": "Testing…"
     }
+  },
+  "promotion": {
+    "title": "Promote cluster to collection",
+    "nameLabel": "Collection name",
+    "namePlaceholder": "Enter collection name",
+    "reposLabel": "Repositories ({{count}})",
+    "removeRepo": "Remove repository",
+    "cancel": "Cancel",
+    "confirm": "Promote {{count}} repos"
   }
 }

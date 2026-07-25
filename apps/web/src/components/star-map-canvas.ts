@@ -9,6 +9,7 @@
  * No glow, no noise. Colors from live Graphite Glass CSS tokens.
  */
 
+import type { StarMapCluster } from '../data/use-star-map-clusters';
 import type { StarMapPoint } from '../data/use-star-map-projection';
 
 export interface Camera {
@@ -23,6 +24,9 @@ export interface StarMapInteraction {
   selectedRepoId: string | null;
   hoveredIndex: number | null;
   reducedMotion: boolean;
+  clusters: StarMapCluster[];
+  clusterByRepo: Map<string, number>;
+  hoveredClusterId: number | null;
 }
 
 interface Tokens {
@@ -130,6 +134,50 @@ export class StarMapCanvas {
     return best;
   }
 
+  pickCluster(screenX: number, screenY: number, state: StarMapInteraction): number | null {
+    for (const cluster of state.clusters) {
+      let cx = 0;
+      let cy = 0;
+      let count = 0;
+      let maxDist = 0;
+      for (const repoId of cluster.repoIds) {
+        for (let i = 0; i < this.points.length; i += 1) {
+          if (this.points[i]?.repoId === repoId) {
+            const sx = this.screen[i * 2] ?? 0;
+            const sy = this.screen[i * 2 + 1] ?? 0;
+            if (!Number.isNaN(sx)) {
+              cx += sx;
+              cy += sy;
+              count += 1;
+            }
+            break;
+          }
+        }
+      }
+      if (count < 3) continue;
+      cx /= count;
+      cy /= count;
+      for (const repoId of cluster.repoIds) {
+        for (let i = 0; i < this.points.length; i += 1) {
+          if (this.points[i]?.repoId === repoId) {
+            const sx = this.screen[i * 2] ?? 0;
+            const sy = this.screen[i * 2 + 1] ?? 0;
+            const dist = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
+            if (dist > maxDist) maxDist = dist;
+            break;
+          }
+        }
+      }
+      const radius = maxDist + 24;
+      const dx = screenX - cx;
+      const dy = screenY - cy;
+      if (dx * dx + dy * dy <= radius * radius) {
+        return cluster.clusterId;
+      }
+    }
+    return null;
+  }
+
   draw(camera: Camera, state: StarMapInteraction): void {
     const ctx = this.ctx;
     const { points } = this;
@@ -161,6 +209,9 @@ export class StarMapCanvas {
       this.drawDensity(visible);
     } else {
       this.lastMode = 'individual';
+
+      this.drawClusterAreas(camera, state);
+
       for (const i of visible) {
         if (
           isLit(i) ||
@@ -231,6 +282,68 @@ export class StarMapCanvas {
     ctx.arc(x, y, r, 0, Math.PI * 2);
     ctx.fillStyle = fill;
     ctx.fill();
+  }
+
+  private drawClusterAreas(_camera: Camera, state: StarMapInteraction): void {
+    if (state.clusters.length === 0) return;
+    const ctx = this.ctx;
+
+    for (const cluster of state.clusters) {
+      const memberScreenPositions: Array<[number, number]> = [];
+      for (const repoId of cluster.repoIds) {
+        for (let i = 0; i < this.points.length; i += 1) {
+          if (this.points[i]?.repoId === repoId) {
+            const sx = this.screen[i * 2] ?? 0;
+            const sy = this.screen[i * 2 + 1] ?? 0;
+            if (!Number.isNaN(sx)) {
+              memberScreenPositions.push([sx, sy]);
+            }
+            break;
+          }
+        }
+      }
+
+      if (memberScreenPositions.length < 3) continue;
+
+      let cx = 0;
+      let cy = 0;
+      for (const [sx, sy] of memberScreenPositions) {
+        cx += sx;
+        cy += sy;
+      }
+      cx /= memberScreenPositions.length;
+      cy /= memberScreenPositions.length;
+
+      let maxDist = 0;
+      for (const [sx, sy] of memberScreenPositions) {
+        const dist = Math.sqrt((sx - cx) ** 2 + (sy - cy) ** 2);
+        if (dist > maxDist) maxDist = dist;
+      }
+
+      const radius = maxDist + 24;
+      const isHovered = state.hoveredClusterId === cluster.clusterId;
+
+      ctx.beginPath();
+      ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+      ctx.fillStyle = isHovered
+        ? `rgba(${this.tokens.primary},0.06)`
+        : `rgba(${this.tokens.primary},0.03)`;
+      ctx.fill();
+      ctx.strokeStyle = isHovered
+        ? `rgba(${this.tokens.primary},0.28)`
+        : `rgba(${this.tokens.primary},0.12)`;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([4, 4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      ctx.font = '11px var(--font-sans, system-ui, sans-serif)';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = isHovered
+        ? `rgba(${this.tokens.primary},0.8)`
+        : `rgba(${this.tokens.node},0.7)`;
+      ctx.fillText(cluster.name, cx, cy - radius - 6);
+    }
   }
 
   private drawDensity(visible: number[]): void {

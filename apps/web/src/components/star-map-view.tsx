@@ -1,7 +1,8 @@
 import { useTheme } from '@asterism/ui';
 import { LoaderCircleIcon } from 'lucide-react';
-import { memo, useCallback, useEffect, useRef } from 'react';
+import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { StarMapCluster } from '../data/use-star-map-clusters';
 import type { StarMapPoint } from '../data/use-star-map-projection';
 import { EmptyState } from './empty-state';
 import { type Camera, StarMapCanvas, type StarMapInteraction } from './star-map-canvas';
@@ -16,6 +17,9 @@ export interface StarMapViewProps {
   onSelectRepo?: (repoId: string | null) => void;
   embeddingReady: boolean;
   active: boolean;
+  clusters: StarMapCluster[];
+  clusterByRepo: Map<string, number>;
+  onPromoteCluster?: (cluster: StarMapCluster) => void;
 }
 
 export const StarMapView = memo(function StarMapView({
@@ -27,18 +31,25 @@ export const StarMapView = memo(function StarMapView({
   onSelectRepo,
   embeddingReady,
   active,
+  clusters,
+  clusterByRepo,
+  onPromoteCluster,
 }: StarMapViewProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<StarMapCanvas | null>(null);
   const cameraRef = useRef<Camera>({ scale: 1, panX: 0, panY: 0 });
+  const [hoveredCluster, setHoveredCluster] = useState<StarMapCluster | null>(null);
   const interactionRef = useRef<StarMapInteraction>({
     hitSet: new Set(),
     neighborSet: new Set(),
     selectedRepoId: null,
     hoveredIndex: null,
     reducedMotion: false,
+    clusters: [],
+    clusterByRepo: new Map(),
+    hoveredClusterId: null,
   });
 
   useEffect(() => {
@@ -52,6 +63,11 @@ export const StarMapView = memo(function StarMapView({
   useEffect(() => {
     interactionRef.current.selectedRepoId = selectedRepoId ?? null;
   }, [selectedRepoId]);
+
+  useEffect(() => {
+    interactionRef.current.clusters = clusters;
+    interactionRef.current.clusterByRepo = clusterByRepo;
+  }, [clusters, clusterByRepo]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -97,25 +113,33 @@ export const StarMapView = memo(function StarMapView({
     event.currentTarget.setPointerCapture(event.pointerId);
   }, []);
 
-  const onPointerMove = useCallback((event: React.PointerEvent<HTMLCanvasElement>) => {
-    const engine = engineRef.current;
-    const canvas = canvasRef.current;
-    if (engine && canvas) {
-      const rect = canvas.getBoundingClientRect();
-      interactionRef.current.hoveredIndex = engine.pick(
-        event.clientX - rect.left,
-        event.clientY - rect.top,
-      );
-    }
-    const drag = dragRef.current;
-    if (!drag) return;
-    if (Math.abs(event.clientX - drag.x) > 4 || Math.abs(event.clientY - drag.y) > 4) {
-      didDragRef.current = true;
-    }
-    cameraRef.current.panX += event.clientX - drag.x;
-    cameraRef.current.panY += event.clientY - drag.y;
-    dragRef.current = { x: event.clientX, y: event.clientY };
-  }, []);
+  const onPointerMove = useCallback(
+    (event: React.PointerEvent<HTMLCanvasElement>) => {
+      const engine = engineRef.current;
+      const canvas = canvasRef.current;
+      if (engine && canvas) {
+        const rect = canvas.getBoundingClientRect();
+        const mx = event.clientX - rect.left;
+        const my = event.clientY - rect.top;
+        interactionRef.current.hoveredIndex = engine.pick(mx, my);
+
+        const clusterId = engine.pickCluster(mx, my, interactionRef.current);
+        interactionRef.current.hoveredClusterId = clusterId;
+        const cluster =
+          clusterId != null ? (clusters.find((c) => c.clusterId === clusterId) ?? null) : null;
+        setHoveredCluster(cluster);
+      }
+      const drag = dragRef.current;
+      if (!drag) return;
+      if (Math.abs(event.clientX - drag.x) > 4 || Math.abs(event.clientY - drag.y) > 4) {
+        didDragRef.current = true;
+      }
+      cameraRef.current.panX += event.clientX - drag.x;
+      cameraRef.current.panY += event.clientY - drag.y;
+      dragRef.current = { x: event.clientX, y: event.clientY };
+    },
+    [clusters],
+  );
 
   const onPointerUp = useCallback(() => {
     dragRef.current = null;
@@ -179,6 +203,24 @@ export const StarMapView = memo(function StarMapView({
         onWheel={onWheel}
         onClick={onClick}
       />
+      {hoveredCluster && onPromoteCluster ? (
+        <div className="pointer-events-auto absolute right-4 top-3 flex items-center gap-2 rounded-lg border border-border/50 bg-card/90 px-3 py-2 shadow-sm backdrop-blur-sm">
+          <span className="text-caption font-medium text-foreground">{hoveredCluster.name}</span>
+          <span className="text-micro text-muted-foreground">
+            {t('browse.starMap.clusterCount', { count: hoveredCluster.repoIds.length })}
+          </span>
+          <button
+            type="button"
+            className="ml-2 rounded-md bg-primary/10 px-2 py-1 text-micro font-medium text-primary hover:bg-primary/20 transition-colors"
+            onClick={(e) => {
+              e.stopPropagation();
+              onPromoteCluster(hoveredCluster);
+            }}
+          >
+            {t('browse.starMap.promote')}
+          </button>
+        </div>
+      ) : null}
       <p className="pointer-events-none absolute bottom-3 left-4 max-w-md text-micro text-muted-foreground">
         {t('browse.starMap.panHint')}
       </p>

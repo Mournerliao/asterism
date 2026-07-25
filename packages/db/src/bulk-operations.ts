@@ -27,9 +27,11 @@ export interface BulkOperationItem extends BulkChange {
   lastErrorMessage: string | null;
 }
 
+export type BulkOperationSource = 'manual' | 'ai_draft' | 'promotion';
+
 export interface BulkOperation {
   id: string;
-  source: 'manual' | 'ai_draft';
+  source: BulkOperationSource;
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
@@ -41,7 +43,7 @@ export interface BulkOperation {
 export type BulkOperationRequest =
   | {
       action: 'create';
-      source: 'manual' | 'ai_draft';
+      source: BulkOperationSource;
       repoIds: string[];
       changes: BulkChange[];
     }
@@ -82,12 +84,14 @@ function isBulkItem(value: unknown): value is BulkOperationItem {
   );
 }
 
+const validSources = new Set<BulkOperationSource>(['manual', 'ai_draft', 'promotion']);
+
 function isBulkOperation(value: unknown): value is BulkOperation {
   if (!value || typeof value !== 'object') return false;
   const operation = value as Record<string, unknown>;
   return (
     typeof operation.id === 'string' &&
-    (operation.source === 'manual' || operation.source === 'ai_draft') &&
+    validSources.has(operation.source as BulkOperationSource) &&
     Array.isArray(operation.sourceRepoIds) &&
     operation.sourceRepoIds.every((id) => typeof id === 'string') &&
     operationStatuses.has(operation.status as BulkOperationStatus) &&

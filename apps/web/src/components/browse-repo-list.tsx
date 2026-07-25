@@ -1,6 +1,7 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { memo, useEffect, useState } from 'react';
+import type { StarMapCluster } from '../data/use-star-map-clusters';
 import type { StarMapPoint } from '../data/use-star-map-projection';
 import type { BulkSelectionController } from '../lib/bulk-selection';
 import type { RepoViewMode } from '../stores/browse-view';
@@ -28,6 +29,9 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   starMapHitRepoIds,
   starMapNeighborRepoIds,
   onStarMapSelectRepo,
+  starMapClusters,
+  starMapClusterByRepo,
+  onStarMapPromoteCluster,
 }: {
   view: RepoViewMode;
   records: StarredRepoRecord[];
@@ -46,6 +50,9 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   starMapHitRepoIds: Set<string>;
   starMapNeighborRepoIds: Set<string>;
   onStarMapSelectRepo?: (repoId: string | null) => void;
+  starMapClusters: StarMapCluster[];
+  starMapClusterByRepo: Map<string, number>;
+  onStarMapPromoteCluster?: (cluster: StarMapCluster) => void;
 }) {
   // 访问过的视图保持挂载，后续切换只做显隐，避开虚拟列表重建成本。
   const [mountedViews, setMountedViews] = useState<ReadonlySet<RepoViewMode>>(
@@ -88,6 +95,9 @@ export const BrowseRepoList = memo(function BrowseRepoList({
             onSelectRepo={onStarMapSelectRepo}
             embeddingReady={starMapEmbeddingReady}
             active={view === 'star-map'}
+            clusters={starMapClusters}
+            clusterByRepo={starMapClusterByRepo}
+            onPromoteCluster={onStarMapPromoteCluster}
           />
         </div>
       ) : null}

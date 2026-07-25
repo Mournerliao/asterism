@@ -48,6 +48,7 @@ export type {
   BulkOperation,
   BulkOperationItem,
   BulkOperationRequest,
+  BulkOperationSource,
   BulkOperationStatus,
   BulkRelationAction,
   BulkRelationType,

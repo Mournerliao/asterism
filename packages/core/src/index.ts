@@ -71,6 +71,8 @@ export {
   parseHttpsUrl,
   SsrfError,
 } from './ai/ssrf';
+export type { ClusterLabel, ClusterNameInput, HdbscanOptions, HdbscanResult } from './clustering';
+export { hdbscan, nameCluster, nameClusters } from './clustering';
 export {
   buildExportPayload,
   scopeExportSnapshot,

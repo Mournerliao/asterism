@@ -78,6 +78,21 @@ export async function upsertRepoEmbedding(
 }
 
 /**
+ * owner 向量全量删除：清空本人全部向量行（开发者重置 / 用户撤回 opt-in）。
+ * derived 数据可安全重建，走普通 RLS 并显式按 user_id 收窄。
+ */
+export async function deleteAllRepoEmbeddings(
+  client: SupabaseClient,
+  userId: string,
+): Promise<void> {
+  const { error } = await client.from('user_repo_embeddings').delete().eq('user_id', userId);
+
+  if (error) {
+    throw error;
+  }
+}
+
+/**
  * 读取当前用户的全部向量（含向量本身），供本地距离检索 / 换设备复用。
  * 读取走 RLS 并显式按 user_id 收窄。
  */

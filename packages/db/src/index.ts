@@ -79,6 +79,7 @@ export type {
   UpsertRepoEmbeddingInput,
 } from './queries/embeddings';
 export {
+  deleteAllRepoEmbeddings,
   listRepoEmbeddingMeta,
   listRepoEmbeddings,
   listReposToEmbed,

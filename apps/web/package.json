@@ -9,6 +9,7 @@
     "build": "node scripts/prepare-embedding-assets.mjs && vite build",
     "test": "vitest run",
     "preview": "vite preview",
+    "reset-smart-search": "node scripts/reset-smart-search.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

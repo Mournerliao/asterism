@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { SupabaseClient } from '../client';
 import {
+  deleteAllRepoEmbeddings,
   listRepoEmbeddingMeta,
   listRepoEmbeddings,
   listReposToEmbed,
@@ -12,6 +13,7 @@ interface QueryCall {
   table: string;
   select?: string;
   upsert?: { values: Record<string, unknown>; options?: { onConflict?: string } };
+  delete?: boolean;
   eq: Array<{ column: string; value: unknown }>;
   ranges: Array<{ from: number; to: number }>;
 }
@@ -56,6 +58,15 @@ function createClientMock(
         upsert(values: Record<string, unknown>, options?: { onConflict?: string }) {
           call.upsert = { values, options };
           return Promise.resolve(result);
+        },
+        delete() {
+          call.delete = true;
+          return {
+            eq(column: string, value: unknown) {
+              call.eq.push({ column, value });
+              return Promise.resolve(result);
+            },
+          };
         },
       };
     },
@@ -109,6 +120,25 @@ describe('upsertRepoEmbedding', () => {
         contentHash: 'h1',
       }),
     ).rejects.toThrow('row-level security');
+  });
+});
+
+describe('deleteAllRepoEmbeddings', () => {
+  it('scopes the delete to the owner', async () => {
+    const { client, calls } = createClientMock({ error: null });
+
+    await deleteAllRepoEmbeddings(client, 'user-1');
+
+    const call = firstCall(calls);
+    expect(call.table).toBe('user_repo_embeddings');
+    expect(call.delete).toBe(true);
+    expect(call.eq).toEqual([{ column: 'user_id', value: 'user-1' }]);
+  });
+
+  it('throws when the delete is rejected', async () => {
+    const { client } = createClientMock({ error: new Error('row-level security') });
+
+    await expect(deleteAllRepoEmbeddings(client, 'user-1')).rejects.toThrow('row-level security');
   });
 });
 

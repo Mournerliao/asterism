@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { copyFile, mkdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, readdir, readFile, rename, stat, writeFile } from 'node:fs/promises';
 import { request as httpRequest } from 'node:http';
 import { Agent as HttpsAgent, get as httpsGet } from 'node:https';
 import { createRequire } from 'node:module';
@@ -237,6 +237,10 @@ const onnxEntry = createRequire(transformersEntry).resolve('onnxruntime-web');
 const onnxDist = dirname(onnxEntry);
 const wasmRoot = join(assetRoot, 'embedding-runtime');
 await mkdir(wasmRoot, { recursive: true });
-for (const file of ['ort-wasm-simd-threaded.mjs', 'ort-wasm-simd-threaded.wasm']) {
-  await copyFile(join(onnxDist, file), join(wasmRoot, file));
+// onnxruntime-web 按执行后端选择不同的 wasm 变体（webgpu 需要 jsep/jspi/asyncify 构建），
+// 只带普通版会让 WebGPU 初始化抛 `webgpuInit is not a function`，必须整组拷贝。
+for (const file of await readdir(onnxDist)) {
+  if (file.startsWith('ort-wasm-simd-threaded') && /\.(mjs|wasm)$/.test(file)) {
+    await copyFile(join(onnxDist, file), join(wasmRoot, file));
+  }
 }

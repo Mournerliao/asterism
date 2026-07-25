@@ -48,10 +48,11 @@ async function loadExtractor(
   env.localModelPath = '/models/';
   env.useBrowserCache = true;
   if (env.backends.onnx.wasm) {
-    env.backends.onnx.wasm.wasmPaths = {
-      mjs: '/embedding-runtime/ort-wasm-simd-threaded.mjs',
-      wasm: '/embedding-runtime/ort-wasm-simd-threaded.wasm',
-    };
+    // 目录前缀而非单文件：ORT 按后端挑变体（webgpu 走 jsep/jspi 构建），
+    // 钉死普通版会使 WebGPU 初始化抛 `webgpuInit is not a function`。
+    // 绝对 URL 是为了绕开 Vite dev 对根相对动态 import 注入 `?import`，
+    // 那会被 public 目录规则拒绝（500）。
+    env.backends.onnx.wasm.wasmPaths = new URL('/embedding-runtime/', self.location.href).href;
     env.backends.onnx.wasm.proxy = false;
   }
 

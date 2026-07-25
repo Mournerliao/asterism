@@ -188,6 +188,7 @@ export function BrowsePage() {
 
   const [promotingCluster, setPromotingCluster] = useState<StarMapCluster | null>(null);
   const [promotionSubmitting, setPromotionSubmitting] = useState(false);
+  const [promotionCollectionId, setPromotionCollectionId] = useState<string | null>(null);
   const hybrid = useMemo(
     () =>
       rankHybridRepos({
@@ -629,22 +630,31 @@ export function BrowsePage() {
           <PromotionReviewDialog
             cluster={promotingCluster}
             isSubmitting={promotionSubmitting}
-            onCancel={() => setPromotingCluster(null)}
+            onCancel={() => {
+              setPromotingCluster(null);
+              setPromotionCollectionId(null);
+            }}
             onConfirm={async (name, repoIds) => {
               setPromotionSubmitting(true);
               try {
-                const collection = await createCollectionMutation.mutateAsync({ name });
+                let collectionId = promotionCollectionId;
+                if (!collectionId) {
+                  const collection = await createCollectionMutation.mutateAsync({ name });
+                  collectionId = collection.id;
+                  setPromotionCollectionId(collectionId);
+                }
                 bulkActions.create.mutate(
                   {
                     repoIds,
                     changes: [
-                      { relationType: 'collection', targetId: collection.id, action: 'add' },
+                      { relationType: 'collection', targetId: collectionId, action: 'add' },
                     ],
                     source: 'promotion',
                   },
                   {
                     onSuccess: (operation) => {
                       setPromotingCluster(null);
+                      setPromotionCollectionId(null);
                       if (operation.status !== 'completed') bulkActions.resume.mutate(operation);
                     },
                     onSettled: () => setPromotionSubmitting(false),

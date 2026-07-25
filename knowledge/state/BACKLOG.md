@@ -14,7 +14,7 @@
 - [x] **测试策略深度已明确**（2026-07-18）：Phase 1 以 Vitest 单元/集成测试 + 真实环境 smoke test 验收；不新增 E2E 工具、不设覆盖率百分比。重复核心旅程回归或进入跨端阶段时再评估自动化 E2E。详见 `contracts/conventions.md`。
 - [ ] **AI 整理评审剩余次要项**（2026-07-23，来自 UI/UX critique，非阻断）：banner 多条堆叠缺优先级/去重；手动批量整理对话框在大量标签/集合时缺搜索与当前归属提示；确认全成功但 operation 尚未翻转 completed 的瞬间可能出现"需要处理 + 绿勾 + 无按钮"的过渡态。见 `logs/2026-07-23-ai-organization-uiux-critique.md`。
 
-- [ ] **检索优先范式继续落地（ADR 0026 Accepted，2026-07-23）**：#18 `user_repo_embeddings` + owner-only RLS、#19 浏览器内 q8 embedding 运行时 / 同源资产 / 增量回填 / 降级 UX、#20 隐形混合搜索与 #21 石墨语义星图（确定性 PCA + 分层 Canvas2D 渲染 + 点亮路径）均已完成。剩余为 **#22 密度聚类 + promotion**；#22 依赖 #21（已完成），可立即领取。见 ADR 0026、各记录日志。
+- [x] **检索优先范式已全部落地（ADR 0026 Accepted，2026-07-26 收尾）**：#18 `user_repo_embeddings` + owner-only RLS、#19 浏览器内 q8 embedding 运行时 / 同源资产 / 增量回填 / 降级 UX、#20 隐形混合搜索、#21 石墨语义星图（确定性 PCA + 分层 Canvas2D 渲染 + 点亮路径）与 #22 密度聚类 + promotion（HDBSCAN + 零依赖命名 + 0023 账本写入桥）均已完成，GitHub #18–#22 全部关闭。见 ADR 0026、各记录日志与 `logs/2026-07-26-retrieval-first-series-closure.md`。
 
 ## 未落地的工作项（基础设施）
 

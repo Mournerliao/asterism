@@ -60,3 +60,7 @@ Implemented emergent clusters and promotion as the dual-plane's only write bridg
 - `packages/db`: 65 tests passed
 - `pnpm typecheck`: All 9 packages pass
 - `pnpm lint`: 0 errors (38 pre-existing warnings, all `noNonNullAssertion` in hot loops)
+
+## Closure (2026-07-26)
+
+Full gates re-verified before closing GitHub #22: `pnpm lint / typecheck / test` (core 185 / db 65 / functions 94 / web 170) and `pnpm build` all green (build carries only the pre-existing main-chunk size warning). Issue closed with the acceptance summary; implementation commits `647226c` + follow-up fix `4a36fd2`. See `2026-07-26-retrieval-first-series-closure.md`.

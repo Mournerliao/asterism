@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-> **下一步（恢复点，2026-07-25）**：ADR 0026 检索优先地基与检索交互已完成到 **#22 涌现簇 + promotion**。Phase 3 浏览器扩展可立即领取。每票之间清空 context；动手前先读 ADR 0026 与 `contracts/{product,ui-ux,data-model,architecture}.md`。
+> **下一步（恢复点，2026-07-26）**：ADR 0026 检索优先系列 **#18–#22 全部交付并关闭**（#22 于 2026-07-26 复核四道门禁后关闭，见 `logs/2026-07-26-retrieval-first-series-closure.md`）；Phase 2 本体（#11–#17）早于 2026-07-23 收尾。Phase 3 浏览器扩展可立即领取。每票之间清空 context；动手前先读 ADR 0026 与 `contracts/{product,ui-ux,data-model,architecture}.md`。
 
 > #22 涌现簇 + promotion 已实现（2026-07-25，GitHub #22，见 `logs/2026-07-25-issue-22-emergent-clusters-promotion.md`）：双平面唯一写入桥——derived 侧用纯向量密度聚类自动浮现「主题区域」，用户可将簇固化为 canonical 集合。`packages/core` 新增 `clustering` 模块：HDBSCAN 密度聚类算法（互达距离 + Prim MST + 凝缩树 + EOM 稳定性提取，自动定簇数 + 允许噪声点 + 确定性）与零依赖簇命名（topic 频率 × 3 权重 + 描述高频词、跨簇去重，13 个 Vitest）。`packages/db` 扩展 `BulkOperationSource` 类型（新增 `'promotion'`）并更新验证。`supabase/migrations` 新增 `20260725120000_bulk_operations_promotion_source.sql` 扩展 source CHECK。`apps/web` 新增 `useStarMapClusters` hook（hdbscan + nameClusters + 2D 质心）、`StarMapCanvas` cluster 区域层（虚线圆 + 标签 + hover 高亮）与 `pickCluster` 方法、`StarMapView` 悬浮卡片（簇名 + 计数 + promotion 入口）、`PromotionReviewDialog` 轻审阅对话框（改名 / 剔除 repo / 确认写入）。Browse 页接入 clusters + promotion 流：创建 collection → `source: 'promotion'` 批量操作。性格为「安静的镜子」——系统永不主动提示。en / zh-CN 新增 `browse.starMap.{clusterCount,promote}` + `promotion.*` 7 个键。`pnpm lint / typecheck / test` 全绿（core 185 / db 65 tests）。无新增 ADR。
 

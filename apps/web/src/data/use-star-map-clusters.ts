@@ -19,11 +19,16 @@ export interface StarMapClusters {
 }
 
 /**
- * Run HDBSCAN density clustering on embedding vectors and derive named clusters.
+ * Run HDBSCAN density clustering on the star-map projection and derive named clusters.
  *
  * ADR 0026 §8: pure vector density clustering, deterministic, no preset k.
- * Operates on the full 384-dim embedding vectors (not the 2D projection).
- * Cluster centroids are computed in the projected 2D space for rendering.
+ * Clusters in the projected 2D space rather than raw 384-dim vectors: e5
+ * embeddings suffer from distance concentration in high dimension (the
+ * condensed tree degenerates into a chain with no true splits → zero
+ * clusters), while the deterministic PCA projection is still a pure-vector
+ * derivation and keeps regions aligned with what the map actually shows.
+ * Leaf selection surfaces fine-grained thematic areas instead of the two
+ * macro halves EOM converges to on this data.
  */
 export function useStarMapClusters(
   embeddings: RepoEmbeddingRecord[] | undefined,
@@ -35,41 +40,47 @@ export function useStarMapClusters(
       return { clusters: [], clusterByRepo: new Map() };
     }
 
-    const vectors = embeddings.map((e) => e.embedding);
-    const { labels, clusterCount } = hdbscan(vectors, { minClusterSize: 5 });
+    const vectors = points.map((p) => [p.x, p.y]);
+    // 随集合规模缓升的最小簇容量：小库保留细粒度，大库避免碎片化。
+    const minClusterSize = Math.min(25, Math.max(5, Math.floor(points.length / 64)));
+    const { labels, clusterCount } = hdbscan(vectors, {
+      minClusterSize,
+      clusterSelection: 'leaf',
+    });
 
     if (clusterCount === 0) {
       return { clusters: [], clusterByRepo: new Map() };
     }
 
-    const repoNameInputs = embeddings.map((e) => {
-      const repo = repos.find((r) => r.repoId === e.repoId);
+    const repoById = new Map(repos.map((r) => [r.repoId, r]));
+    const repoNameInputs = points.map((p) => {
+      const repo = repoById.get(p.repoId);
       return {
         topics: repo?.topics ?? [],
         description: repo?.description ?? null,
-        fullName: repo?.fullName ?? e.repoId,
+        fullName: repo?.fullName ?? p.repoId,
       };
     });
 
     const clusterLabels: ClusterLabel[] = nameClusters(labels, clusterCount, repoNameInputs);
 
-    const pointByRepoId = new Map<string, { x: number; y: number }>();
-    for (const p of points) {
-      pointByRepoId.set(p.repoId, { x: p.x, y: p.y });
-    }
-
     const clusterRepoIds: string[][] = Array.from({ length: clusterCount }, () => []);
     const clusterByRepo = new Map<string, number>();
 
-    for (let i = 0; i < embeddings.length; i += 1) {
+    for (let i = 0; i < points.length; i += 1) {
       const label = labels[i] ?? -1;
       if (label >= 0) {
-        const repoId = embeddings[i]?.repoId;
+        const repoId = points[i]?.repoId;
         if (repoId) {
           clusterRepoIds[label]?.push(repoId);
           clusterByRepo.set(repoId, label);
         }
       }
+    }
+
+    const pointByRepoId = new Map<string, { x: number; y: number }>();
+    for (const p of points) {
+      pointByRepoId.set(p.repoId, { x: p.x, y: p.y });
     }
 
     const clusters: StarMapCluster[] = clusterLabels.map((cl) => {
@@ -94,6 +105,24 @@ export function useStarMapClusters(
         centroidY: count > 0 ? sumY / count : 0.5,
       };
     });
+
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      // 临时审计句柄：仅用于开发期簇纯度审查，随审计结束移除。
+      Object.assign(window, {
+        __asterismClusterAudit: clusters.map((c) => ({
+          name: c.name,
+          size: c.repoIds.length,
+          members: c.repoIds.map((id) => {
+            const repo = repoById.get(id);
+            return {
+              fullName: repo?.fullName ?? id,
+              topics: repo?.topics ?? [],
+              description: repo?.description ?? null,
+            };
+          }),
+        })),
+      });
+    }
 
     return { clusters, clusterByRepo };
   }, [embeddings, points, repos]);

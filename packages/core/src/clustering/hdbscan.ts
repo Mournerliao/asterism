@@ -27,6 +27,14 @@ export interface HdbscanOptions {
    * Higher values smooth out more noise. Default: same as minClusterSize.
    */
   minSamples?: number;
+
+  /**
+   * Flat-cluster selection from the condensed tree (same knob as scikit-learn
+   * HDBSCAN `cluster_selection_method`). 'eom' picks the most stable clusters
+   * and tends toward few macro regions; 'leaf' picks the finest-grained leaf
+   * clusters, better for surfacing many small thematic areas. Default: 'eom'.
+   */
+  clusterSelection?: 'eom' | 'leaf';
 }
 
 export interface HdbscanResult {
@@ -64,6 +72,7 @@ export function hdbscan(vectors: number[][], options: HdbscanOptions = {}): Hdbs
 
   const minClusterSize = Math.max(2, options.minClusterSize ?? 5);
   const minSamples = Math.max(1, options.minSamples ?? minClusterSize);
+  const clusterSelection = options.clusterSelection ?? 'eom';
 
   if (n < minClusterSize) {
     return { labels: new Int32Array(n).fill(-1), clusterCount: 0 };
@@ -72,7 +81,7 @@ export function hdbscan(vectors: number[][], options: HdbscanOptions = {}): Hdbs
   const coreDistances = computeCoreDistances(vectors, minSamples);
   const mst = buildMst(vectors, coreDistances);
   const dendrogram = buildDendrogram(mst, n);
-  const labels = extractClusters(dendrogram, n, minClusterSize);
+  const labels = extractClusters(dendrogram, n, minClusterSize, clusterSelection);
 
   return labels;
 }
@@ -216,22 +225,28 @@ function buildDendrogram(mst: MstEdge[], n: number): DendrogramNode[] {
 }
 
 /**
- * Extract flat clusters using a condensed-tree approach.
+ * Extract flat clusters via the HDBSCAN condensed tree + EOM selection.
  *
- * The condensed tree only keeps nodes with size ≥ minClusterSize.
- * When a dendrogram node splits into children where one has < minClusterSize,
- * those small-child points "fall out" as noise rather than forming a cluster.
+ * Condensed-tree semantics: walking the dendrogram top-down, a cluster only
+ * *splits* when both children have ≥ minClusterSize points (a "true split",
+ * which births two new condensed clusters). If one side is smaller, those
+ * points fall out as noise at that lambda and the cluster itself persists
+ * into the large side — it does NOT become a new cluster. This persistence is
+ * what lets a real cluster accumulate stability across noise-shedding levels.
  *
- * Stability for each condensed cluster = sum over points that belong to it of
- * (lambda_out - lambda_birth), where lambda = 1/distance.
+ * Stability(C) = Σ over points passing through C of (λ_leave − λ_birth),
+ * where λ = 1/distance and λ_leave is when the point falls out of C (as noise
+ * or because C dies in a true split).
  *
- * Final cluster selection uses EOM: a cluster is kept if its stability ≥ the
- * sum of its descendant clusters' stabilities; otherwise its children win.
+ * EOM: bottom-up, a cluster is kept if its own stability ≥ the summed
+ * stability of its descendant selection; the root is never selectable.
+ * Leaf: keep only condensed-tree leaves (finest stable granularity).
  */
 function extractClusters(
   dendrogram: DendrogramNode[],
   n: number,
   minClusterSize: number,
+  clusterSelection: 'eom' | 'leaf',
 ): HdbscanResult {
   if (dendrogram.length === 0) {
     return { labels: new Int32Array(n).fill(-1), clusterCount: 0 };
@@ -252,128 +267,116 @@ function extractClusters(
 
   const rootId = n + dendrogram.length - 1;
 
-  const condensedClusters: number[] = [];
-  const condensedChildren = new Map<number, number[]>();
-  const condensedParent = new Map<number, number>();
-  const clusterBirthLambda = new Map<number, number>();
+  // Condensed clusters, indexed by creation order (0 = root cluster).
+  const clusterParent: number[] = [-1];
+  const clusterBirth: number[] = [0];
+  const clusterStability: number[] = [0];
+  const clusterChildren: number[][] = [[]];
+  // Condensed cluster each point fell out of (−1 until assigned).
   const pointCluster = new Int32Array(n).fill(-1);
-  const pointLambdaOut = new Float64Array(n);
 
-  clusterBirthLambda.set(rootId, 0);
-  condensedClusters.push(rootId);
-
-  const stack: Array<{ nodeId: number; parentCluster: number }> = [
-    { nodeId: rootId, parentCluster: rootId },
-  ];
+  const stack: Array<{ nodeId: number; clusterIdx: number }> = [{ nodeId: rootId, clusterIdx: 0 }];
 
   while (stack.length > 0) {
-    const { nodeId, parentCluster } = stack.pop()!;
-    const kids = children[nodeId];
-    if (!kids || kids.length === 0) {
-      if (nodeId < n) {
-        pointCluster[nodeId] = parentCluster;
-        pointLambdaOut[nodeId] = 0;
-      }
+    const { nodeId, clusterIdx } = stack.pop()!;
+    if (nodeId < n) {
+      // Only reachable in degenerate trees; the point exits with no λ range.
+      pointCluster[nodeId] = clusterIdx;
       continue;
     }
 
-    const dendroIdx = nodeId - n;
-    const node = dendrogram[dendroIdx];
+    const node = dendrogram[nodeId - n];
     if (!node) continue;
     const splitLambda = node.distance > 0 ? 1 / node.distance : Number.MAX_SAFE_INTEGER;
+    const birth = clusterBirth[clusterIdx] ?? 0;
+    const leftSize = nodeSize[node.left] ?? 1;
+    const rightSize = nodeSize[node.right] ?? 1;
+    const leftBig = leftSize >= minClusterSize;
+    const rightBig = rightSize >= minClusterSize;
 
-    for (const child of kids) {
-      const childSize = nodeSize[child] ?? 1;
-      if (childSize >= minClusterSize) {
-        clusterBirthLambda.set(child, splitLambda);
-        condensedClusters.push(child);
-        if (!condensedChildren.has(parentCluster)) {
-          condensedChildren.set(parentCluster, []);
-        }
-        condensedChildren.get(parentCluster)!.push(child);
-        condensedParent.set(child, parentCluster);
-        stack.push({ nodeId: child, parentCluster: child });
-      } else {
-        assignFallenPoints(
-          child,
-          parentCluster,
-          splitLambda,
-          n,
-          children,
-          pointCluster,
-          pointLambdaOut,
-        );
+    if (leftBig && rightBig) {
+      // True split: the current cluster dies; every remaining point leaves here.
+      clusterStability[clusterIdx] =
+        (clusterStability[clusterIdx] ?? 0) + (leftSize + rightSize) * (splitLambda - birth);
+      for (const child of [node.left, node.right]) {
+        const newIdx = clusterParent.length;
+        clusterParent.push(clusterIdx);
+        clusterBirth.push(splitLambda);
+        clusterStability.push(0);
+        clusterChildren.push([]);
+        clusterChildren[clusterIdx]!.push(newIdx);
+        stack.push({ nodeId: child, clusterIdx: newIdx });
       }
-    }
-  }
-
-  const stability = new Map<number, number>();
-  for (const clusterId of condensedClusters) {
-    const birth = clusterBirthLambda.get(clusterId) ?? 0;
-    let stab = 0;
-    for (let p = 0; p < n; p += 1) {
-      if (pointCluster[p] === clusterId) {
-        stab += (pointLambdaOut[p] ?? 0) - birth;
-      }
-    }
-    stability.set(clusterId, Math.max(0, stab));
-  }
-
-  const isSelected = new Map<number, boolean>();
-  for (const clusterId of condensedClusters) {
-    isSelected.set(clusterId, true);
-  }
-
-  const processOrder = condensedClusters.slice().sort((a, b) => {
-    return (clusterBirthLambda.get(b) ?? 0) - (clusterBirthLambda.get(a) ?? 0);
-  });
-
-  const subtreeStability = new Map<number, number>();
-  for (const clusterId of condensedClusters) {
-    subtreeStability.set(clusterId, stability.get(clusterId) ?? 0);
-  }
-
-  for (const clusterId of processOrder) {
-    if (clusterId === rootId) continue;
-    const kids = condensedChildren.get(clusterId);
-    if (!kids || kids.length === 0) continue;
-
-    let childSum = 0;
-    for (const child of kids) {
-      childSum += subtreeStability.get(child) ?? 0;
-    }
-
-    if ((stability.get(clusterId) ?? 0) >= childSum) {
-      for (const child of kids) {
-        deselectSubtree(child, condensedChildren, isSelected);
-      }
+    } else if (leftBig || rightBig) {
+      // Noise shed: small side falls out, the cluster persists into the big side.
+      const bigChild = leftBig ? node.left : node.right;
+      const smallChild = leftBig ? node.right : node.left;
+      const smallSize = leftBig ? rightSize : leftSize;
+      clusterStability[clusterIdx] =
+        (clusterStability[clusterIdx] ?? 0) + smallSize * (splitLambda - birth);
+      assignFallenPoints(smallChild, clusterIdx, n, children, pointCluster);
+      stack.push({ nodeId: bigChild, clusterIdx });
     } else {
-      isSelected.set(clusterId, false);
-      subtreeStability.set(clusterId, childSum);
+      // Both sides too small: the cluster dies; all points fall out here.
+      clusterStability[clusterIdx] =
+        (clusterStability[clusterIdx] ?? 0) + (leftSize + rightSize) * (splitLambda - birth);
+      assignFallenPoints(node.left, clusterIdx, n, children, pointCluster);
+      assignFallenPoints(node.right, clusterIdx, n, children, pointCluster);
     }
   }
 
-  isSelected.set(rootId, false);
+  // EOM selection, bottom-up. Children are always created after their parent,
+  // so reverse creation order visits every child before its parent.
+  // Leaf selection keeps only condensed-tree leaves instead.
+  const clusterTotal = clusterParent.length;
+  const selected = new Array<boolean>(clusterTotal).fill(true);
+  selected[0] = false;
+
+  if (clusterSelection === 'leaf') {
+    for (let i = 1; i < clusterTotal; i += 1) {
+      selected[i] = clusterChildren[i]!.length === 0;
+    }
+  } else {
+    const subtreeStability = clusterStability.slice();
+
+    for (let i = clusterTotal - 1; i >= 1; i -= 1) {
+      const kids = clusterChildren[i]!;
+      if (kids.length === 0) continue;
+      let childSum = 0;
+      for (const child of kids) {
+        childSum += subtreeStability[child] ?? 0;
+      }
+      if ((clusterStability[i] ?? 0) >= childSum) {
+        for (const child of kids) {
+          deselectSubtree(child, clusterChildren, selected);
+        }
+      } else {
+        selected[i] = false;
+        subtreeStability[i] = childSum;
+      }
+    }
+  }
 
   const labels = new Int32Array(n).fill(-1);
   let clusterCount = 0;
   const clusterLabelMap = new Map<number, number>();
-
-  for (const clusterId of condensedClusters) {
-    if (isSelected.get(clusterId) && clusterId !== rootId) {
-      clusterLabelMap.set(clusterId, clusterCount);
+  for (let i = 1; i < clusterTotal; i += 1) {
+    if (selected[i]) {
+      clusterLabelMap.set(i, clusterCount);
       clusterCount += 1;
     }
   }
 
+  // A point belongs to the selected ancestor (if any) of the cluster it fell
+  // out of; points that fell out above every selected cluster are noise.
   for (let p = 0; p < n; p += 1) {
-    let current: number | undefined = pointCluster[p] ?? -1;
-    while (current !== undefined && current >= 0) {
-      if (isSelected.get(current) && current !== rootId) {
+    let current = pointCluster[p] ?? -1;
+    while (current >= 0) {
+      if (selected[current]) {
         labels[p] = clusterLabelMap.get(current) ?? -1;
         break;
       }
-      current = condensedParent.get(current);
+      current = clusterParent[current] ?? -1;
     }
   }
 
@@ -382,19 +385,16 @@ function extractClusters(
 
 function assignFallenPoints(
   nodeId: number,
-  cluster: number,
-  lambda: number,
+  clusterIdx: number,
   n: number,
   children: number[][],
   pointCluster: Int32Array,
-  pointLambdaOut: Float64Array,
 ): void {
   const stack: number[] = [nodeId];
   while (stack.length > 0) {
     const current = stack.pop()!;
     if (current < n) {
-      pointCluster[current] = cluster;
-      pointLambdaOut[current] = lambda;
+      pointCluster[current] = clusterIdx;
     } else {
       const kids = children[current];
       if (kids) {
@@ -405,15 +405,15 @@ function assignFallenPoints(
 }
 
 function deselectSubtree(
-  nodeId: number,
-  condensedChildren: Map<number, number[]>,
-  isSelected: Map<number, boolean>,
+  clusterIdx: number,
+  clusterChildren: number[][],
+  selected: boolean[],
 ): void {
-  const stack: number[] = [nodeId];
+  const stack: number[] = [clusterIdx];
   while (stack.length > 0) {
     const current = stack.pop()!;
-    isSelected.set(current, false);
-    const kids = condensedChildren.get(current);
+    selected[current] = false;
+    const kids = clusterChildren[current];
     if (kids) {
       for (const child of kids) stack.push(child);
     }

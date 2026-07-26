@@ -97,7 +97,9 @@ describe('hdbscan', () => {
   });
 
   it('works with 384-dimensional vectors (embedding scale)', () => {
-    const { vectors } = makeSyntheticClusters(20, 384, 3, 0.2);
+    // spread 0.03: per-point noise norm ~0.59 in 384-dim vs unit centers,
+    // keeping post-normalization contrast in the range real embeddings show.
+    const { vectors } = makeSyntheticClusters(20, 384, 3, 0.03);
     const result = hdbscan(vectors, { minClusterSize: 5 });
 
     expect(result.clusterCount).toBeGreaterThanOrEqual(1);
@@ -108,6 +110,63 @@ describe('hdbscan', () => {
     const result = hdbscan([[1, 2, 3]]);
     expect(result.clusterCount).toBe(0);
     expect(Array.from(result.labels)).toEqual([-1]);
+  });
+
+  // Regression: the condensed tree must let a cluster persist through
+  // noise-shedding splits. A prior implementation birthed a new cluster at
+  // every large child, so EOM collapsed messy data into one giant cluster.
+  it('separates unbalanced blobs plus uniform noise instead of one giant cluster', () => {
+    let seed = 42 >>> 0;
+    const rng = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 0xffffffff;
+    };
+    const gaussian = () => {
+      const u = Math.max(rng(), 1e-12);
+      const v = rng();
+      return Math.sqrt(-2 * Math.log(u)) * Math.cos(2 * Math.PI * v);
+    };
+    const normalize = (vec: number[]) => {
+      const norm = Math.sqrt(vec.reduce((s, x) => s + x * x, 0)) || 1;
+      return vec.map((x) => x / norm);
+    };
+
+    const dim = 64;
+    const vectors: number[][] = [];
+    for (const count of [150, 120, 100]) {
+      const center = normalize(Array.from({ length: dim }, () => gaussian()));
+      for (let i = 0; i < count; i += 1) {
+        vectors.push(normalize(center.map((c) => c + 0.05 * gaussian())));
+      }
+    }
+    for (let i = 0; i < 40; i += 1) {
+      vectors.push(normalize(Array.from({ length: dim }, () => gaussian())));
+    }
+
+    const { labels, clusterCount } = hdbscan(vectors, { minClusterSize: 5 });
+
+    expect(clusterCount).toBeGreaterThanOrEqual(3);
+    const sizes = new Map<number, number>();
+    for (const label of labels) {
+      if (label >= 0) sizes.set(label, (sizes.get(label) ?? 0) + 1);
+    }
+    const largest = Math.max(...sizes.values());
+    expect(largest).toBeLessThan(vectors.length * 0.8);
+  });
+
+  // Leaf selection must surface at least the granularity EOM would, and stay
+  // deterministic — it is the mode the star map uses to expose fine-grained
+  // thematic areas.
+  it('leaf selection finds at least as many clusters as EOM', () => {
+    const { vectors } = makeSyntheticClusters(30, 2, 4, 0.05);
+    const eom = hdbscan(vectors, { minClusterSize: 5, clusterSelection: 'eom' });
+    const leaf = hdbscan(vectors, { minClusterSize: 5, clusterSelection: 'leaf' });
+
+    expect(leaf.clusterCount).toBeGreaterThanOrEqual(eom.clusterCount);
+    expect(leaf.clusterCount).toBeGreaterThanOrEqual(4);
+
+    const again = hdbscan(vectors, { minClusterSize: 5, clusterSelection: 'leaf' });
+    expect(Array.from(again.labels)).toEqual(Array.from(leaf.labels));
   });
 });
 

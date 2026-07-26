@@ -14,6 +14,8 @@ import type { StarMapCluster } from '../data/use-star-map-clusters';
 
 export interface PromotionReviewProps {
   cluster: StarMapCluster;
+  /** repoId → owner/name for review display; falls back to the raw id. */
+  repoNames: Map<string, string>;
   onConfirm: (name: string, repoIds: string[]) => void;
   onCancel: () => void;
   isSubmitting: boolean;
@@ -26,6 +28,7 @@ export interface PromotionReviewProps {
  */
 export const PromotionReviewDialog = memo(function PromotionReviewDialog({
   cluster,
+  repoNames,
   onConfirm,
   onCancel,
   isSubmitting,
@@ -93,7 +96,7 @@ export const PromotionReviewDialog = memo(function PromotionReviewDialog({
                         : 'text-muted-foreground line-through opacity-50'
                     }`}
                   >
-                    <span className="truncate">{repoId}</span>
+                    <span className="truncate">{repoNames.get(repoId) ?? repoId}</span>
                     {isIncluded ? (
                       <button
                         type="button"

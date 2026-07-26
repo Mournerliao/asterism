@@ -32,6 +32,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   starMapClusters,
   starMapClusterByRepo,
   onStarMapPromoteCluster,
+  starMapSearchActive,
 }: {
   view: RepoViewMode;
   records: StarredRepoRecord[];
@@ -53,6 +54,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   starMapClusters: StarMapCluster[];
   starMapClusterByRepo: Map<string, number>;
   onStarMapPromoteCluster?: (cluster: StarMapCluster) => void;
+  starMapSearchActive?: boolean;
 }) {
   // 访问过的视图保持挂载，后续切换只做显隐，避开虚拟列表重建成本。
   const [mountedViews, setMountedViews] = useState<ReadonlySet<RepoViewMode>>(
@@ -98,6 +100,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
             clusters={starMapClusters}
             clusterByRepo={starMapClusterByRepo}
             onPromoteCluster={onStarMapPromoteCluster}
+            searchActive={starMapSearchActive}
           />
         </div>
       ) : null}

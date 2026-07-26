@@ -20,6 +20,8 @@ export interface StarMapViewProps {
   clusters: StarMapCluster[];
   clusterByRepo: Map<string, number>;
   onPromoteCluster?: (cluster: StarMapCluster) => void;
+  /** 搜索激活时隐藏 promotion 入口，避免被误解为“固化命中集”。 */
+  searchActive?: boolean;
 }
 
 export const StarMapView = memo(function StarMapView({
@@ -34,6 +36,7 @@ export const StarMapView = memo(function StarMapView({
   clusters,
   clusterByRepo,
   onPromoteCluster,
+  searchActive,
 }: StarMapViewProps) {
   const { t } = useTranslation();
   const { resolvedTheme } = useTheme();
@@ -209,16 +212,18 @@ export const StarMapView = memo(function StarMapView({
           <span className="text-micro text-muted-foreground">
             {t('browse.starMap.clusterCount', { count: hoveredCluster.repoIds.length })}
           </span>
-          <button
-            type="button"
-            className="ml-2 rounded-md bg-primary/10 px-2 py-1 text-micro font-medium text-primary hover:bg-primary/20 transition-colors"
-            onClick={(e) => {
-              e.stopPropagation();
-              onPromoteCluster(hoveredCluster);
-            }}
-          >
-            {t('browse.starMap.promote')}
-          </button>
+          {!searchActive ? (
+            <button
+              type="button"
+              className="ml-2 rounded-md bg-primary/10 px-2 py-1 text-micro font-medium text-primary hover:bg-primary/20 transition-colors"
+              onClick={(e) => {
+                e.stopPropagation();
+                onPromoteCluster(hoveredCluster);
+              }}
+            >
+              {t('browse.starMap.promote')}
+            </button>
+          ) : null}
         </div>
       ) : null}
       <p className="pointer-events-none absolute bottom-3 left-4 max-w-md text-micro text-muted-foreground">

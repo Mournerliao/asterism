@@ -434,6 +434,7 @@ export function BrowsePage() {
       starMapClusters={starMapClusters.clusters}
       starMapClusterByRepo={starMapClusters.clusterByRepo}
       onStarMapPromoteCluster={setPromotingCluster}
+      starMapSearchActive={Boolean(filters.query.trim())}
     />
   );
 
@@ -633,6 +634,7 @@ export function BrowsePage() {
         {promotingCluster ? (
           <PromotionReviewDialog
             cluster={promotingCluster}
+            repoNames={repoNames}
             isSubmitting={promotionSubmitting}
             onCancel={() => {
               setPromotingCluster(null);

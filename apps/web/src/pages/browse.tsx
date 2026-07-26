@@ -166,7 +166,11 @@ export function BrowsePage() {
     return map;
   }, [repoTags]);
 
-  const semanticEnabled = embeddingBootstrap.optedIn && embeddingBootstrap.backend !== null;
+  // 全量新鲜路径不创建 Worker（backend 为 null），但向量已在库中、查询嵌入会按需自准备：
+  // 就绪判定看 phase，而非要求本会话存在活的 Worker。
+  const semanticEnabled =
+    embeddingBootstrap.optedIn &&
+    (embeddingBootstrap.phase === 'ready' || embeddingBootstrap.backend !== null);
   const { distanceByRepoId } = useSemanticNeighbors(filters.query, { enabled: semanticEnabled });
   const starMap = useStarMapProjection({ enabled: semanticEnabled });
 

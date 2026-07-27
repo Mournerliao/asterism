@@ -10,6 +10,20 @@ import i18n from '../i18n';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
 import { RepoInspector } from './repo-inspector';
 
+const semanticMocks = vi.hoisted(() => ({
+  related: [
+    {
+      repoId: 'repo-2',
+      repo: {
+        owner: 'related',
+        name: 'repository',
+        description: 'A related repository from the same library.',
+      },
+      starredAt: null,
+    },
+  ],
+}));
+
 vi.mock('../data/use-note', () => ({
   useNote: () => ({ data: '', isLoading: false }),
   useSaveNote: () => ({ mutateAsync: vi.fn(), isPending: false }),
@@ -32,6 +46,10 @@ vi.mock('../data/use-collections', () => ({
 vi.mock('../data/use-collection-repos', () => ({
   useCollectionRepos: () => ({ data: [] }),
   useToggleCollectionRepo: () => ({ mutate: vi.fn() }),
+}));
+
+vi.mock('../data/use-semantic-neighborhood', () => ({
+  useSemanticNeighborhood: () => semanticMocks.related,
 }));
 
 vi.mock('../hooks/use-media-query', () => ({
@@ -110,6 +128,18 @@ afterEach(async () => {
 });
 
 describe('floating Quick Look overlay dismissal', () => {
+  it('switches to a related star without leaving Quick Look', async () => {
+    const related = document.querySelector<HTMLButtonElement>(
+      'button[aria-label="Open related repository related/repository"]',
+    );
+    expect(related).not.toBeNull();
+
+    await act(async () => related?.click());
+
+    expect(useRepoInspectorStore.getState().record?.repoId).toBe('repo-2');
+    expect(document.getElementById('repo-inspector')).not.toBeNull();
+  });
+
   it('does not close when pointerdown lands on a portaled menu (Add tag → Create tag)', async () => {
     const menu = document.createElement('div');
     menu.setAttribute('role', 'menu');

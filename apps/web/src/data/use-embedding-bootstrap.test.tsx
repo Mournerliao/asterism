@@ -1,10 +1,12 @@
 // @vitest-environment happy-dom
 
 import type { StarredRepoRecord } from '@asterism/db';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { embeddingOptInStorageKey } from '../lib/embedding-bootstrap';
+import { embeddingOptInStorageKey, resetEmbeddingConsentState } from '../lib/embedding-consent';
+import { embeddingKeys } from './keys';
 import { useEmbeddingBootstrap } from './use-embedding-bootstrap';
 
 const mocks = vi.hoisted(() => ({
@@ -51,6 +53,7 @@ function record(repoId: string): StarredRepoRecord {
 
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
+let queryClient: QueryClient;
 
 function Harness({ records }: { records: readonly StarredRepoRecord[] }) {
   useEmbeddingBootstrap(records);
@@ -64,13 +67,21 @@ async function render(records: readonly StarredRepoRecord[]) {
     root = createRoot(container);
   }
   await act(async () => {
-    root?.render(<Harness records={records} />);
+    root?.render(
+      <QueryClientProvider client={queryClient}>
+        <Harness records={records} />
+      </QueryClientProvider>,
+    );
     await Promise.resolve();
   });
 }
 
 beforeEach(() => {
   localStorage.clear();
+  resetEmbeddingConsentState();
+  queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } },
+  });
   mocks.listReposToEmbed.mockReset();
   mocks.upsertRepoEmbedding.mockReset();
   mocks.session.current = { user: { id: 'user-a' } };
@@ -124,5 +135,21 @@ describe('useEmbeddingBootstrap', () => {
 
     expect(mocks.listReposToEmbed).toHaveBeenCalledTimes(2);
     expect(mocks.listReposToEmbed.mock.calls[1]?.[1]?.desired).toHaveLength(2);
+  });
+
+  it('invalidates the embedding list after a preparation pass completes', async () => {
+    localStorage.setItem(embeddingOptInStorageKey('user-a'), 'enabled');
+    mocks.listReposToEmbed.mockResolvedValue([]);
+    const invalidate = vi.spyOn(queryClient, 'invalidateQueries');
+
+    await render([record('repo-1')]);
+    await act(async () => {
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(invalidate).toHaveBeenCalledWith({
+      queryKey: embeddingKeys.list('user-a'),
+    });
   });
 });

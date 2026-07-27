@@ -225,7 +225,8 @@ Repo Quick Look 是 Browse 与集合详情共享的瞬时、非模态详情层�
 - 选择与关闭：点击当前已选仓库再次关闭，点击其他仓库直接切换；点击悬浮窗外或按 Esc 关闭，repo trigger 自身不走外部关闭处理；Quick Look 自身经 Portal 挂出的菜单 / 列表框 / 对话框不算窗外点击，不得因此关闭浮窗。任何路由变化都关闭 Quick Look，不跨页面保留。从 README 工作区按来源协调器返回 Browse / Collection 后，若同一仓库仍在恢复后的可见列表中，允许程序化重开该仓库的 Quick Look（这是可逆阅读迂回的一部分，不是跨路由保活）。键盘 Enter / Space 打开时把焦点移入窗口，关闭后返回原 trigger；pointer 打开保留列表操作上下文。
 - 窗口移动：桌面与平板悬浮层以仓库身份所在的完整首行作为拖动区域，不添加 drag icon 或其他冗余能力提示；仓库链接短按仍打开 GitHub，pointer 位移达到 `4px` 后才进入拖动并抑制链接点击，关闭按钮不参与拖动。浮窗限制在视口 `12px` 安全边距内，窗口尺寸变化后自动收回视口，手机底部 Sheet 不提供拖动。
 - 编辑安全：笔记草稿切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续，或通过关闭按钮 / Esc / 点遮罩继续编辑（关闭与「继续编辑」同义，页脚不再单独展示该动作）。页脚两个决策动作桌面右对齐，窄屏同宽单列，不得用 `space-between` 拆散。保存失败时保留草稿与原选择，不得静默丢失。
-- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。主体固定为 Overview → Tags → Collections → Notes 的单列结构。
+- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。主体固定为 Overview → Related Stars（有可信结果时）→ Tags → Collections → Notes 的单列结构。
+- Related Stars 是从当前收藏继续探索的只读 derived 能力：只展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。embedding 未准备、当前仓库无向量、无互为近邻或查询失败时整段不出现，不显示空态、不强行补足数量。
 - 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 
 ### Dialog Pattern · 对话框模式
@@ -241,7 +242,8 @@ Repo Quick Look 是 Browse 与集合详情共享的瞬时、非模态详情层�
 Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等权重：主栏只直出语言、Topic、用户标签、更多筛选与排序；Star 阈值、更新时间和仓库状态收进“更多筛选”，触发器显示已启用的次级筛选数量。排序保持独立可见，不计入“清除筛选”的 active 状态。
 
 - App Topbar 中的搜索是 **Browse Search**，只在 Browse 路由显示并修改 Browse 筛选状态。它不是全局搜索、command surface 或 Collection Detail 搜索；不得在其他路由产生不可见的筛选副作用。
-- ADR 0026（Accepted）把 Browse Search 演进为**隐形混合搜索**：关键词命中与语义近邻融合为一套排序、**零模式开关**（不新增 Semantic 模式切换、不暴露 Embedding 设置），由浏览器内 embedding 支撑、弱设备降级纯关键词；在其落地前维持现有关键词搜索模型。语义星图为列表的并列可切换第二视图，列表是其无障碍等价路径。
+- ADR 0026（Accepted）把 Browse Search 演进为**隐形混合搜索**：关键词命中与语义近邻融合为一套排序、**零模式开关**（不新增 Semantic 模式切换、不暴露 Embedding 设置），由浏览器内 embedding 支撑、弱设备降级纯关键词。
+- ADR 0028 已移除二维语义星图。Browse 只提供卡片与列表两种信息布局；语义能力必须嵌入搜索排序或具体仓库的 Related Stars，不新增空间视图、语义模式开关或抽象点云导航。
 
 - 语言与 Topic 使用固定高度的可搜索 facet picker；初次打开最多渲染 20 个选项，搜索从完整集合中匹配并最多渲染 50 个结果，禁止在弹层首开时挂载全部高基数 facets。
 - 搜索输入的放大镜统一使用 `black/60`，并置于 Input 表面之上，避免被半透明 Glass 背景覆盖洗白。

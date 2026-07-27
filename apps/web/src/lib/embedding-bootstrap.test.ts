@@ -1,7 +1,8 @@
 import { DEFAULT_EMBEDDING_DIMENSIONS, DEFAULT_EMBEDDING_MODEL } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { describe, expect, it } from 'vitest';
-import { embeddingOptInStorageKey, runRepositoryEmbeddingBootstrap } from './embedding-bootstrap';
+import { runRepositoryEmbeddingBootstrap } from './embedding-bootstrap';
+import { embeddingOptInStorageKey } from './embedding-consent';
 
 const record: StarredRepoRecord = {
   repoId: 'repo-1',

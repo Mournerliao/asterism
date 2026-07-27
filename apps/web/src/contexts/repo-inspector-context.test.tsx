@@ -38,6 +38,10 @@ vi.mock('../data/use-collection-repos', () => ({
   useToggleCollectionRepo: () => ({ mutate: vi.fn() }),
 }));
 
+vi.mock('../data/use-semantic-neighborhood', () => ({
+  useSemanticNeighborhood: () => [],
+}));
+
 vi.mock('../hooks/use-media-query', () => ({
   useMediaQuery: () => true,
 }));

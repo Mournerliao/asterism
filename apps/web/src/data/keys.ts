@@ -55,5 +55,5 @@ export const aiOrganizationKeys = {
 export const embeddingKeys = {
   all: ['embeddings'] as const,
   search: (userId: string, query: string) => ['embeddings', 'search', userId, query] as const,
-  starMap: (userId: string) => ['embeddings', 'star-map', userId] as const,
+  list: (userId: string) => ['embeddings', 'list', userId] as const,
 };

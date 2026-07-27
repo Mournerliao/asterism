@@ -71,8 +71,6 @@ export {
   parseHttpsUrl,
   SsrfError,
 } from './ai/ssrf';
-export type { ClusterLabel, ClusterNameInput, HdbscanOptions, HdbscanResult } from './clustering';
-export { hdbscan, nameCluster, nameClusters } from './clustering';
 export {
   buildExportPayload,
   scopeExportSnapshot,
@@ -137,8 +135,6 @@ export type { Repo, RepoId } from './models/repo';
 export { repoFullName } from './models/repo';
 export type { Tag, TagId } from './models/tag';
 export { pickTagColor, TAG_COLORS } from './models/tag';
-export type { NormalizeOptions, Point2D } from './projection';
-export { pca2d, projectAndNormalize, robustNormalizeLayout } from './projection';
 export type {
   ArchiveSplit,
   DashboardInsights,
@@ -165,3 +161,8 @@ export {
 } from './repos/filter';
 export type { HybridRankInput, HybridRankResult } from './repos/hybrid-search';
 export { rankHybridRepos } from './repos/hybrid-search';
+export type {
+  RepoSemanticVector,
+  SemanticNeighbor,
+} from './repos/semantic-neighborhood';
+export { findMutualSemanticNeighbors } from './repos/semantic-neighborhood';

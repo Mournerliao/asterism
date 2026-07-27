@@ -166,16 +166,6 @@
     "noResultsTitle": "没有匹配的仓库",
     "noResultsDescription": "试试调整筛选条件或搜索关键词。",
     "semanticSectionLabel": "语义相关",
-    "viewStarMap": "星图",
-    "starMap": {
-      "label": "语义星图",
-      "panHint": "拖拽平移，滚轮缩放",
-      "emptyTitle": "星图需要预备向量",
-      "emptyDescription": "请先准备更智能的搜索以启用语义星图。",
-      "projecting": "正在投影\u2026",
-      "clusterCount": "{{count}} 个仓库",
-      "promote": "固化为集合"
-    },
     "table": {
       "label": "仓库列表",
       "repository": "仓库",
@@ -190,6 +180,9 @@
     "forks": "{{value}} Fork",
     "starLabel": "Star",
     "forkLabel": "Fork",
+    "relatedStars": "相关收藏",
+    "relatedStarsDescription": "在你的收藏库中与此仓库双向相关。",
+    "openRelatedStar": "打开相关仓库 {{repo}}",
     "tags": "标签",
     "addTag": "添加标签",
     "createTag": "新建标签…",
@@ -586,14 +579,5 @@
       "runTest": "开始测试",
       "testing": "测试中…"
     }
-  },
-  "promotion": {
-    "title": "将簇固化为集合",
-    "nameLabel": "集合名称",
-    "namePlaceholder": "输入集合名称",
-    "reposLabel": "仓库（{{count}}）",
-    "removeRepo": "移除仓库",
-    "cancel": "取消",
-    "confirm": "固化 {{count}} 个仓库"
   }
 }

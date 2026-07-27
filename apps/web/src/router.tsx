@@ -22,12 +22,6 @@ const ReadmeCorpusLabPage = lazy(() =>
   })),
 );
 
-const StarMapPrototypePage = lazy(() =>
-  import('./prototype/star-map/star-map-prototype-page').then((module) => ({
-    default: module.StarMapPrototypePage,
-  })),
-);
-
 const CollectionsPage = lazy(() =>
   import('./pages/collections').then((module) => ({ default: module.CollectionsPage })),
 );
@@ -102,14 +96,6 @@ export const router = createBrowserRouter([
           element: (
             <Suspense fallback={<CorpusLabFallback />}>
               <ReadmeCorpusLabPage />
-            </Suspense>
-          ),
-        },
-        {
-          path: '/dev/star-map-prototype',
-          element: (
-            <Suspense fallback={<CorpusLabFallback />}>
-              <StarMapPrototypePage />
             </Suspense>
           ),
         },

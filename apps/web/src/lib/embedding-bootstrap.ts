@@ -21,10 +21,6 @@ export interface RepositoryEmbeddingBootstrapResult extends EmbeddingBackfillPro
   backend: EmbeddingRuntimeBackend | null;
 }
 
-export function embeddingOptInStorageKey(userId: string) {
-  return `asterism:embedding-bootstrap:v1:${userId}:${DEFAULT_EMBEDDING_MODEL}`;
-}
-
 export async function runRepositoryEmbeddingBootstrap(input: {
   records: readonly StarredRepoRecord[];
   listPending: (desired: readonly DesiredRepoEmbedding[]) => Promise<RepoEmbeddingBackfillItem[]>;

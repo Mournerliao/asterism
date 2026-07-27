@@ -1,13 +1,18 @@
 import { DEFAULT_EMBEDDING_MODEL, repoContentHash } from '@asterism/core';
 import { listReposToEmbed, type StarredRepoRecord, upsertRepoEmbedding } from '@asterism/db';
+import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
+import { runRepositoryEmbeddingBootstrap } from '../lib/embedding-bootstrap';
 import {
-  embeddingOptInStorageKey,
-  runRepositoryEmbeddingBootstrap,
-} from '../lib/embedding-bootstrap';
+  beginEmbeddingPreparation,
+  finishEmbeddingPreparation,
+  readEmbeddingConsent,
+  useEmbeddingConsent,
+} from '../lib/embedding-consent';
 import type { EmbeddingRuntimeBackend } from '../lib/embedding-runtime';
 import { supabase } from '../lib/supabase';
+import { embeddingKeys } from './keys';
 
 export type EmbeddingBootstrapPhase =
   | 'idle'
@@ -35,26 +40,11 @@ const INITIAL_STATE: EmbeddingBootstrapState = {
   error: null,
 };
 
-function readOptIn(userId: string) {
-  try {
-    return localStorage.getItem(embeddingOptInStorageKey(userId)) === 'enabled';
-  } catch {
-    return false;
-  }
-}
-
-function saveOptIn(userId: string) {
-  try {
-    localStorage.setItem(embeddingOptInStorageKey(userId), 'enabled');
-  } catch {
-    // Cache / storage restrictions must not block keyword search.
-  }
-}
-
 export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
   const { session } = useSession();
   const userId = session?.user.id;
-  const [optedIn, setOptedIn] = useState(false);
+  const queryClient = useQueryClient();
+  const optedIn = useEmbeddingConsent(userId);
   const [state, setState] = useState<EmbeddingBootstrapState>(INITIAL_STATE);
   const [rerunRequested, setRerunRequested] = useState(false);
   const activeUserRef = useRef(userId);
@@ -82,12 +72,10 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
     setState(INITIAL_STATE);
     if (!userId) {
       consentedUserRef.current = null;
-      setOptedIn(false);
       return;
     }
-    const hasConsent = readOptIn(userId);
+    const hasConsent = readEmbeddingConsent(userId);
     consentedUserRef.current = hasConsent ? userId : null;
-    setOptedIn(hasConsent);
   }, [userId]);
 
   const run = useCallback(
@@ -96,9 +84,7 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
         return Promise.resolve();
       }
       if (rememberChoice) {
-        saveOptIn(userId);
         consentedUserRef.current = userId;
-        setOptedIn(true);
       }
       const generation = generationRef.current;
       const running = runningRef.current;
@@ -107,6 +93,8 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
       }
 
       const currentSignature = signature;
+      const preparationToken = beginEmbeddingPreparation(userId, rememberChoice);
+      let succeeded = false;
       const isCurrent = () =>
         activeUserRef.current === userId && generationRef.current === generation;
       const updateState = (
@@ -163,6 +151,10 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
           if (isCurrent()) {
             completedSignatureRef.current = currentSignature;
           }
+          await queryClient.invalidateQueries({
+            queryKey: embeddingKeys.list(userId),
+          });
+          succeeded = true;
           updateState((current) => ({
             ...current,
             phase: 'ready',
@@ -183,6 +175,7 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
         if (runningRef.current?.promise === task) {
           runningRef.current = null;
         }
+        finishEmbeddingPreparation(userId, preparationToken, succeeded);
         if (isCurrent() && signatureRef.current !== currentSignature) {
           setRerunRequested(true);
         }
@@ -190,7 +183,7 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
       runningRef.current = { generation, promise: task, userId };
       return task;
     },
-    [records, signature, userId],
+    [queryClient, records, signature, userId],
   );
 
   useEffect(() => {

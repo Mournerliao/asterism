@@ -6,7 +6,13 @@
 
 ## 当前状态
 
-> **下一步（恢复点，2026-07-26）**：ADR 0026 检索优先系列 **#18–#22 全部交付并关闭**（#22 于 2026-07-26 复核四道门禁后关闭，见 `logs/2026-07-26-retrieval-first-series-closure.md`）；Phase 2 本体（#11–#17）早于 2026-07-23 收尾。Phase 3 浏览器扩展可立即领取。每票之间清空 context；动手前先读 ADR 0026 与 `contracts/{product,ui-ux,data-model,architecture}.md`。
+> **下一步（恢复点，2026-07-27）**：ADR 0027、0028 已基于真实个人库与明确用户任务完成检索优先形态纠偏：正式能力收敛为浏览器 embedding + 隐形混合搜索 + Quick Look 局部语义邻域，涌现簇、promotion 与二维语义星图均已移除。Phase 3 浏览器扩展可立即领取；调整语义邻域参数前必须积累真实错误案例，不得以展示数量为目标。
+
+> Related Stars review findings 已全部修复（2026-07-27，见 `logs/2026-07-27-semantic-neighborhood-review-findings.md`）：embedding consent、准备轮次与可用性现由单一响应式状态管理，render 不再重复同步读取 localStorage；首次检查 / 增量回填期间 Related Stars 始终静默，成功后主动失效 embedding list cache 再解锁，失败保持 degraded 且不暴露半成品；轮次 token 阻止旧异步任务提前解锁新任务。互为 Top-12 / 最多 5 条已收为 core 领域不变量，不再导出未被产品使用的调参接口；测试中的规避性类型断言已清理。
+
+> 二维语义星图移除（2026-07-27，见 ADR 0028 与 `logs/2026-07-27-remove-semantic-star-map.md`）：继续从用户任务而非品牌隐喻审视星图，确认裸点无法在点击前表达仓库内容，用户必须逐点探针式判断；PCA 展示投影易被误读为可靠语义距离，新 Star 还会改变坐标，无法形成稳定地图记忆。混合搜索已承担“找”，Related Stars 已承担“从具体仓库继续探索”，星图没有独占职责。Browse 因此删除第三视图、Canvas / 投影 hook、core PCA 模块与 dev 原型，只保留卡片 / 列表；持久化状态升至 v1，旧 `star-map` 偏好安全迁移到 grid。Asterism 的星群继续作为品牌比喻，不再被当作二维界面承诺。
+
+> 全库涌现簇产品纠偏 + 局部语义邻域落地（2026-07-27，见 ADR 0027 与 `logs/2026-07-27-local-semantic-neighborhoods.md`）：审计真实 518 条 Star 后确认，7 个 2D PCA 地图簇只覆盖 173 条且成员低纯度，`vue · interview · python` 等名称只是少数成员 token，无法支持全库理解；问题是硬分区假设而非单纯命名算法。用户在三种只读原型中选择 A「仓库语义邻域」。正式实现把 Related Stars 放入 Quick Look 的 Overview 后，只返回最多 5 条互为 Top-12 近邻，过滤模型 / content hash 失配的旧向量，无结果时整段沉默；点击可在原 Quick Look 中继续探索。星图移除簇边界、簇名、hover promotion 与固化对话框，实验原型、Web 聚类 hook 及无调用方的 core HDBSCAN / 命名模块一并删除；数据库 `promotion` 兼容值保留。真实浏览器已验证 `pi → gpt-pilot` 连续探索和 `make-x-great-again` 空结果。
 
 > 涌现簇退化 bug 修复 + promotion 体验修正（2026-07-26，见 `logs/2026-07-26-star-map-cluster-fixes.md`）：真实数据（518 stars）暴露 HDBSCAN 聚出单个 511 巨簇的退化——根因是 `extractClusters` 的 condensed tree 把每个 ≥ minClusterSize 的子节点都立为新簇，偏离标准语义（仅两侧都 ≥ minClusterSize 的「真分裂」才诞生新簇，甩噪声时父簇应延续并累积 stability），链式簇稀释 stability 导致 EOM 层层坍缩到根下巨簇。已按标准语义重写（噪声脱落→父簇延续、真分裂→子簇诞生、EOM 自底向上），合成 3 团 + 噪声数据从「1 簇吞 409/410」修正为精确 3 簇 + 36 噪声点，新增回归测试锁死该形态；原 384 维测试数据 spread 0.2 在归一化后实际无结构（旧 bug 侥幸让它通过），已调为 0.03。同时修复 `PromotionReviewDialog` 仓库列表渲染裸 UUID（现经 `repoNames` Map 显示 owner/name，轻审阅可用），并在搜索激活时隐藏簇 promotion 入口，避免「点亮命中」被误解为固化对象（promotion 固化的始终是簇全量成员，与搜索命中集正交，符合 ADR 0026 §7/§8）。同日追加：修复刷新后星图误报「需要准备向量」——全量新鲜路径不创建 Worker（backend 为 null），browse 页就绪判定误把「活 Worker」当「向量就绪」，已改为 `optedIn && (phase === 'ready' || backend !== null)`。再追加：语义修正后真实 518 条 e5 向量又退化为零簇——浏览器内实证 384 维上整棵凝缩树无真分裂（高维距离集中 + 单链吸积），而 2D PCA 投影上结构清晰；`hdbscan` 新增 `clusterSelection: 'eom' | 'leaf'`（对齐 scikit-learn），`useStarMapClusters` 改在 2D 投影空间聚类 + leaf 选择 + minClusterSize 随规模缓升，真实浏览器复核 518 仓库浮现 7 个有意义的主题区域。`typecheck / test` 全绿。
 

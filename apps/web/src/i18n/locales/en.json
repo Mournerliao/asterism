@@ -166,16 +166,6 @@
     "noResultsTitle": "No matching repositories",
     "noResultsDescription": "Try adjusting your filters or search keywords.",
     "semanticSectionLabel": "Related by meaning",
-    "viewStarMap": "Star map",
-    "starMap": {
-      "label": "Semantic star map",
-      "panHint": "Drag to pan, scroll to zoom",
-      "emptyTitle": "Star map requires prepared vectors",
-      "emptyDescription": "Prepare smarter search first to enable the semantic star map.",
-      "projecting": "Projecting\u2026",
-      "clusterCount": "{{count}} repos",
-      "promote": "Promote to collection"
-    },
     "table": {
       "label": "Repository list",
       "repository": "Repository",
@@ -190,6 +180,9 @@
     "forks": "{{value}} forks",
     "starLabel": "stars",
     "forkLabel": "forks",
+    "relatedStars": "Related stars",
+    "relatedStarsDescription": "Closely related in both directions within your own library.",
+    "openRelatedStar": "Open related repository {{repo}}",
     "tags": "Tags",
     "addTag": "Add tag",
     "createTag": "Create new tag…",
@@ -586,14 +579,5 @@
       "runTest": "Run test",
       "testing": "Testing…"
     }
-  },
-  "promotion": {
-    "title": "Promote cluster to collection",
-    "nameLabel": "Collection name",
-    "namePlaceholder": "Enter collection name",
-    "reposLabel": "Repositories ({{count}})",
-    "removeRepo": "Remove repository",
-    "cancel": "Cancel",
-    "confirm": "Promote {{count}} repos"
   }
 }

@@ -11,6 +11,7 @@
 ## 关键指针（决策与契约在哪）
 
 - **Organization Task 部署（2026-07-28，#24）**：关联项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260728180000_organization_tasks.sql` 与 `20260728183000_localized_organization_opportunity_goal.sql`，`manage-organization-tasks` 为 `ACTIVE v4`，更新后的 `sync-stars` 为 `ACTIVE v6`。新环境仍须按同一顺序迁移并部署两个函数。前者不需要 BYOK 加密 secret，不读取 credential，也不调用 Provider；缺少 active Generation Connection 时发现不会固化不完整披露。
+- **Phase 2.1 tickets（2026-07-28）**：GitHub #23 已拆为 #24 → #25 → #26 → #27 → #28；#24 已实现并部署，当前 frontier 为被其解锁的 #25。后续不得把一次性 prototype 演化为生产代码，也不得提前实现 #26–#28。
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。
   - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + Edge Functions）；Realtime 部分由 ADR 0012 废止，pgvector 产品用途曾由 ADR 0022 移除、现由 ADR 0026 重新启用
   - `0012-remove-realtime-from-product-scope.md`：业务数据不做主动推送收敛，按查询边界读取 Postgres 最新状态
@@ -44,6 +45,7 @@
 
 ## 待办提醒（便签级）
 
+- **Phase 2.1 一次性原型（2026-07-28，verdict 已获得）**：运行 `pnpm prototype:natural-ai`；同一 Browse 路由通过 `?variant=A|B|C` 比较引导式工作区 / 规划对话 / 整理控制台，通过 `?scenario=first|incremental` 比较首次历史大库 / 后续新增 Star。用户选择 B，理由是“对话形式更自然”。原型仍仅为开发态内存 stub，无 Provider / canonical 写入；后续规格以对话为主骨架，但必须为复杂审阅、进度与恢复提供不依赖聊天滚动的稳定任务面。完整原型应保留到 throwaway branch 后再从 main 清理 losing variants，不要直接把 B 的原型代码当作生产规格。证据与未决项见 `logs/2026-07-28-natural-ai-organization-prototype.md`。
 - **浏览器 embedding 资产与实测（2026-07-24，#19）**：固定 `Xenova/multilingual-e5-small@761b726…` 的 q8 ONNX（118,308,185 bytes，SHA-256 `f80102d3…c193`），`@huggingface/transformers` 4.2.0；构建脚本写入忽略目录 `.cache/embedding-assets/v1/public`，运行期只从 `/models/` 与 `/embedding-runtime/` 同源读取，禁止远程模型。批量大小固定 16；真实 Chromium 暖缓存 WebGPU 16 条 454ms、WASM 236ms，本机虽 WASM 更快仍按契约 WebGPU 优先并可靠回退。资产来源与复现见 `apps/web/EMBEDDING_ASSETS.md`。
 - **构建期取模型可走代理 / 镜像 / 可离线降级（2026-07-24）**：`prepare-embedding-assets.mjs` 是 `pnpm build`/`predev` 的前置步；Node 构建期 `fetch` **直连 `huggingface.co`、不读系统/OS/浏览器代理**（让内置 fetch 读代理的 `NODE_USE_ENV_PROXY` 要 Node 24+，本项目 Node 22；`undici` 的 `EnvHttpProxyAgent` 又因该包在 `apps/web` 解析不到而不可用），故即使浏览器能开 HF 也可能 `UND_ERR_CONNECT_TIMEOUT`（10s 连接超时，国内/受限网络典型）。三条降级路：①**代理** `HTTPS_PROXY`（及 `http_proxy`/`ALL_PROXY` 等常规变量）——脚本自读并用 Node 内置 `http` 的 `CONNECT` 隧道 + `tls` 转发下载（零新增依赖），如 `http://127.0.0.1:7890`；②**镜像** `HF_ENDPOINT` 或 `ASTERISM_MODEL_BASE`（如 `https://hf-mirror.com` 拉**真实资产**；脚本里 `ASTERISM_MODEL_BASE` 优先级高于 `HF_ENDPOINT`）；③**跳过** `ASTERISM_ALLOW_MISSING_EMBEDDING_ASSETS=1`（拿不到就打警告继续、产物运行时回退关键词搜索）。下载失败重试 3 次；SHA-256 失配仍硬失败（损坏而非缺网）。turbo.json 声明分工：改变产物的 `HF_ENDPOINT`/`ASTERISM_MODEL_BASE`/`ASTERISM_ALLOW_MISSING_EMBEDDING_ASSETS` 进 `build.env`（入缓存键），只改路由不改字节的代理变量进 `build.passThroughEnv`。详见 `apps/web/EMBEDDING_ASSETS.md`。
 - **当前设计系统**（2026-07-10）：配色已从 Primer 改为 Graphite Glass（ADR 0009）；8px 圆角、Geist 字体与 4px 间距栅格不变。玻璃只用于交互层，背景无噪点，Logo 为单色电光蓝。

@@ -8,6 +8,14 @@
 
 > **Phase 2.1 tracer bullet #24 已实现（2026-07-28）**：目标优先 Organization Task 已具备无需仓库预选的直接创建、首次 / 增量同步后无 Provider 调用的可忽略 Opportunity、完整授权 Star 库确定性候选发现、不可变候选 revision、逐仓库排除、最多 50 条 / 页的 Generation manifest、准确调用 / 重试 / token 上限与费用未知披露、批准前授权 / 内容指纹复核、任务历史 / 稳定详情路由恢复、revision CAS 和明确只读结束。新增 9 张 owner-RLS 私有表、2 个仅 service-role checkpoint / approval RPC、`manage-organization-tasks` 受信函数、`packages/db` 严格安全投影与 en / zh-CN 任务 UI；该切片不读取 credential、不调用 Provider、不修改 canonical。下一 frontier 为由 #24 解锁的 #25「可恢复分页 Generation 与 Organization Plan」。见 `logs/2026-07-28-issue-24-persistent-organization-tasks.md`。
 
+> **票据拆分记录（2026-07-28，自然 AI 整理 tickets）**：GitHub #23 已按用户确认的粒度拆成 5 张 `ready-for-agent` tracer-bullet tickets，并建立 / 核验原生线性依赖：#24 持久任务 + 候选 / 披露 → #25 可恢复分页 Generation / Plan → #26 风险审阅 / 可靠执行 → #27 安全 Task Undo → #28 旧草稿迁移与 selection-first 退役。#24 已完成，当前 frontier 已推进到 #25；不得越过后续 blocker。见 `logs/2026-07-28-natural-ai-organization-tickets.md`。
+
+> **下一步（恢复点，2026-07-28，自然 AI 整理规格）**：Phase 2.1 buildable spec 已发布为 GitHub #23（`ready-for-agent`）。规格采用 B「规划对话」作为目标表达与推进骨架，并把候选快照、Generation 工作量批准、风险审阅、执行 / 失败恢复与 Task Undo 放在可直接到达的稳定任务面；聊天不是状态或授权权威。受信 Organization Task HTTP 生命周期接口是主测试 seam，既有 bulk organization 是执行黑盒。Task Undo 的后续用户变更保护由 ADR 0030 的有效关系 mutation identity 保证。下一步在独立会话使用 `/to-tickets` 拆 tracer-bullet tickets 与 blocking edges；本次尚未创建实现 tickets 或进入实现。见 `logs/2026-07-28-natural-ai-organization-spec.md`。
+
+> **下一步（恢复点，2026-07-28，自然 AI 整理原型 verdict）**：用户在 A 引导式工作区、B 规划对话、C 整理控制台中选择 **B**，明确理由是“对话形式更自然”。生产规格应以对话作为目标表达与计划推进的主骨架，同时专门解决原型已暴露的风险：复杂审阅、长任务进度与中断恢复不能被埋进聊天记录。下一步进入独立规格会话，确定任务状态机、schema、费用表达、稳定检查点、审阅面与撤销冲突规则；规格批准前不发布实现 tickets，也不把一次性原型当作生产实现。见 `logs/2026-07-28-natural-ai-organization-prototype.md`。
+
+> **下一步（恢复点，2026-07-28）**：自然 AI 整理方向已完成研究、产品 grilling 与正式决策，ADR 0029 Accepted。目标体验为“同步后可忽略的无成本整理机会 → 用户表达用途导向的完整目标 → derived 全库候选发现与解释 → Generation 在一个持久任务内有界分页 → 按动作风险分层审批 → 可靠执行与任务级撤销”；`50` 只保留为内部安全边界，选择只作为可选精确上下文。产品、UI/UX、架构与数据模型迁移边界已同步，方向已足够进入 Phase 2.1 原型 / 规格，尚未决定 schema、最终状态机、费用策略或生产 UI。Phase 3 暂停在该调整的规划之后。见 ADR 0029、`research/2026-07-28-natural-ai-organization.md` 与 `logs/2026-07-28-natural-ai-organization-study.md`。
+
 > **下一步（恢复点，2026-07-27）**：ADR 0027、0028 已基于真实个人库与明确用户任务完成检索优先形态纠偏：正式能力收敛为浏览器 embedding + 隐形混合搜索 + Quick Look 局部语义邻域，涌现簇、promotion 与二维语义星图均已移除。Phase 3 浏览器扩展可立即领取；调整语义邻域参数前必须积累真实错误案例，不得以展示数量为目标。
 
 > Related Stars review findings 已全部修复（2026-07-27，见 `logs/2026-07-27-semantic-neighborhood-review-findings.md`）：embedding consent、准备轮次与可用性现由单一响应式状态管理，render 不再重复同步读取 localStorage；首次检查 / 增量回填期间 Related Stars 始终静默，成功后主动失效 embedding list cache 再解锁，失败保持 degraded 且不暴露半成品；轮次 token 阻止旧异步任务提前解锁新任务。互为 Top-12 / 最多 5 条已收为 core 领域不变量，不再导出未被产品使用的调参接口；测试中的规避性类型断言已清理。

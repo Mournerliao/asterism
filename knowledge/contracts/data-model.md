@@ -94,6 +94,8 @@
 
 ## Phase 2 Tables · 进阶表（批量整理 / AI / 设置）
 
+> **迁移说明（ADR 0029、GitHub #23）**：以下 `ai_organization_drafts` 记录的是 Phase 2 已交付的 selection-first 基线，不再代表下一版 AI 整理的目标模型。Phase 2.1 规格已确定以规范化的 Organization Task、消息 / 事件、候选快照、Generation manifest / page / call、revisioned Plan / action group / approval 与 execution / undo operation link 承载持久任务；具体字段随实现 migration 落入本契约前，当前生产权威 schema 仍是下述旧表。不得在旧草稿上追加隐式分页。`bulk_operations` / `bulk_operation_items` 的可靠执行、恢复与幂等语义继续复用；Task Undo 的关系级有效 mutation identity 见 ADR 0030。
+
 ### Organization Task 基础持久化（GitHub #24）
 
 `20260728180000_organization_tasks.sql` 已新增目标优先任务的首个生产切片：

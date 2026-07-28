@@ -7,12 +7,14 @@
 - **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
 - **Phase 1 已完成**：Web MVP 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁已于 2026-07-18 全部验收。
 - **Phase 2 已完成**：可靠批量整理与选中导出、加密 BYOK Generation Connections，以及可生成、持久化审阅并经受信事务确认的 AI 整理草稿已于 2026-07-23 全部验收；维护者 Supabase 环境已完成真实链路 smoke，四道工程门禁全绿。
+- **Phase 2.1 已完成产品决策、原型 verdict、规格与 ticket 规划**：ADR 0029 已接受目标优先的自然 AI 整理调整；用户选择 B「规划对话」作为主交互骨架，buildable spec 为 GitHub #23，实现 tickets 为 #24–#28，当前待从无 blocker 的 #24 开始。Phase 3 在该调整完成前暂不启动。
 
 | 阶段 | 名称 | 状态 |
 | --- | --- | --- |
 | Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
 | Phase 1 | Web MVP | Done（2026-07-18） |
 | Phase 2 | AI（BYOK）+ 批量整理 | Done（2026-07-23） |
+| Phase 2.1 | 自然 AI 整理调整 | 规格 / tickets 就绪，待实现（frontier #24） |
 | Phase 3 | 浏览器扩展 Extension | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |
 
@@ -63,6 +65,20 @@
 - 范围边界：ADR 0026（Accepted）确立**检索优先范式**，取代此前「不含 Embedding / 语义搜索」的边界——引入浏览器内 embedding（默认 `multilingual-e5-small`，非 BYOK）、隐形混合搜索与相关收藏；向量按用户存于 `user_repo_embeddings`、客户端直写。ADR 0027 基于真实个人库验证否决全库涌现簇与 promotion，ADR 0028 移除没有独占用户任务的二维语义星图；正式语义交互收敛为搜索与 Repo Quick Look 中允许为空的局部邻域。
 
 完成判据：用户配置通过测试的 Generation Connection 与自有 credential 后，可生成、审阅并取消部分 AI 整理建议，在明确确认后通过批量整理写入标签 / 集合；模型不得直接改写用户组织数据。内置与自定义兼容 Connection 遵循同一 Generation capability 测试和密钥安全合同；credential 不明文落库、不返回客户端、不进入仓库或日志，并可测试、启用/停用、替换、删除及完成 master key 轮换。系统不自动回退到 Asterism 付费额度，也不在本阶段建设多 key、跨 Provider fallback、预算或限流 Gateway；重度用户可完成可访问、可恢复的批量本地整理，全程不扩大 GitHub OAuth 写权限。Browse 搜索继续使用 Phase 1 的关键词能力。
+
+## Phase 2.1 · 自然 AI 整理调整
+
+目标：让系统承担范围发现与技术分批，用户只需表达整理结果并审批有长期语义或破坏风险的动作。
+
+里程碑：
+
+- 用真实个人库原型验证“整理机会 → 整理目标 → 全库候选解释 → 风险分层审阅 → 执行 / 撤销”的完整体验。
+- 首次同步帮助用户建立用途导向的初始秩序；后续同步主要维护新增内容，并只在存在清晰机会时给出可忽略提示，不追求 Inbox Zero。
+- Generation 在一个持久整理任务内按 Provider / 工具边界有界分页，向用户披露整体范围、费用与进度；手动选择退为可选精确上下文。
+- 加入已有分类、新分类与移除关系按风险使用不同确认粒度；不确定项不操作。
+- 执行继续复用可靠批量账本，并提供任务级撤销；canonical / derived、BYOK、稳定 ID 与隐私披露边界不变。
+
+完成判据：经批准的原型、规格与实现共同证明，数百条 Star 的用户无需手工挑批或逐条通读即可委托一个完整整理目标；全过程可解释、可暂停 / 恢复、按风险授权且可按任务撤销。具体 schema、状态机、费用策略与 UI 形态不在路线图中预设。
 
 ## Phase 3 · 浏览器扩展（Extension）
 

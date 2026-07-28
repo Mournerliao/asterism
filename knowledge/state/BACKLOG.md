@@ -6,6 +6,8 @@
 
 ## 待确认 / 开放问题
 
+- [x] **AI 整理从 selection-first 转向 intent-first（2026-07-28，ADR 0029）**：用户已确认目标优先的持久整理任务、同步后可忽略的无成本整理机会、首次 / 后续同步差异、用途导向 canonical、风险分层审批与任务级撤销。`50` 退为内部调用边界，选择退为可选精确上下文；产品、UI/UX 与架构契约已同步。见 `decisions/0029-intent-first-ai-organization.md`。
+- [x] **自然 AI 整理对话形态规格与 tickets（Phase 2.1，2026-07-28，GitHub #23–#28）**：以 B「规划对话」为主骨架的 buildable spec 已发布为 #23；实现压缩为 5 张 tracer-bullet tickets，原生依赖链为 #24 → #25 → #26 → #27 → #28。#24 已实现并部署，当前可领取 frontier 为 #25；Task Undo 的有效关系变更身份见 ADR 0030。见 `logs/2026-07-28-natural-ai-organization-spec.md` 与 `logs/2026-07-28-natural-ai-organization-tickets.md`。
 - [x] **品牌配色 / 圆角已定稿**：2026-07-10 配色升级为 **Asterism Graphite Glass**（见 ADR 0009），保留 8px 圆角、Geist 字体与 4px 间距栅格。
 - [ ] **自定义公共域名（非 Phase 1 阻断）**：当前维护者实例使用 Vercel 生产地址；未来确认并绑定品牌域名时，同步 README、runbook 与 Supabase Auth Site URL / Redirect URLs。
 - [x] **a11y 目标确认**：以 **WCAG 2.1 AA** 为 UI 验收目标；Graphite Glass 核心文字/状态组合已计算通过。

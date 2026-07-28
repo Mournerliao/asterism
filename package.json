@@ -12,6 +12,7 @@
   "scripts": {
     "build": "turbo run build",
     "dev": "turbo run dev",
+    "prototype:natural-ai": "pnpm --filter @asterism/web predev && pnpm --filter @asterism/web exec vite --open '/?prototype=natural-ai&variant=A&scenario=first'",
     "lint": "biome check .",
     "format": "biome format --write .",
     "test": "turbo run test",

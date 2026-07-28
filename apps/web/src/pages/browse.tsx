@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useSearchParams } from 'react-router-dom';
 import { useSession } from '../auth/use-session';
 import { AiOrganizationDraftBanner, AiOrganizationPreflight } from '../components/ai-organization';
 import { BrowseRepoList } from '../components/browse-repo-list';
@@ -69,6 +70,7 @@ import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
+import { NaturalAiOrganizationPrototype } from './natural-ai-organization-prototype';
 
 function InitialLoadingState({ view }: { view: RepoViewMode }) {
   return view === 'list' ? <RepoListSkeleton /> : <RepoGridSkeleton />;
@@ -76,6 +78,7 @@ function InitialLoadingState({ view }: { view: RepoViewMode }) {
 
 export function BrowsePage() {
   const { t, i18n } = useTranslation();
+  const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const { session } = useSession();
   const userId = session?.user.id;
@@ -318,6 +321,12 @@ export function BrowsePage() {
       onDiscard={() => discardAiDraft.mutateAsync()}
     />
   ) : null;
+  const naturalAiPrototypeActive =
+    import.meta.env.DEV && searchParams.get('prototype') === 'natural-ai';
+
+  if (naturalAiPrototypeActive) {
+    return <NaturalAiOrganizationPrototype repoNames={[...repoNames.values()]} />;
+  }
 
   const repoContent = isError ? (
     <EmptyState

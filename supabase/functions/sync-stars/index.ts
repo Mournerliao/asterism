@@ -259,7 +259,13 @@ Deno.serve(async (req: Request) => {
   }
 
   if (rows.length === 0) {
-    return json({ total: 0, upserted: 0, starsLinked: 0, incremental });
+    return json({
+      total: 0,
+      upserted: 0,
+      starsLinked: 0,
+      incremental,
+      opportunityCreated: false,
+    });
   }
 
   // 幂等 upsert repos（按 github_id），收集 id 映射。
@@ -306,10 +312,30 @@ Deno.serve(async (req: Request) => {
     starsLinked += batch.length;
   }
 
+  const opportunityKind = incremental ? 'new_stars' : 'initial_order';
+  const opportunityThreshold = incremental ? 3 : 5;
+  let opportunityCreated = false;
+  if (starRows.length >= opportunityThreshold) {
+    const newestStarredAt = [...starredAtByGithubId.values()].sort().at(-1) ?? syncedAt;
+    const opportunity = await admin.from('organization_opportunities').upsert(
+      {
+        user_id: userId,
+        kind: opportunityKind,
+        suggested_goal: opportunityKind,
+        repository_count: starRows.length,
+        context_repo_ids: incremental ? starRows.map((star) => star.repo_id) : [],
+        sync_fingerprint: `${opportunityKind}:${newestStarredAt}`,
+      },
+      { onConflict: 'user_id,sync_fingerprint', ignoreDuplicates: true },
+    );
+    opportunityCreated = !opportunity.error;
+  }
+
   return json({
     total: rows.length,
     upserted: repoIdByGithubId.size,
     starsLinked,
     incremental,
+    opportunityCreated,
   });
 });

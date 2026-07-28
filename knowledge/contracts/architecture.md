@@ -21,7 +21,7 @@ flowchart TD
   subgraph supabase [Supabase]
     auth[Auth: GitHub OAuth]
     pg[(Postgres)]
-    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / manage-ai-organization]
+    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / manage-ai-organization / manage-organization-tasks]
   end
   gh[GitHub GraphQL / REST API]
 
@@ -123,7 +123,7 @@ Phase 2 的 BYOK Provider 架构只有 Generation Provider，用于生成标签 
 
 每个 Connection 只持有一个 credential，不实现 credential 池、多 key 排序、跨 Provider 自动 fallback、预算或限流，也不得回退到 Asterism 付费的系统额度。自定义 Connection 的 Generation 测试调用标准 chat completion，并验证返回可解析、非空且满足建议 schema。详见 ADR 0017、0018、0022。
 
-AI 分类固定输入为已持久化的公开仓库内容（owner/name、描述、语言、GitHub topics）以及当前用户现有标签 / 集合；现有标签 / 集合候选以稳定 ID + 显示名称发送，模型对现有分类的建议只接受稳定 ID，服务端拒绝未知或不属于当前用户的 ID。建议新建分类使用带 `relationType` 的名称，由服务端规范化并检查大小写、空白与近似名称。单次 Generation 请求最多包含 50 个仓库且不做隐式分块，服务端必须再次校验上限；超过上限由客户端保留选择并要求用户缩小范围。当前用户私有笔记只有在用户明确启用 `include_notes_in_ai` 后才加入 Generation 输入。首次分类前必须向用户展示实际字段、长文本截断上限与目标 Provider；超过上限的长文本只按已披露边界截断，关闭笔记发送后不得把笔记正文传给任何 Adapter。不得读取其他用户的笔记或组织数据，也不得把 README 发送给 Generation Provider。
+AI 整理输入来自用户任务的已解释候选范围：已持久化的公开仓库内容（owner/name、描述、语言、GitHub topics）以及当前用户现有标签 / 集合；现有分类候选以稳定 ID + 显示名称发送，模型对现有分类的建议只接受稳定 ID，服务端拒绝未知或不属于当前用户的 ID。建议新建分类使用带 `relationType` 的名称，由服务端规范化并检查大小写、空白与近似名称。单次 Generation 请求最多包含 50 个仓库，服务端再次校验上限；完整任务可由系统内部有界分页，但必须披露整体工作量、保持稳定任务身份、支持暂停 / 恢复，并以确定性规则处理跨页重复或近似分类。当前用户私有笔记只有在用户明确启用 `include_notes_in_ai` 后才加入 Generation 输入。任务开始前必须展示实际字段、长文本截断上限与目标 Provider；超过上限的长文本只按已披露边界截断，关闭笔记发送后不得把笔记正文传给任何 Adapter。不得读取其他用户的笔记或组织数据，也不得把 README 发送给 Generation Provider。
 
 README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，不进入 Phase 2 的 AI 分类输入，也不建立搜索索引。
 

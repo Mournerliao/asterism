@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+import {
+  isOrganizationOpportunity,
+  isOrganizationTask,
+  readOrganizationTaskResponse,
+} from './organization-tasks';
+
+const task = {
+  id: 'task-1',
+  origin: 'direct_goal',
+  status: 'awaiting_generation_approval',
+  goal: 'Organize agent tools',
+  suggestedGoal: null,
+  contextRepositoryIds: [],
+  revision: 2,
+  snapshot: {
+    taskId: 'task-1',
+    revision: 1,
+    discoveryVersion: 'goal-metadata-v1',
+    libraryCount: 2,
+    candidateCount: 1,
+    fingerprint: 'snapshot-1',
+    items: [
+      {
+        repositoryId: 'repo-1',
+        contentFingerprint: 'content-1',
+        included: true,
+        reasons: [
+          { kind: 'goal_term', value: 'agent' },
+          { kind: 'derived_similarity', value: 0.91 },
+          { kind: 'unorganized' },
+        ],
+      },
+    ],
+  },
+  manifest: {
+    taskId: 'task-1',
+    snapshotRevision: 1,
+    candidateCount: 1,
+    pageCount: 1,
+    maxInitialCalls: 1,
+    maxRetryCalls: 1,
+    maxTotalCalls: 2,
+    estimatedTokenCeiling: 1400,
+    monetaryCost: { kind: 'unknown' },
+    fields: ['full_name', 'description', 'language', 'topics', 'tags', 'collections'],
+    truncation: { descriptionCodePoints: 1000, noteCodePoints: 0 },
+    connection: { id: 'connection-1', adapter: 'openai', model: 'gpt-5-mini' },
+    pages: [{ key: 'page-1', index: 1, repositoryIds: ['repo-1'] }],
+    fingerprint: 'manifest-1',
+  },
+  generationApproval: null,
+  messages: [],
+  endedAt: null,
+  createdAt: '2026-07-28T00:00:00.000Z',
+  updatedAt: '2026-07-28T00:00:00.000Z',
+};
+
+describe('Organization Task data-access trust boundary', () => {
+  it('accepts only the strict safe task projection', () => {
+    expect(isOrganizationTask(task)).toBe(true);
+    expect(readOrganizationTaskResponse({ task })).toEqual(task);
+    expect(isOrganizationTask({ ...task, status: 'running_provider' })).toBe(false);
+    expect(isOrganizationTask({ ...task, credential: 'secret' })).toBe(false);
+    expect(
+      isOrganizationTask({
+        ...task,
+        manifest: { ...task.manifest, rawProviderPayload: { prompt: 'private' } },
+      }),
+    ).toBe(false);
+  });
+
+  it('accepts only no-cost opportunity projections', () => {
+    expect(
+      isOrganizationOpportunity({
+        id: 'opportunity-1',
+        kind: 'new_stars',
+        repositoryCount: 7,
+        status: 'available',
+        createdAt: '2026-07-28T00:00:00.000Z',
+      }),
+    ).toBe(true);
+    expect(
+      isOrganizationOpportunity({
+        id: 'opportunity-1',
+        kind: 'new_stars',
+        repositoryCount: 7,
+        status: 'available',
+        estimatedCost: 0,
+        createdAt: '2026-07-28T00:00:00.000Z',
+      }),
+    ).toBe(false);
+  });
+});

@@ -5,6 +5,13 @@
  */
 export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
+type DbTable<Row, Insert> = {
+  Row: Row;
+  Insert: Insert;
+  Update: Partial<Insert>;
+  Relationships: [];
+};
+
 export interface Database {
   public: {
     Tables: {
@@ -464,6 +471,274 @@ export interface Database {
           },
         ];
       };
+      organization_opportunities: DbTable<
+        {
+          id: string;
+          user_id: string;
+          kind: 'initial_order' | 'new_stars';
+          suggested_goal: string;
+          repository_count: number;
+          context_repo_ids: string[];
+          status: 'available' | 'accepted' | 'ignored';
+          accepted_task_id: string | null;
+          sync_fingerprint: string;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          kind: 'initial_order' | 'new_stars';
+          suggested_goal: string;
+          repository_count: number;
+          context_repo_ids?: string[];
+          status?: 'available' | 'accepted' | 'ignored';
+          accepted_task_id?: string | null;
+          sync_fingerprint: string;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      organization_tasks: DbTable<
+        {
+          id: string;
+          user_id: string;
+          origin: 'direct_goal' | 'opportunity';
+          opportunity_id: string | null;
+          status:
+            | 'clarifying'
+            | 'discovering'
+            | 'awaiting_generation_approval'
+            | 'generation_approved'
+            | 'ended';
+          goal: string;
+          suggested_goal: string | null;
+          context_repo_ids: string[];
+          revision: number;
+          current_snapshot_revision: number | null;
+          current_manifest_fingerprint: string | null;
+          ended_at: string | null;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          origin: 'direct_goal' | 'opportunity';
+          opportunity_id?: string | null;
+          status?:
+            | 'clarifying'
+            | 'discovering'
+            | 'awaiting_generation_approval'
+            | 'generation_approved'
+            | 'ended';
+          goal: string;
+          suggested_goal?: string | null;
+          context_repo_ids?: string[];
+          revision?: number;
+          current_snapshot_revision?: number | null;
+          current_manifest_fingerprint?: string | null;
+          ended_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      organization_task_messages: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          role: 'user' | 'assistant' | 'checkpoint';
+          text: string;
+          checkpoint_type: 'goal' | 'discovery' | 'generation_approval' | 'ended' | null;
+          checkpoint_revision: number | null;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          role: 'user' | 'assistant' | 'checkpoint';
+          text: string;
+          checkpoint_type?: 'goal' | 'discovery' | 'generation_approval' | 'ended' | null;
+          checkpoint_revision?: number | null;
+          created_at?: string;
+        }
+      >;
+      organization_task_events: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          event_type: string;
+          task_revision: number;
+          payload: Json;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          event_type: string;
+          task_revision: number;
+          payload?: Json;
+          created_at?: string;
+        }
+      >;
+      organization_candidate_snapshots: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          revision: number;
+          discovery_version: string;
+          library_count: number;
+          candidate_count: number;
+          fingerprint: string;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          revision: number;
+          discovery_version: string;
+          library_count: number;
+          candidate_count: number;
+          fingerprint: string;
+          created_at?: string;
+        }
+      >;
+      organization_candidate_items: DbTable<
+        {
+          id: string;
+          user_id: string;
+          snapshot_id: string;
+          task_id: string;
+          repo_id: string;
+          content_fingerprint: string;
+          included: boolean;
+          reasons: Json;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          snapshot_id: string;
+          task_id: string;
+          repo_id: string;
+          content_fingerprint: string;
+          included?: boolean;
+          reasons: Json;
+          created_at?: string;
+        }
+      >;
+      organization_generation_manifests: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          snapshot_revision: number;
+          fingerprint: string;
+          candidate_count: number;
+          page_count: number;
+          max_initial_calls: number;
+          max_retry_calls: number;
+          max_total_calls: number;
+          estimated_token_ceiling: number;
+          connection_id: string;
+          adapter: string;
+          model: string;
+          fields: string[];
+          description_code_point_limit: number;
+          note_code_point_limit: number;
+          monetary_cost: Json;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          snapshot_revision: number;
+          fingerprint: string;
+          candidate_count: number;
+          page_count: number;
+          max_initial_calls: number;
+          max_retry_calls: number;
+          max_total_calls: number;
+          estimated_token_ceiling: number;
+          connection_id: string;
+          adapter: string;
+          model: string;
+          fields: string[];
+          description_code_point_limit: number;
+          note_code_point_limit: number;
+          monetary_cost?: Json;
+          created_at?: string;
+        }
+      >;
+      organization_generation_manifest_pages: DbTable<
+        {
+          id: string;
+          user_id: string;
+          manifest_id: string;
+          task_id: string;
+          page_key: string;
+          page_index: number;
+          repo_ids: string[];
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          manifest_id: string;
+          task_id: string;
+          page_key: string;
+          page_index: number;
+          repo_ids: string[];
+          created_at?: string;
+        }
+      >;
+      organization_generation_approvals: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          task_revision: number;
+          snapshot_revision: number;
+          manifest_fingerprint: string;
+          connection_id: string;
+          adapter: string;
+          model: string;
+          fields: string[];
+          description_code_point_limit: number;
+          note_code_point_limit: number;
+          max_initial_calls: number;
+          max_retry_calls: number;
+          max_total_calls: number;
+          estimated_token_ceiling: number;
+          approved_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          task_revision: number;
+          snapshot_revision: number;
+          manifest_fingerprint: string;
+          connection_id: string;
+          adapter: string;
+          model: string;
+          fields: string[];
+          description_code_point_limit: number;
+          note_code_point_limit: number;
+          max_initial_calls: number;
+          max_retry_calls: number;
+          max_total_calls: number;
+          estimated_token_ceiling: number;
+          approved_at?: string;
+        }
+      >;
     };
     Views: Record<string, never>;
     Functions: {
@@ -526,6 +801,59 @@ export interface Database {
       search_user_repo_embeddings: {
         Args: { query_embedding: string; match_count?: number };
         Returns: { repo_id: string; distance: number }[];
+      };
+      save_organization_task_checkpoint: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_snapshot: Json;
+          p_manifest: Json | null;
+        };
+        Returns: boolean;
+      };
+      create_organization_task: {
+        Args: {
+          p_user_id: string;
+          p_goal: string;
+          p_context_repo_ids: string[];
+        };
+        Returns: string;
+      };
+      accept_organization_opportunity_with_goal: {
+        Args: {
+          p_user_id: string;
+          p_opportunity_id: string;
+          p_goal: string;
+        };
+        Returns: string | null;
+      };
+      approve_organization_task_generation: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_manifest_fingerprint: string;
+        };
+        Returns: boolean;
+      };
+      update_organization_task_goal: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_goal: string;
+          p_message: string | null;
+        };
+        Returns: boolean;
+      };
+      end_organization_task: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+        };
+        Returns: boolean;
       };
     };
     Enums: Record<string, never>;

@@ -39,6 +39,7 @@
     "tags": "Loading tags…",
     "dashboard": "Loading insights…",
     "charts": "Loading charts…",
+    "organization": "Loading organization tasks…",
     "importExport": "Loading backup data…"
   },
   "theme": {
@@ -71,6 +72,7 @@
     "collections": "Collections",
     "tags": "Tags",
     "dashboard": "Dashboard",
+    "organization": "AI Organization",
     "importExport": "Import / Export",
     "settings": "Settings"
   },
@@ -578,6 +580,130 @@
       },
       "runTest": "Run test",
       "testing": "Testing…"
+    }
+  },
+  "organizationTasks": {
+    "title": "AI Organization",
+    "description": "Describe the order you want. Asterism finds and fixes the scope before any paid Generation work.",
+    "loading": "Loading organization tasks",
+    "retry": "Retry",
+    "status": {
+      "clarifying": "Clarifying goal",
+      "discovering": "Discovering candidates",
+      "awaiting_generation_approval": "Awaiting Generation approval",
+      "generation_approved": "Generation approved",
+      "ended": "Ended"
+    },
+    "adapters": {
+      "openai": "OpenAI",
+      "google": "Google Gemini",
+      "anthropic": "Anthropic",
+      "openrouter": "OpenRouter",
+      "openai-compatible": "OpenAI-compatible"
+    },
+    "opportunities": {
+      "title": "Organization opportunities",
+      "initialGoal": "Build useful initial order for my GitHub Stars",
+      "newStarsGoal_one": "Organize my newly synced GitHub Star",
+      "newStarsGoal_other": "Organize my {{count}} newly synced GitHub Stars",
+      "noCost": "{{count}} repositories · no Provider call or canonical change",
+      "ignore": "Ignore",
+      "accept": "Plan this goal"
+    },
+    "create": {
+      "title": "Plan an organization goal",
+      "description": "Start with the result you want. You do not need to select repositories or split the work into batches.",
+      "goalLabel": "Organization goal",
+      "placeholder": "For example: group my active coding-agent tools by how I use them",
+      "contextHint": "Selections and current filters are optional precise context, never a prerequisite.",
+      "action": "Create task",
+      "creating": "Creating task…"
+    },
+    "history": {
+      "title": "Task history",
+      "empty": "No organization tasks yet. A direct goal creates your first durable task."
+    },
+    "detail": {
+      "breadcrumb": "Organization task navigation",
+      "loading": "Loading organization task",
+      "back": "Back to AI Organization",
+      "revision": "revision {{revision}}",
+      "end": "End task",
+      "confirmEnd": "Confirm end",
+      "goalTitle": "Clarify the goal",
+      "goalDescription": "Messages explain intent; the saved goal and checkpoints remain authoritative.",
+      "saveGoal": "Save clarification",
+      "reviseGoal": "Revise goal",
+      "cancelRevision": "Cancel revision",
+      "discover": "Discover candidates",
+      "discovering": "Discovering complete library…",
+      "discoveryInterruptedTitle": "Candidate discovery needs to resume",
+      "discoveryInterruptedDescription": "The durable task is safe. Resume the complete-library scan; no Provider work has started.",
+      "resumeDiscovery": "Resume discovery"
+    },
+    "candidates": {
+      "title_one": "{{count}} candidate",
+      "title_other": "{{count}} candidates",
+      "description": "Fixed from {{libraryCount}} authorized Stars. Sync and filter changes will not silently alter this revision.",
+      "exclude": "Exclude",
+      "include": "Include",
+      "included": "Included",
+      "excluded": "Excluded",
+      "reason": {
+        "goalTerm": "matches “{{term}}”",
+        "derivedSimilarity": "{{similarity}}% derived semantic match",
+        "unorganized": "not organized yet",
+        "archived": "archived",
+        "recently_starred": "recently starred",
+        "precise_context": "provided as precise context"
+      }
+    },
+    "disclosure": {
+      "title": "Generation disclosure",
+      "description": "Review the exact Provider target, data policy, and maximum workload before approval.",
+      "connection": "Connection and model",
+      "workload": "Fixed workload",
+      "workloadValue": "{{count}} repositories · {{pages}} pages",
+      "calls": "{{initial}} initial + up to {{retry}} retry calls",
+      "tokens": "Token upper bound",
+      "cost": "Monetary cost",
+      "costUnknown": "Monetary cost unknown",
+      "costUnknownHint": "Check your Provider billing. The workload ceiling above remains exact.",
+      "fields": "Fields sent:",
+      "truncation": "Descriptions: {{description}} code points. Notes: {{notes}} code points (0 means excluded).",
+      "excluded": "README, credentials, other-user data, and undisclosed fields are never sent.",
+      "approvalBinding": "Approval binds this task, snapshot revision, Connection/model, fields, truncation rules, and workload ceiling. No Provider call happens in this step.",
+      "approve": "Approve Generation",
+      "approving": "Saving approval…"
+    },
+    "fields": {
+      "full_name": "owner/name",
+      "description": "description",
+      "language": "primary language",
+      "topics": "GitHub topics",
+      "tags": "your tags",
+      "collections": "your collections",
+      "note": "your opted-in note"
+    },
+    "approved": {
+      "title": "Generation is approved",
+      "description": "The durable approval is ready. Internal paged Generation and Organization Plan recovery arrive in the next implementation slice."
+    },
+    "ended": {
+      "title": "This task is read-only",
+      "description": "Ended tasks stay in history and cannot be resumed accidentally."
+    },
+    "errors": {
+      "organization_task_conflict": "This task changed in another tab. The latest durable state was preserved; refresh before deciding again.",
+      "organization_task_ended": "This task has ended and is read-only.",
+      "organization_candidates_required": "No candidates matched this goal. Clarify the goal and discover again.",
+      "generation_connection_required": "Choose and test an active Generation Connection in Settings before creating the disclosure.",
+      "organization_discovery_interrupted": "Candidate discovery was interrupted. No snapshot was changed; retry when ready.",
+      "organization_candidate_authorization_changed": "A candidate is no longer authorized or its disclosed content changed. Rediscover before approving Generation.",
+      "opportunities_load_failed": "Organization opportunities could not be loaded. Browse remains available; retry this section.",
+      "tasks_load_failed": "Task history could not be loaded. Retry to recover it from Postgres.",
+      "task_load_failed": "This task could not be loaded from Postgres. Retry without losing its durable state.",
+      "organization_task_failed": "The task change could not be saved. Its durable state is unchanged; retry."
     }
   }
 }

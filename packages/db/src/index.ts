@@ -1,4 +1,8 @@
 export type {
+  OrganizationOpportunityView,
+  OrganizationTaskView,
+} from '@asterism/core';
+export type {
   AiAdapterId,
   AiConnection,
   AiConnectionStatus,
@@ -59,6 +63,21 @@ export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export type { ImportUserDataResult } from './import-user-data';
 export { importUserData } from './import-user-data';
+export {
+  acceptOrganizationOpportunity,
+  approveOrganizationTaskGeneration,
+  createOrganizationTask,
+  discoverOrganizationTaskCandidates,
+  endOrganizationTask,
+  excludeOrganizationTaskCandidate,
+  getOrganizationTask,
+  ignoreOrganizationOpportunity,
+  isOrganizationOpportunity,
+  isOrganizationTask,
+  listOrganizationOpportunities,
+  listOrganizationTasks,
+  updateOrganizationTaskGoal,
+} from './organization-tasks';
 export type { CollectionRepoLink } from './queries/collection-repos';
 export {
   addRepoToCollection,

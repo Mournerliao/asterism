@@ -39,6 +39,7 @@
     "tags": "正在加载标签…",
     "dashboard": "正在加载洞察…",
     "charts": "正在加载图表…",
+    "organization": "正在加载整理任务…",
     "importExport": "正在加载备份数据…"
   },
   "theme": {
@@ -71,6 +72,7 @@
     "collections": "集合",
     "tags": "标签",
     "dashboard": "仪表盘",
+    "organization": "AI 整理",
     "importExport": "导入 / 导出",
     "settings": "设置"
   },
@@ -578,6 +580,130 @@
       },
       "runTest": "开始测试",
       "testing": "测试中…"
+    }
+  },
+  "organizationTasks": {
+    "title": "AI 整理",
+    "description": "描述你想得到的秩序。Asterism 会先发现并固定范围，再进行任何付费 Generation 工作。",
+    "loading": "正在加载整理任务",
+    "retry": "重试",
+    "status": {
+      "clarifying": "正在澄清目标",
+      "discovering": "正在发现候选",
+      "awaiting_generation_approval": "等待批准 Generation",
+      "generation_approved": "已批准 Generation",
+      "ended": "已结束"
+    },
+    "adapters": {
+      "openai": "OpenAI",
+      "google": "Google Gemini",
+      "anthropic": "Anthropic",
+      "openrouter": "OpenRouter",
+      "openai-compatible": "OpenAI-compatible"
+    },
+    "opportunities": {
+      "title": "整理机会",
+      "initialGoal": "为我的 GitHub Star 建立一套实用的初始秩序",
+      "newStarsGoal_one": "整理最近同步的 GitHub Star",
+      "newStarsGoal_other": "整理最近同步的 {{count}} 个 GitHub Star",
+      "noCost": "{{count}} 个仓库 · 不调用 Provider，也不修改 Canonical",
+      "ignore": "忽略",
+      "accept": "规划此目标"
+    },
+    "create": {
+      "title": "规划整理目标",
+      "description": "从想得到的结果开始。无需先选择仓库，也无需自行拆分批次。",
+      "goalLabel": "整理目标",
+      "placeholder": "例如：按实际用途整理仍活跃的 Coding Agent 工具",
+      "contextHint": "手动选择和当前筛选只是可选的精确上下文，从来不是前置条件。",
+      "action": "创建任务",
+      "creating": "正在创建任务…"
+    },
+    "history": {
+      "title": "任务历史",
+      "empty": "还没有整理任务。直接描述目标即可创建第一个持久任务。"
+    },
+    "detail": {
+      "breadcrumb": "整理任务导航",
+      "loading": "正在加载整理任务",
+      "back": "返回 AI 整理",
+      "revision": "revision {{revision}}",
+      "end": "结束任务",
+      "confirmEnd": "确认结束",
+      "goalTitle": "澄清目标",
+      "goalDescription": "消息用于解释意图；保存的目标和 checkpoint 才是权威状态。",
+      "saveGoal": "保存澄清",
+      "reviseGoal": "修订目标",
+      "cancelRevision": "取消修订",
+      "discover": "发现候选",
+      "discovering": "正在检查完整 Star 库…",
+      "discoveryInterruptedTitle": "候选发现需要恢复",
+      "discoveryInterruptedDescription": "持久任务仍然安全。恢复完整 Star 库扫描即可；Provider 工作尚未开始。",
+      "resumeDiscovery": "恢复候选发现"
+    },
+    "candidates": {
+      "title_one": "{{count}} 个候选",
+      "title_other": "{{count}} 个候选",
+      "description": "已从 {{libraryCount}} 个授权 Star 中固定。同步和筛选变化不会静默修改此 revision。",
+      "exclude": "排除",
+      "include": "纳入",
+      "included": "已纳入",
+      "excluded": "已排除",
+      "reason": {
+        "goalTerm": "匹配“{{term}}”",
+        "derivedSimilarity": "Derived 语义匹配度 {{similarity}}%",
+        "unorganized": "尚未整理",
+        "archived": "已归档",
+        "recently_starred": "最近添加 Star",
+        "precise_context": "由你作为精确上下文提供"
+      }
+    },
+    "disclosure": {
+      "title": "Generation 披露",
+      "description": "批准前检查准确的 Provider 目标、数据策略和最大工作量。",
+      "connection": "Connection 与模型",
+      "workload": "固定工作量",
+      "workloadValue": "{{count}} 个仓库 · {{pages}} 页",
+      "calls": "{{initial}} 次初始调用 + 最多 {{retry}} 次重试调用",
+      "tokens": "Token 上限",
+      "cost": "货币费用",
+      "costUnknown": "货币费用未知",
+      "costUnknownHint": "请查看 Provider 计费；上方的工作量上限仍然准确。",
+      "fields": "发送字段：",
+      "truncation": "描述：{{description}} 个 code point。笔记：{{notes}} 个 code point（0 表示不发送）。",
+      "excluded": "README、credential、其他用户数据和未披露字段永远不会发送。",
+      "approvalBinding": "批准会绑定此任务、候选快照 revision、Connection/model、字段、截断规则和工作量上限。此步骤不会调用 Provider。",
+      "approve": "批准 Generation",
+      "approving": "正在保存批准…"
+    },
+    "fields": {
+      "full_name": "owner/name",
+      "description": "描述",
+      "language": "主要语言",
+      "topics": "GitHub topics",
+      "tags": "你的标签",
+      "collections": "你的集合",
+      "note": "你明确启用的笔记"
+    },
+    "approved": {
+      "title": "已批准 Generation",
+      "description": "持久批准已就绪。可恢复的内部分页 Generation 和 Organization Plan 将在下一张实现票中交付。"
+    },
+    "ended": {
+      "title": "此任务已只读",
+      "description": "已结束任务会保留在历史中，不能意外恢复。"
+    },
+    "errors": {
+      "organization_task_conflict": "此任务已在其他标签页改变。最新持久状态已保留；请刷新后再决定。",
+      "organization_task_ended": "此任务已结束并且只读。",
+      "organization_candidates_required": "没有候选匹配此目标。请澄清目标后重新发现。",
+      "generation_connection_required": "创建披露前，请先在设置中选择并测试有效的 Generation Connection。",
+      "organization_discovery_interrupted": "候选发现已中断，快照没有改变；准备好后可以重试。",
+      "organization_candidate_authorization_changed": "某个候选已失去授权，或其披露内容已经变化。请重新发现后再批准 Generation。",
+      "opportunities_load_failed": "无法加载整理机会。Browse 仍可使用；请重试此区域。",
+      "tasks_load_failed": "无法加载任务历史。请重试并从 Postgres 恢复。",
+      "task_load_failed": "无法从 Postgres 加载此任务。持久状态不会丢失；请重试。",
+      "organization_task_failed": "无法保存任务改动。持久状态未改变；请重试。"
     }
   }
 }

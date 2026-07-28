@@ -86,6 +86,7 @@ OAuth 回流并显示当前用户。
 | `read-repo-readme` | 受保护的 README 读取边界：校验会话与 `user_stars` 成员关系后代理 GitHub REST README HTML，ETag 重验证，token 与内容不落库。详见 `functions/read-repo-readme/README.md` |
 | `manage-ai-connections` | 受信路径（service role）管理 BYOK 生成连接与凭据：JWT 校验、操作限定到 `auth.uid()`、AES-256-GCM 加密、自定义端点过 SSRF / allowlist；`list` 只回传安全投影。详见 `functions/manage-ai-connections/README.md` 与 ADR 0017 / 0018 / 0024 |
 | `manage-ai-organization` | 受信路径（service role）生成、读取、持久化审阅、确认与丢弃唯一 AI 整理草稿：1–50 个权威仓库快照、笔记 opt-in / 2,000 code point 截断、精确 active Connection/model、严格响应校验、原子替换、revision CAS，以及受信确认到可靠批量操作。详见 `functions/manage-ai-organization/README.md` |
+| `manage-organization-tasks` | 受信 Organization Task 生命周期：无需预选仓库的目标创建、同步后无费用 Opportunity、完整授权库候选发现、revisioned 快照、Generation manifest 披露 / 批准、历史恢复与明确结束。该函数不读取 credential，也不调用 Provider。详见 `functions/manage-organization-tasks/README.md` |
 | `rotate-ai-connections` | 带外密钥轮换例程（service role）：由独立管理员密钥 `AI_CREDENTIAL_ROTATION_SECRET` 保护、用户 handler 不可达；遍历所有凭据，把旧版本密文重加密到 active 版本。详见 `functions/rotate-ai-connections/README.md` 与 ADR 0017 |
 
 ```bash
@@ -95,6 +96,7 @@ supabase functions deploy bulk-organize
 supabase functions deploy read-repo-readme
 supabase functions deploy manage-ai-connections
 supabase functions deploy manage-ai-organization
+supabase functions deploy manage-organization-tasks
 # 轮换例程不走用户鉴权，只由 x-rotation-secret 保护，需 --no-verify-jwt
 supabase functions deploy rotate-ai-connections --no-verify-jwt
 ```

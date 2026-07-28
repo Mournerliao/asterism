@@ -58,6 +58,25 @@ export type {
 } from './ai/organization-review';
 export { isAiOrganizationReviewSuggestions } from './ai/organization-review';
 export type {
+  OrganizationCandidateReason,
+  OrganizationCandidateSnapshot,
+  OrganizationDiscoveryRepository,
+  OrganizationGenerationApproval,
+  OrganizationGenerationManifest,
+  OrganizationOpportunityView,
+  OrganizationTaskErrorCode,
+  OrganizationTaskMessage,
+  OrganizationTaskStatus,
+  OrganizationTaskView,
+} from './ai/organization-task';
+export {
+  buildCandidateSnapshot,
+  buildGenerationManifest,
+  OrganizationTaskDomainError,
+  reviseCandidateExclusion,
+  transitionOrganizationTask,
+} from './ai/organization-task';
+export type {
   DnsResolver,
   HostAllowlist,
   IpClassification,

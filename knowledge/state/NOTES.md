@@ -10,6 +10,7 @@
 
 ## 关键指针（决策与契约在哪）
 
+- **Organization Task 部署（2026-07-28，#24）**：关联项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260728180000_organization_tasks.sql` 与 `20260728183000_localized_organization_opportunity_goal.sql`，`manage-organization-tasks` 为 `ACTIVE v4`，更新后的 `sync-stars` 为 `ACTIVE v6`。新环境仍须按同一顺序迁移并部署两个函数。前者不需要 BYOK 加密 secret，不读取 credential，也不调用 Provider；缺少 active Generation Connection 时发现不会固化不完整披露。
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。
   - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + Edge Functions）；Realtime 部分由 ADR 0012 废止，pgvector 产品用途曾由 ADR 0022 移除、现由 ADR 0026 重新启用
   - `0012-remove-realtime-from-product-scope.md`：业务数据不做主动推送收敛，按查询边界读取 Postgres 最新状态

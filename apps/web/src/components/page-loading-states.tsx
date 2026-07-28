@@ -253,3 +253,20 @@ export function SettingsRouteLoading({ label }: { label: string }) {
     </LoadingRegion>
   );
 }
+
+export function OrganizationRouteLoading({ label }: { label: string }) {
+  return (
+    <LoadingFrame label={label}>
+      <PageHeaderSkeleton action />
+      <Card className="flex flex-col gap-4 p-5">
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="ml-auto h-9 w-32" />
+      </Card>
+      <div className="flex flex-col gap-2">
+        <Skeleton className="h-14 w-full" />
+        <Skeleton className="h-14 w-full" />
+      </div>
+    </LoadingFrame>
+  );
+}

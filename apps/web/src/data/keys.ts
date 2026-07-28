@@ -52,6 +52,14 @@ export const aiOrganizationKeys = {
   draft: (userId: string) => ['ai-organization', 'draft', userId] as const,
 };
 
+export const organizationTaskKeys = {
+  all: ['organization-tasks'] as const,
+  list: (userId: string) => ['organization-tasks', userId, 'list'] as const,
+  detail: (userId: string, taskId: string) =>
+    ['organization-tasks', userId, 'detail', taskId] as const,
+  opportunities: (userId: string) => ['organization-tasks', userId, 'opportunities'] as const,
+};
+
 export const embeddingKeys = {
   all: ['embeddings'] as const,
   search: (userId: string, query: string) => ['embeddings', 'search', userId, query] as const,

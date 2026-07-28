@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> **Phase 2.1 tracer bullet #24 已实现（2026-07-28）**：目标优先 Organization Task 已具备无需仓库预选的直接创建、首次 / 增量同步后无 Provider 调用的可忽略 Opportunity、完整授权 Star 库确定性候选发现、不可变候选 revision、逐仓库排除、最多 50 条 / 页的 Generation manifest、准确调用 / 重试 / token 上限与费用未知披露、批准前授权 / 内容指纹复核、任务历史 / 稳定详情路由恢复、revision CAS 和明确只读结束。新增 9 张 owner-RLS 私有表、2 个仅 service-role checkpoint / approval RPC、`manage-organization-tasks` 受信函数、`packages/db` 严格安全投影与 en / zh-CN 任务 UI；该切片不读取 credential、不调用 Provider、不修改 canonical。下一 frontier 为由 #24 解锁的 #25「可恢复分页 Generation 与 Organization Plan」。见 `logs/2026-07-28-issue-24-persistent-organization-tasks.md`。
+
 > **下一步（恢复点，2026-07-27）**：ADR 0027、0028 已基于真实个人库与明确用户任务完成检索优先形态纠偏：正式能力收敛为浏览器 embedding + 隐形混合搜索 + Quick Look 局部语义邻域，涌现簇、promotion 与二维语义星图均已移除。Phase 3 浏览器扩展可立即领取；调整语义邻域参数前必须积累真实错误案例，不得以展示数量为目标。
 
 > Related Stars review findings 已全部修复（2026-07-27，见 `logs/2026-07-27-semantic-neighborhood-review-findings.md`）：embedding consent、准备轮次与可用性现由单一响应式状态管理，render 不再重复同步读取 localStorage；首次检查 / 增量回填期间 Related Stars 始终静默，成功后主动失效 embedding list cache 再解锁，失败保持 degraded 且不暴露半成品；轮次 token 阻止旧异步任务提前解锁新任务。互为 Top-12 / 最多 5 条已收为 core 领域不变量，不再导出未被产品使用的调参接口；测试中的规避性类型断言已清理。

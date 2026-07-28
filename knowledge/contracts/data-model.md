@@ -94,6 +94,19 @@
 
 ## Phase 2 Tables · 进阶表（批量整理 / AI / 设置）
 
+### Organization Task 基础持久化（GitHub #24）
+
+`20260728180000_organization_tasks.sql` 已新增目标优先任务的首个生产切片：
+
+- `organization_opportunities` 保存首次 / 增量同步产生的可忽略机会 kind / count、稳定 sync fingerprint 与可选精确上下文；显示目标由当前 locale 翻译资源生成，接受时才固化为 Task goal。机会只由同步受信路径创建，不访问 credential、不调用 Provider、不修改 canonical。
+- `organization_tasks` 保存 origin、权威 goal、生命周期状态、可选精确 repository ID 上下文、CAS revision、当前候选 revision / manifest fingerprint 与明确结束时间。
+- `organization_task_messages` 与 `organization_task_events` 分别保存对话 / checkpoint 引用和结构化生命周期事件；消息正文不承担状态或授权权威。
+- `organization_candidate_snapshots` / `organization_candidate_items` 保存不可变 revision、完整分页授权库数量、稳定 repository ID、确定性原因、发现版本、纳入决定与披露输入内容指纹；指纹覆盖公开元数据、时间 / 状态、当前 canonical 显示值、获准笔记截断值与实际采用的 derived basis。
+- `organization_generation_manifests` / `organization_generation_manifest_pages` 保存 Connection/Adapter/model、实际字段、截断规则、每页最多 50 个唯一仓库、调用 / 重试 / token 上限与费用可知性；不保存 credential、README、其他用户数据或 Provider payload。
+- `organization_generation_approvals` 将批准绑定任务 revision、候选 revision、manifest fingerprint、Provider 目标、字段 / 截断策略和工作量上限。
+
+上述私有表均携带 `user_id`、启用 owner SELECT RLS；普通角色没有状态转换写策略，也不能执行 checkpoint / approval RPC。创建、目标更新、发现、排除、批准与结束只经验证 JWT 的 `manage-organization-tasks` service-role 路径，并以 revision compare-and-set 推进。后续 Generation call、Plan、执行链接、Task Undo 与 legacy cutover 分别由 #25–#28 增量加入，不得提前塞回旧草稿。
+
 ### `bulk_operations` — 持久化批量操作
 
 - `user_id` → `auth.users(id)`

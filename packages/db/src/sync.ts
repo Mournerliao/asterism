@@ -10,6 +10,8 @@ export interface SyncStarsResult {
   starsLinked: number;
   /** 是否为增量同步（基于已有最新 starredAt）。 */
   incremental: boolean;
+  /** 本次同步是否产生了一个可忽略、无 Provider 调用的整理机会。 */
+  opportunityCreated: boolean;
 }
 
 export class SyncStarsError extends Error {

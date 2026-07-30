@@ -194,3 +194,24 @@ export async function generateOrganizationDraft(
   if (!outcome.ok) throw new Error(`provider_${outcome.reason}`);
   return outcome.draft;
 }
+
+/**
+ * Run one organization generation page call and return the raw provider
+ * response for lenient page interpretation and usage accounting upstream. SSRF
+ * blocks and transport failures surface as sanitized error codes; the ledger
+ * never sees credentials, authorization headers, or unsanitized upstream text.
+ */
+export async function callOrganizationGeneration(
+  config: ProviderCallConfig,
+  target: OrganizationGenerationTarget,
+): Promise<RawProviderResponse> {
+  const request = buildOrganizationGenerationRequest(target);
+  let response: Response;
+  try {
+    response = await guardedFetch(config, request, requireAllowlistFor(target.adapter));
+  } catch (error) {
+    if (error instanceof SsrfError) throw new Error(`provider_blocked:${error.code}`);
+    throw new Error('provider_network_error');
+  }
+  return { ok: response.ok, status: response.status, body: await readBody(response) };
+}

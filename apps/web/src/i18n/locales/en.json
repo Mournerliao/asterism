@@ -536,6 +536,10 @@
       "discovering": "Discovering candidates",
       "awaiting_generation_approval": "Awaiting Generation approval",
       "generation_approved": "Generation approved",
+      "generating": "Generating",
+      "generation_paused": "Generation paused",
+      "needs_attention": "Needs attention",
+      "plan_ready": "Plan ready",
       "ended": "Ended"
     },
     "adapters": {
@@ -629,9 +633,48 @@
       "collections": "your collections",
       "note": "your opted-in note"
     },
-    "approved": {
-      "title": "Generation is approved",
-      "description": "The durable approval is ready. Internal paged Generation and Organization Plan recovery arrive in the next implementation slice."
+    "generation": {
+      "startTitle": "Generation is approved",
+      "startDescription": "Start the internal paged Generation. Asterism advances one bounded page at a time and keeps durable, resumable progress.",
+      "start": "Start Generation",
+      "starting": "Starting…",
+      "title": "Generation in progress",
+      "description": "Asterism advances one bounded page per call. Progress is durable; you can pause, resume, or end at any checkpoint.",
+      "pages": "Pages",
+      "pagesValue": "{{done}} / {{total}}",
+      "calls": "Provider calls",
+      "tokens": "Tokens",
+      "ratio": "{{used}} / {{max}}",
+      "checkpoint": "Checkpoint",
+      "checkpointPage": "Page {{index}} of {{total}}",
+      "checkpointIdle": "Awaiting next page",
+      "running": "Generating page {{index}} of {{total}}",
+      "liveProgress": "{{done}} of {{total}} pages complete",
+      "pause": "Pause",
+      "pausing": "Pausing…",
+      "paused": "Generation is paused. Durable progress is kept; resume to continue where it stopped.",
+      "resume": "Resume",
+      "resuming": "Resuming…",
+      "retry": "Retry page",
+      "retrying": "Retrying…",
+      "continue": "Continue",
+      "pageFailed": "A page failed. Durable progress is kept; continue to retry the current page.",
+      "inFlight": "Another session is advancing a page. No duplicate work will run.",
+      "checkAgain": "Check again",
+      "attentionReason": {
+        "call_ceiling": "The approved Provider call ceiling was reached. Review the workload, then retry or end the task.",
+        "token_ceiling": "The estimated token ceiling was reached. Review the workload, then retry or end the task.",
+        "retry_exhausted": "Every approved retry for a page has been used. Review the Provider, then retry or end the task.",
+        "authorization_changed": "A candidate lost authorization or its disclosed content changed. Rediscover before resuming Generation."
+      }
+    },
+    "plan": {
+      "title": "Organization Plan is ready",
+      "description": "Every page merged into one immutable, revisioned Plan. It is safe to review; nothing changes your canonical library yet.",
+      "revision": "Revision",
+      "actions": "Actions",
+      "conflicts": "Conflicts",
+      "uncertainties": "Uncertainties"
     },
     "ended": {
       "title": "This task is read-only",
@@ -647,7 +690,8 @@
       "opportunities_load_failed": "Organization opportunities could not be loaded. Browse remains available; retry this section.",
       "tasks_load_failed": "Task history could not be loaded. Retry to recover it from Postgres.",
       "task_load_failed": "This task could not be loaded from Postgres. Retry without losing its durable state.",
-      "organization_task_failed": "The task change could not be saved. Its durable state is unchanged; retry."
+      "organization_task_failed": "The task change could not be saved. Its durable state is unchanged; retry.",
+      "organization_retry_exhausted": "No approved retries remain for this page. Review the Provider or workload, then retry or end the task."
     }
   },
   "aiOrganization": {

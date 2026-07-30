@@ -1,7 +1,9 @@
+import type { OrganizationPlanDocument } from '../../../packages/core/src/ai/organization-plan.ts';
 import type {
   OrganizationOpportunityView,
   OrganizationTaskView,
 } from '../../../packages/core/src/ai/organization-task.ts';
+import type { GenerationRunResult } from './service.ts';
 
 const corsHeaders: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
@@ -38,6 +40,18 @@ export interface OrganizationTaskHttpDependencies {
   ) => Promise<OrganizationTaskView>;
   approveGeneration: (userId: string, input: RevisionInput) => Promise<OrganizationTaskView>;
   endTask: (userId: string, input: RevisionInput) => Promise<OrganizationTaskView>;
+  startGeneration: (userId: string, input: RevisionInput) => Promise<OrganizationTaskView>;
+  pauseGeneration: (userId: string, input: RevisionInput) => Promise<OrganizationTaskView>;
+  resumeGeneration: (userId: string, input: RevisionInput) => Promise<OrganizationTaskView>;
+  retryGeneration: (userId: string, input: RevisionInput) => Promise<OrganizationTaskView>;
+  runGenerationPage: (
+    userId: string,
+    input: { taskId: string },
+  ) => Promise<{ task: OrganizationTaskView; run: GenerationRunResult }>;
+  readPlan: (
+    userId: string,
+    input: { taskId: string; revision: number | null },
+  ) => Promise<OrganizationPlanDocument>;
   listOpportunities: (userId: string) => Promise<OrganizationOpportunityView[]>;
   acceptOpportunity: (
     userId: string,
@@ -73,11 +87,16 @@ function readRevisionInput(body: Record<string, unknown>): RevisionInput | null 
 function errorStatus(code: string): number {
   if (
     code === 'organization_task_conflict' ||
-    code === 'organization_candidate_authorization_changed'
+    code === 'organization_candidate_authorization_changed' ||
+    code === 'organization_retry_exhausted'
   ) {
     return 409;
   }
-  if (code === 'organization_task_not_found' || code === 'organization_opportunity_not_found') {
+  if (
+    code === 'organization_task_not_found' ||
+    code === 'organization_opportunity_not_found' ||
+    code === 'organization_plan_not_found'
+  ) {
     return 404;
   }
   if (
@@ -113,6 +132,27 @@ export function createManageOrganizationTasksHandler(
       }
       if (body.action === 'read' && isId(body.taskId)) {
         return json({ task: await dependencies.getTask(userId, body.taskId) });
+      }
+      if (body.action === 'run-generation-page' && isId(body.taskId)) {
+        const { task, run } = await dependencies.runGenerationPage(userId, {
+          taskId: body.taskId,
+        });
+        return json({ task, run });
+      }
+      if (body.action === 'read-plan' && isId(body.taskId)) {
+        const planRevision =
+          body.revision === undefined || body.revision === null
+            ? null
+            : Number.isInteger(body.revision) && (body.revision as number) >= 1
+              ? (body.revision as number)
+              : undefined;
+        if (planRevision === undefined) return json({ error: 'invalid_request' }, 400);
+        return json({
+          plan: await dependencies.readPlan(userId, {
+            taskId: body.taskId,
+            revision: planRevision,
+          }),
+        });
       }
       if (body.action === 'create' && isText(body.goal, 4_000)) {
         const contextRepositoryIds =
@@ -196,6 +236,18 @@ export function createManageOrganizationTasksHandler(
       }
       if (revision && body.action === 'approve-generation') {
         return json({ task: await dependencies.approveGeneration(userId, revision) });
+      }
+      if (revision && body.action === 'start-generation') {
+        return json({ task: await dependencies.startGeneration(userId, revision) });
+      }
+      if (revision && body.action === 'pause-generation') {
+        return json({ task: await dependencies.pauseGeneration(userId, revision) });
+      }
+      if (revision && body.action === 'resume-generation') {
+        return json({ task: await dependencies.resumeGeneration(userId, revision) });
+      }
+      if (revision && body.action === 'retry-generation') {
+        return json({ task: await dependencies.retryGeneration(userId, revision) });
       }
       if (revision && body.action === 'end') {
         return json({ task: await dependencies.endTask(userId, revision) });

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isOrganizationOpportunity,
   isOrganizationTask,
+  readOrganizationRunResponse,
   readOrganizationTaskResponse,
 } from './organization-tasks';
 
@@ -51,6 +52,9 @@ const task = {
   },
   generationApproval: null,
   messages: [],
+  generationRun: null,
+  attentionCode: null,
+  plans: [],
   endedAt: null,
   createdAt: '2026-07-28T00:00:00.000Z',
   updatedAt: '2026-07-28T00:00:00.000Z',
@@ -90,5 +94,65 @@ describe('Organization Task data-access trust boundary', () => {
         createdAt: '2026-07-28T00:00:00.000Z',
       }),
     ).toBe(false);
+  });
+});
+
+describe('Organization Task generation run trust boundary', () => {
+  const generationRun = {
+    approvalTaskRevision: 3,
+    pages: [{ key: 'page-1', index: 1, status: 'succeeded', attemptCount: 1, errorCode: null }],
+    callsUsed: 1,
+    maxTotalCalls: 2,
+    tokensUsed: 160,
+    estimatedTokenCeiling: 1400,
+    maxAttemptsPerPage: 2,
+  };
+  const planSummary = {
+    revision: 1,
+    actionCount: 3,
+    conflictCount: 0,
+    uncertaintyCount: 1,
+    preconditionFingerprint: 'precondition-1',
+    fingerprint: 'plan-1',
+    createdAt: '2026-07-28T00:00:00.000Z',
+  };
+
+  it('accepts resumable generation statuses', () => {
+    for (const status of ['generating', 'generation_paused', 'needs_attention', 'plan_ready']) {
+      expect(isOrganizationTask({ ...task, status })).toBe(true);
+    }
+  });
+
+  it('accepts a task carrying an in-flight run and plan summaries', () => {
+    expect(
+      isOrganizationTask({
+        ...task,
+        status: 'generating',
+        generationRun,
+        attentionCode: 'call_ceiling',
+        plans: [planSummary],
+      }),
+    ).toBe(true);
+  });
+
+  it('rejects a generation run leaking provider payloads', () => {
+    expect(
+      isOrganizationTask({ ...task, generationRun: { ...generationRun, rawPrompt: 'secret' } }),
+    ).toBe(false);
+  });
+
+  it('rejects a plan summary with keys beyond the safe contract', () => {
+    expect(
+      isOrganizationTask({ ...task, plans: [{ ...planSummary, rawProviderPayload: {} }] }),
+    ).toBe(false);
+  });
+
+  it('reads a valid run response and rejects unknown outcomes or leaked keys', () => {
+    const run = { outcome: 'plan_ready', planRevision: 1 };
+    expect(readOrganizationRunResponse({ task, run })).toEqual({ task, run });
+    expect(() => readOrganizationRunResponse({ task, run: { outcome: 'exploded' } })).toThrow();
+    expect(() =>
+      readOrganizationRunResponse({ task, run: { outcome: 'plan_ready', secret: 'x' } }),
+    ).toThrow();
   });
 });

@@ -3,6 +3,10 @@ export type OrganizationTaskStatus =
   | 'discovering'
   | 'awaiting_generation_approval'
   | 'generation_approved'
+  | 'generating'
+  | 'generation_paused'
+  | 'needs_attention'
+  | 'plan_ready'
   | 'ended';
 
 export type OrganizationCandidateReason =
@@ -91,6 +95,63 @@ export interface OrganizationGenerationApproval {
   approvedAt: string;
 }
 
+export type OrganizationGenerationPageStatus =
+  | 'pending'
+  | 'leased'
+  | 'succeeded'
+  | 'failed'
+  | 'cancelled';
+
+export interface OrganizationGenerationRunPage {
+  key: string;
+  index: number;
+  status: OrganizationGenerationPageStatus;
+  attemptCount: number;
+  errorCode: string | null;
+}
+
+export interface OrganizationGenerationRunView {
+  approvalTaskRevision: number;
+  pages: OrganizationGenerationRunPage[];
+  callsUsed: number;
+  maxTotalCalls: number;
+  tokensUsed: number;
+  estimatedTokenCeiling: number;
+  maxAttemptsPerPage: number;
+}
+
+/**
+ * Outcome of advancing one bounded generation page. Consumers (data layer, UI)
+ * key off `outcome` to decide whether to keep driving the loop (`page_succeeded`),
+ * surface a recoverable failure (`page_failed`), stop on a finalized Plan
+ * (`plan_ready`), or yield without further calls (`attention` / `in_flight` /
+ * `not_generating`).
+ */
+export type OrganizationGenerationRunOutcome =
+  | 'page_succeeded'
+  | 'page_failed'
+  | 'plan_ready'
+  | 'attention'
+  | 'in_flight'
+  | 'not_generating';
+
+export interface OrganizationGenerationRunResult {
+  outcome: OrganizationGenerationRunOutcome;
+  attentionCode?: string;
+  planRevision?: number;
+  status?: string;
+}
+
+export interface OrganizationPlanSummary {
+  revision: number;
+  actionCount: number;
+  conflictCount: number;
+  uncertaintyCount: number;
+  preconditionFingerprint: string;
+  fingerprint: string;
+  createdAt: string;
+}
+
 export interface OrganizationTaskView {
   id: string;
   origin: 'direct_goal' | 'opportunity';
@@ -102,6 +163,9 @@ export interface OrganizationTaskView {
   snapshot: OrganizationCandidateSnapshot | null;
   manifest: OrganizationGenerationManifest | null;
   generationApproval: OrganizationGenerationApproval | null;
+  generationRun: OrganizationGenerationRunView | null;
+  attentionCode: string | null;
+  plans: OrganizationPlanSummary[];
   messages: OrganizationTaskMessage[];
   endedAt: string | null;
   createdAt: string;
@@ -181,7 +245,11 @@ const LEGAL_TRANSITIONS: Record<OrganizationTaskStatus, ReadonlySet<Organization
     'generation_approved',
     'ended',
   ]),
-  generation_approved: new Set(['ended']),
+  generation_approved: new Set(['generating', 'clarifying', 'ended']),
+  generating: new Set(['generation_paused', 'needs_attention', 'plan_ready', 'ended']),
+  generation_paused: new Set(['generating', 'ended']),
+  needs_attention: new Set(['generating', 'clarifying', 'ended']),
+  plan_ready: new Set(['clarifying', 'ended']),
   ended: new Set(),
 };
 

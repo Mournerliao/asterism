@@ -1,4 +1,8 @@
-import type { OrganizationOpportunityView, OrganizationTaskView } from '@asterism/core';
+import type {
+  OrganizationGenerationRunResult,
+  OrganizationOpportunityView,
+  OrganizationTaskView,
+} from '@asterism/core';
 import type { SupabaseClient } from './client';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -24,7 +28,20 @@ const TASK_STATUSES = new Set([
   'discovering',
   'awaiting_generation_approval',
   'generation_approved',
+  'generating',
+  'generation_paused',
+  'needs_attention',
+  'plan_ready',
   'ended',
+]);
+const PAGE_STATUSES = new Set(['pending', 'leased', 'succeeded', 'failed', 'cancelled']);
+const RUN_OUTCOMES = new Set([
+  'page_succeeded',
+  'page_failed',
+  'plan_ready',
+  'attention',
+  'in_flight',
+  'not_generating',
 ]);
 const FIELDS = new Set([
   'full_name',
@@ -175,20 +192,77 @@ function isMessage(value: unknown): boolean {
   );
 }
 
+function isGenerationRunView(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  return (
+    hasExactKeys(value, [
+      'approvalTaskRevision',
+      'callsUsed',
+      'estimatedTokenCeiling',
+      'maxAttemptsPerPage',
+      'maxTotalCalls',
+      'pages',
+      'tokensUsed',
+    ]) &&
+    isNonNegativeInteger(value.approvalTaskRevision) &&
+    isNonNegativeInteger(value.callsUsed) &&
+    isNonNegativeInteger(value.maxTotalCalls) &&
+    isNonNegativeInteger(value.tokensUsed) &&
+    isNonNegativeInteger(value.estimatedTokenCeiling) &&
+    isNonNegativeInteger(value.maxAttemptsPerPage) &&
+    Array.isArray(value.pages) &&
+    value.pages.every(
+      (page) =>
+        isRecord(page) &&
+        hasExactKeys(page, ['attemptCount', 'errorCode', 'index', 'key', 'status']) &&
+        isString(page.key) &&
+        Number.isInteger(page.index) &&
+        PAGE_STATUSES.has(String(page.status)) &&
+        isNonNegativeInteger(page.attemptCount) &&
+        (page.errorCode === null || isString(page.errorCode)),
+    )
+  );
+}
+
+function isPlanSummary(value: unknown): boolean {
+  return (
+    isRecord(value) &&
+    hasExactKeys(value, [
+      'actionCount',
+      'conflictCount',
+      'createdAt',
+      'fingerprint',
+      'preconditionFingerprint',
+      'revision',
+      'uncertaintyCount',
+    ]) &&
+    isNonNegativeInteger(value.revision) &&
+    isNonNegativeInteger(value.actionCount) &&
+    isNonNegativeInteger(value.conflictCount) &&
+    isNonNegativeInteger(value.uncertaintyCount) &&
+    isString(value.preconditionFingerprint) &&
+    isString(value.fingerprint) &&
+    isString(value.createdAt)
+  );
+}
+
 export function isOrganizationTask(value: unknown): value is OrganizationTaskView {
   if (!isRecord(value)) return false;
   const approval = value.generationApproval;
   return (
     hasExactKeys(value, [
+      'attentionCode',
       'contextRepositoryIds',
       'createdAt',
       'endedAt',
       'generationApproval',
+      'generationRun',
       'goal',
       'id',
       'manifest',
       'messages',
       'origin',
+      'plans',
       'revision',
       'snapshot',
       'status',
@@ -213,6 +287,10 @@ export function isOrganizationTask(value: unknown): value is OrganizationTaskVie
         isString(approval.approvedAt))) &&
     Array.isArray(value.messages) &&
     value.messages.every(isMessage) &&
+    (value.generationRun === null || isGenerationRunView(value.generationRun)) &&
+    (value.attentionCode === null || isString(value.attentionCode)) &&
+    Array.isArray(value.plans) &&
+    value.plans.every(isPlanSummary) &&
     (value.endedAt === null || isString(value.endedAt)) &&
     isString(value.createdAt) &&
     isString(value.updatedAt)
@@ -238,6 +316,30 @@ export function readOrganizationTaskResponse(value: unknown): OrganizationTaskVi
     throw new Error('manage-organization-tasks returned an invalid response');
   }
   return task;
+}
+
+function isRunResult(value: unknown): value is OrganizationGenerationRunResult {
+  if (!isRecord(value) || !RUN_OUTCOMES.has(String(value.outcome))) return false;
+  const allowed = new Set(['attentionCode', 'outcome', 'planRevision', 'status']);
+  return (
+    Object.keys(value).every((key) => allowed.has(key)) &&
+    (value.attentionCode === undefined || isString(value.attentionCode)) &&
+    (value.planRevision === undefined || isNonNegativeInteger(value.planRevision)) &&
+    (value.status === undefined || isString(value.status))
+  );
+}
+
+export function readOrganizationRunResponse(value: unknown): {
+  task: OrganizationTaskView;
+  run: OrganizationGenerationRunResult;
+} {
+  const record = isRecord(value) ? value : null;
+  const task = record?.task;
+  const run = record?.run;
+  if (!isOrganizationTask(task) || !isRunResult(run)) {
+    throw new Error('manage-organization-tasks returned an invalid response');
+  }
+  return { task, run };
 }
 
 async function invoke(client: SupabaseClient, body: Record<string, unknown>): Promise<unknown> {
@@ -332,6 +434,35 @@ export const endOrganizationTask = (
   client: SupabaseClient,
   input: { taskId: string; expectedRevision: number },
 ) => revisionMutation(client, { action: 'end', ...input });
+
+export const startOrganizationGeneration = (
+  client: SupabaseClient,
+  input: { taskId: string; expectedRevision: number },
+) => revisionMutation(client, { action: 'start-generation', ...input });
+
+export const pauseOrganizationGeneration = (
+  client: SupabaseClient,
+  input: { taskId: string; expectedRevision: number },
+) => revisionMutation(client, { action: 'pause-generation', ...input });
+
+export const resumeOrganizationGeneration = (
+  client: SupabaseClient,
+  input: { taskId: string; expectedRevision: number },
+) => revisionMutation(client, { action: 'resume-generation', ...input });
+
+export const retryOrganizationGeneration = (
+  client: SupabaseClient,
+  input: { taskId: string; expectedRevision: number },
+) => revisionMutation(client, { action: 'retry-generation', ...input });
+
+export async function runOrganizationGenerationPage(
+  client: SupabaseClient,
+  input: { taskId: string },
+): Promise<{ task: OrganizationTaskView; run: OrganizationGenerationRunResult }> {
+  return readOrganizationRunResponse(
+    await invoke(client, { action: 'run-generation-page', taskId: input.taskId }),
+  );
+}
 
 export async function listOrganizationOpportunities(
   client: SupabaseClient,

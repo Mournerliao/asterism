@@ -1,18 +1,21 @@
 import { Badge, Button, Separator, Skeleton, Textarea } from '@asterism/ui';
 import {
+  AlertTriangleIcon,
   ArrowRightIcon,
-  CheckCircle2Icon,
+  ClipboardCheckIcon,
   Clock3Icon,
   HistoryIcon,
   ListChecksIcon,
   LoaderCircleIcon,
   MessageSquareTextIcon,
+  PauseIcon,
+  PlayIcon,
   RefreshCwIcon,
   ShieldCheckIcon,
   SparklesIcon,
   XIcon,
 } from 'lucide-react';
-import { type FormEvent, useMemo, useState } from 'react';
+import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
@@ -26,6 +29,11 @@ import {
   useOrganizationOpportunities,
   useOrganizationTask,
   useOrganizationTasks,
+  usePauseOrganizationGeneration,
+  useResumeOrganizationGeneration,
+  useRetryOrganizationGeneration,
+  useRunOrganizationGenerationPage,
+  useStartOrganizationGeneration,
   useUpdateOrganizationTaskGoal,
 } from '../data/use-organization-tasks';
 import { useStarredRepos } from '../data/use-starred-repos';
@@ -41,6 +49,7 @@ function MutationError({ error }: { error: unknown }) {
     'generation_connection_required',
     'organization_discovery_interrupted',
     'organization_candidate_authorization_changed',
+    'organization_retry_exhausted',
   ].includes(code);
   return (
     <p role="alert" className="text-caption text-destructive">
@@ -349,6 +358,358 @@ function WorkloadDisclosure({
         </p>
         <p className="mt-1 text-muted-foreground">{t('organizationTasks.disclosure.excluded')}</p>
       </div>
+    </section>
+  );
+}
+
+function GenerationProgressBar({ value, max }: { value: number; max: number }) {
+  const percent = max > 0 ? Math.min(100, Math.round((value / max) * 100)) : 0;
+  return (
+    <div
+      className="h-2 overflow-hidden rounded-full bg-muted"
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={max}
+      aria-valuenow={value}
+    >
+      <div
+        className="h-full rounded-full bg-primary transition-[width] duration-500 motion-reduce:transition-none"
+        style={{ width: `${percent}%` }}
+      />
+    </div>
+  );
+}
+
+function GenerationPanel({
+  task,
+}: {
+  task: NonNullable<ReturnType<typeof useOrganizationTask>['data']>;
+}) {
+  const { t } = useTranslation();
+  const start = useStartOrganizationGeneration();
+  const pause = usePauseOrganizationGeneration();
+  const resume = useResumeOrganizationGeneration();
+  const retry = useRetryOrganizationGeneration();
+  const runPage = useRunOrganizationGenerationPage();
+  const [halt, setHalt] = useState<string | null>(null);
+  const runningRef = useRef(false);
+
+  const taskId = task.id;
+  const revision = task.revision;
+  const status = task.status;
+  const isGenerating = status === 'generating';
+  const runMutate = runPage.mutateAsync;
+  const runPending = runPage.isPending;
+
+  // The client owns the bounded pagination loop: advance exactly one page per
+  // settled call while generating, and halt on any non-success outcome so
+  // ceilings, drift, single-page failures, and hand-off to another session
+  // never spin it. `runningRef` blocks re-entry (including StrictMode remounts);
+  // the settled `runPending` transition re-arms the loop for the next page.
+  useEffect(() => {
+    if (!isGenerating) {
+      setHalt(null);
+      return;
+    }
+    if (halt !== null || runPending || runningRef.current) return;
+    runningRef.current = true;
+    runMutate({ taskId })
+      .then((result) => {
+        if (result.run.outcome !== 'page_succeeded') setHalt(result.run.outcome);
+      })
+      .catch(() => setHalt('page_failed'))
+      .finally(() => {
+        runningRef.current = false;
+      });
+  }, [isGenerating, taskId, halt, runPending, runMutate]);
+
+  const controlError = start.error ?? pause.error ?? resume.error ?? retry.error ?? runPage.error;
+
+  if (status === 'generation_approved') {
+    return (
+      <section
+        aria-labelledby="generation-start"
+        className="flex flex-col gap-4 rounded-lg border bg-card p-5"
+      >
+        <div className="flex items-start gap-3">
+          <SparklesIcon className="mt-0.5 size-5 text-primary" aria-hidden="true" />
+          <div>
+            <h2 id="generation-start" className="font-semibold text-section-title">
+              {t('organizationTasks.generation.startTitle')}
+            </h2>
+            <p className="mt-1 text-body text-muted-foreground">
+              {t('organizationTasks.generation.startDescription')}
+            </p>
+          </div>
+        </div>
+        <div className="flex justify-end">
+          <Button
+            className="min-w-44"
+            disabled={start.isPending}
+            aria-busy={start.isPending}
+            onClick={() => start.mutate({ taskId, expectedRevision: revision })}
+          >
+            {start.isPending ? (
+              <LoaderCircleIcon
+                className="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <PlayIcon className="size-4" aria-hidden="true" />
+            )}
+            {start.isPending
+              ? t('organizationTasks.generation.starting')
+              : t('organizationTasks.generation.start')}
+          </Button>
+        </div>
+        <MutationError error={controlError} />
+      </section>
+    );
+  }
+
+  if (status === 'plan_ready') {
+    const plan = task.plans[0];
+    return (
+      <section
+        aria-labelledby="generation-plan"
+        className="flex flex-col gap-4 rounded-lg border bg-card p-5"
+      >
+        <div className="flex items-start gap-3">
+          <ClipboardCheckIcon className="mt-0.5 size-5 text-success" aria-hidden="true" />
+          <div>
+            <h2 id="generation-plan" className="font-semibold text-section-title">
+              {t('organizationTasks.plan.title')}
+            </h2>
+            <p className="mt-1 text-body text-muted-foreground">
+              {t('organizationTasks.plan.description')}
+            </p>
+          </div>
+        </div>
+        {plan ? (
+          <dl className="grid gap-x-6 gap-y-4 text-body sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <dt className="text-caption text-muted-foreground">
+                {t('organizationTasks.plan.revision')}
+              </dt>
+              <dd className="mt-1 font-mono font-medium">{plan.revision}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-muted-foreground">
+                {t('organizationTasks.plan.actions')}
+              </dt>
+              <dd className="mt-1 font-medium">{plan.actionCount}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-muted-foreground">
+                {t('organizationTasks.plan.conflicts')}
+              </dt>
+              <dd className="mt-1 font-medium">{plan.conflictCount}</dd>
+            </div>
+            <div>
+              <dt className="text-caption text-muted-foreground">
+                {t('organizationTasks.plan.uncertainties')}
+              </dt>
+              <dd className="mt-1 font-medium">{plan.uncertaintyCount}</dd>
+            </div>
+          </dl>
+        ) : null}
+      </section>
+    );
+  }
+
+  const run = task.generationRun;
+  if (!run || !(isGenerating || status === 'generation_paused' || status === 'needs_attention')) {
+    return null;
+  }
+  const done = run.pages.filter((page) => page.status === 'succeeded').length;
+  const total = run.pages.length;
+  const leasedPage = run.pages.find((page) => page.status === 'leased');
+  const checkpoint = leasedPage ?? run.pages.find((page) => page.status === 'pending');
+
+  return (
+    <section
+      aria-labelledby="generation-progress"
+      className="flex flex-col gap-5 rounded-lg border bg-card p-5"
+    >
+      <div>
+        <h2 id="generation-progress" className="font-semibold text-section-title">
+          {t('organizationTasks.generation.title')}
+        </h2>
+        <p className="mt-1 text-body text-muted-foreground">
+          {t('organizationTasks.generation.description')}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center justify-between text-caption">
+          <span className="text-muted-foreground">{t('organizationTasks.generation.pages')}</span>
+          <span className="font-mono font-medium">
+            {t('organizationTasks.generation.pagesValue', { done, total })}
+          </span>
+        </div>
+        <GenerationProgressBar value={done} max={total} />
+        <dl className="grid gap-x-6 gap-y-4 text-body sm:grid-cols-3">
+          <div>
+            <dt className="text-caption text-muted-foreground">
+              {t('organizationTasks.generation.calls')}
+            </dt>
+            <dd className="mt-1 font-mono font-medium">
+              {t('organizationTasks.generation.ratio', {
+                used: run.callsUsed,
+                max: run.maxTotalCalls,
+              })}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-caption text-muted-foreground">
+              {t('organizationTasks.generation.tokens')}
+            </dt>
+            <dd className="mt-1 font-mono font-medium">
+              {t('organizationTasks.generation.ratio', {
+                used: run.tokensUsed.toLocaleString(),
+                max: run.estimatedTokenCeiling.toLocaleString(),
+              })}
+            </dd>
+          </div>
+          <div>
+            <dt className="text-caption text-muted-foreground">
+              {t('organizationTasks.generation.checkpoint')}
+            </dt>
+            <dd className="mt-1 font-medium">
+              {checkpoint
+                ? t('organizationTasks.generation.checkpointPage', {
+                    index: checkpoint.index,
+                    total,
+                  })
+                : t('organizationTasks.generation.checkpointIdle')}
+            </dd>
+          </div>
+        </dl>
+      </div>
+
+      <p aria-live="polite" className="sr-only">
+        {isGenerating && runPending
+          ? t('organizationTasks.generation.running', { index: checkpoint?.index ?? done, total })
+          : t('organizationTasks.generation.liveProgress', { done, total })}
+      </p>
+
+      {status === 'needs_attention' ? (
+        <div
+          role="alert"
+          className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/5 px-4 py-3"
+        >
+          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+          <p className="text-caption">
+            {t(
+              `organizationTasks.generation.attentionReason.${task.attentionCode ?? 'retry_exhausted'}`,
+            )}
+          </p>
+        </div>
+      ) : null}
+
+      {isGenerating && halt === 'page_failed' ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-3 rounded-md border border-warning/30 bg-warning/5 px-4 py-3"
+        >
+          <AlertTriangleIcon className="size-4 shrink-0 text-warning" aria-hidden="true" />
+          <p className="min-w-56 flex-1 text-caption">
+            {t('organizationTasks.generation.pageFailed')}
+          </p>
+          <Button variant="outline" size="sm" disabled={runPending} onClick={() => setHalt(null)}>
+            <RefreshCwIcon className="size-4" aria-hidden="true" />
+            {t('organizationTasks.generation.continue')}
+          </Button>
+        </div>
+      ) : null}
+
+      {isGenerating && halt === 'in_flight' ? (
+        <div
+          role="status"
+          className="flex flex-wrap items-center gap-3 rounded-md bg-muted px-4 py-3"
+        >
+          <LoaderCircleIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+          <p className="min-w-56 flex-1 text-caption text-muted-foreground">
+            {t('organizationTasks.generation.inFlight')}
+          </p>
+          <Button variant="outline" size="sm" disabled={runPending} onClick={() => setHalt(null)}>
+            <RefreshCwIcon className="size-4" aria-hidden="true" />
+            {t('organizationTasks.generation.checkAgain')}
+          </Button>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        {isGenerating ? (
+          <Button
+            variant="outline"
+            className="min-w-32"
+            disabled={pause.isPending}
+            aria-busy={pause.isPending}
+            onClick={() => pause.mutate({ taskId, expectedRevision: revision })}
+          >
+            {pause.isPending ? (
+              <LoaderCircleIcon
+                className="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <PauseIcon className="size-4" aria-hidden="true" />
+            )}
+            {pause.isPending
+              ? t('organizationTasks.generation.pausing')
+              : t('organizationTasks.generation.pause')}
+          </Button>
+        ) : null}
+        {status === 'generation_paused' ? (
+          <Button
+            className="min-w-32"
+            disabled={resume.isPending}
+            aria-busy={resume.isPending}
+            onClick={() => resume.mutate({ taskId, expectedRevision: revision })}
+          >
+            {resume.isPending ? (
+              <LoaderCircleIcon
+                className="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <PlayIcon className="size-4" aria-hidden="true" />
+            )}
+            {resume.isPending
+              ? t('organizationTasks.generation.resuming')
+              : t('organizationTasks.generation.resume')}
+          </Button>
+        ) : null}
+        {status === 'needs_attention' ? (
+          <Button
+            className="min-w-40"
+            disabled={retry.isPending}
+            aria-busy={retry.isPending}
+            onClick={() => retry.mutate({ taskId, expectedRevision: revision })}
+          >
+            {retry.isPending ? (
+              <LoaderCircleIcon
+                className="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <RefreshCwIcon className="size-4" aria-hidden="true" />
+            )}
+            {retry.isPending
+              ? t('organizationTasks.generation.retrying')
+              : t('organizationTasks.generation.retry')}
+          </Button>
+        ) : null}
+      </div>
+
+      {status === 'generation_paused' ? (
+        <p className="text-caption text-muted-foreground">
+          {t('organizationTasks.generation.paused')}
+        </p>
+      ) : null}
+
+      <MutationError error={controlError} />
     </section>
   );
 }
@@ -681,21 +1042,12 @@ export function OrganizationTaskDetailPage() {
         </>
       ) : null}
 
-      {task.status === 'generation_approved' ? (
-        <section
-          aria-labelledby="generation-approved"
-          className="flex items-start gap-3 rounded-lg border bg-card p-5"
-        >
-          <CheckCircle2Icon className="mt-0.5 size-5 text-success" aria-hidden="true" />
-          <div>
-            <h2 id="generation-approved" className="font-semibold text-section-title">
-              {t('organizationTasks.approved.title')}
-            </h2>
-            <p className="mt-1 text-body text-muted-foreground">
-              {t('organizationTasks.approved.description')}
-            </p>
-          </div>
-        </section>
+      {task.status === 'generation_approved' ||
+      task.status === 'generating' ||
+      task.status === 'generation_paused' ||
+      task.status === 'needs_attention' ||
+      task.status === 'plan_ready' ? (
+        <GenerationPanel task={task} />
       ) : null}
 
       {task.status === 'ended' ? (

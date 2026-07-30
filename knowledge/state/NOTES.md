@@ -11,7 +11,7 @@
 ## 关键指针（决策与契约在哪）
 
 - **Organization Task 部署（2026-07-28，#24）**：关联项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260728180000_organization_tasks.sql` 与 `20260728183000_localized_organization_opportunity_goal.sql`，`manage-organization-tasks` 为 `ACTIVE v4`，更新后的 `sync-stars` 为 `ACTIVE v6`。新环境仍须按同一顺序迁移并部署两个函数。前者不需要 BYOK 加密 secret，不读取 credential，也不调用 Provider；缺少 active Generation Connection 时发现不会固化不完整披露。
-- **Phase 2.1 tickets（2026-07-28）**：GitHub #23 已拆为 #24 → #25 → #26 → #27 → #28；#24 已实现并部署，当前 frontier 为被其解锁的 #25。后续不得把一次性 prototype 演化为生产代码，也不得提前实现 #26–#28。
+- **Phase 2.1 tickets（2026-07-28）**：GitHub #23 已拆为 #24 → #25 → #26 → #27 → #28；#24、#25 已实现，当前 frontier 为被 #25 解锁的 #26。后续不得把一次性 prototype 演化为生产代码，也不得提前实现 #27–#28。
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。
   - `0001-supabase-baas.md`：后端选 Supabase（Auth + Postgres + Edge Functions）；Realtime 部分由 ADR 0012 废止，pgvector 产品用途曾由 ADR 0022 移除、现由 ADR 0026 重新启用
   - `0012-remove-realtime-from-product-scope.md`：业务数据不做主动推送收敛，按查询边界读取 Postgres 最新状态
@@ -58,6 +58,7 @@
 - **Generation active pair 由数据库兜底**（2026-07-22，#13）：普通客户端只读 `user_settings`；写入经 `manage-ai-connections`，数据库 trigger 再强制 connection/model 同空同非空、connection 有效且 model 精确等于最近成功测试。连接失效、禁用或成功 model 变化时自动清除旧 active pair。端点/credential 变化必须清 capability；禁用状态下探活不得隐式启用。
 - **`rotate-ai-connections` 是独立带外轮换函数**（2026-07-21，#13，US22）：与 `manage-ai-connections` 分离部署，用户请求不可达。部署走 `supabase functions deploy rotate-ai-connections --no-verify-jwt`（不经用户 JWT，仅由自有 secret 守卫），并须 `supabase secrets set AI_CREDENTIAL_ROTATION_SECRET=...`（经 `x-rotation-secret` header 触发，常量时间比较）。轮换把非 active 版本密文重加密到 active 版本；**退役旧密钥版本前必须先跑到「无残留旧版本行」**。curl 示例与流程见函数 README。
 - **functions 已纳入根测试门禁**（2026-07-22）：`supabase/package.json` 的 `@asterism/supabase-functions` workspace 负责 typecheck/test；`pnpm test` 当前执行 10 files / 75 tests，无需再额外手工补跑。
-- **AI 草稿确认需同时部署两个函数**（2026-07-23，#17）：`manage-ai-organization` 负责受信事务确认，Web 随后调用既有 `bulk-organize` 有界 executor；新环境必须应用 `20260723120000`、`20260723160000`、`20260723190000`、`20260723193000` 并部署这两个函数。Deno Edge Function 的本地相对导入必须显式写 `.ts`，否则 CLI bundling 会失败。当前项目 `hqtrmulypxwdqvzlkhke` 已部署并完成真实事务、幂等、RLS、名称复用 / 拒绝和执行恢复 smoke。
+- **AI 草稿确认需同时部署两个函数（2026-07-23，#17）**：`manage-ai-organization` 负责受信事务确认，Web 随后调用既有 `bulk-organize` 有界 executor；新环境必须应用 `20260723120000`、`20260723160000`、`20260723190000`、`20260723193000` 并部署这两个函数。Deno Edge Function 的本地相对导入必须显式写 `.ts`，否则 CLI bundling 会失败。当前项目 `hqtrmulypxwdqvzlkhke` 已部署并完成真实事务、幂等、RLS、名称复用 / 拒绝和执行恢复 smoke。
+- **#25 可恢复 Generation 尚未部署（2026-07-30）**：新增迁移 `20260730090000_organization_generation_runs.sql`（三张新表 + 8 个 RPC + 新任务状态 generating / generation_paused / needs_attention / plan_ready）已实现并通过四道门禁，但**本会话未向真实 Supabase 环境部署也未做 smoke test**。部署时需先应用该迁移再 `supabase functions deploy manage-organization-tasks`（驱动动作添在同一函数）；Generation 真实调用仍需 `manage-ai-connections` 的 BYOK 加密 secret 已配置且存在 active Generation Connection。客户端驱动分页 loop 不能用 `active`/`cancel` 标志（会被 `runPending` 的 cleanup 清空导致 outcome 丢失、busy-spin），必须用 `useRef` 防重入 + 直接观测 outcome + `runPending` 翻转重新武装。
 - **#21 星图 prototype 历史结论（2026-07-24，已于 2026-07-27 随 ADR 0028 删除）**：原型曾证明确定性 PCA 与 Canvas2D 分层渲染技术可行，但技术可行不等于产品必要。正式能力移除后，dev 原型与无调用方的投影模块一并删除；历史实验数据保留在 `logs/2026-07-24-issue21-star-map-prototype-spike.md`。
 - **Related Stars 的可用性边界（2026-07-27）**：opt-in 只代表用户许可，不代表向量已可读。每次首次检查 / 增量回填都进入共享 `preparing`；成功失效 `embeddingKeys.list(userId)` 后才进入 `available`，失败进入 `degraded`，二者之外 Related Stars 必须静默。准备轮次用 token 仲裁，旧任务不得解锁较新的轮次。

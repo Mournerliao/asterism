@@ -4,6 +4,8 @@ import {
   buildGenerationProbeRequest,
   buildModelDiscoveryRequest,
   buildOrganizationGenerationRequest,
+  extractGenerationText,
+  extractGenerationUsage,
   extractJsonObject,
   type GenerationTarget,
   interpretGenerationProbeResponse,
@@ -363,5 +365,46 @@ describe('organization generation', () => {
       organizationInput,
     );
     expect(result.ok).toBe(false);
+  });
+
+  it('extracts response text per adapter shape', () => {
+    expect(extractGenerationText('openai', { choices: [{ message: { content: 'hi' } }] })).toBe(
+      'hi',
+    );
+    expect(extractGenerationText('anthropic', { content: [{ type: 'text', text: 'hey' }] })).toBe(
+      'hey',
+    );
+    expect(
+      extractGenerationText('google', {
+        candidates: [{ content: { parts: [{ text: 'ho' }] } }],
+      }),
+    ).toBe('ho');
+    expect(extractGenerationText('openai', { unexpected: true })).toBeNull();
+  });
+
+  it('extracts provider usage per adapter and fills missing totals', () => {
+    expect(
+      extractGenerationUsage('openai', {
+        usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+      }),
+    ).toEqual({ inputTokens: 10, outputTokens: 5, totalTokens: 15 });
+    expect(
+      extractGenerationUsage('anthropic', { usage: { input_tokens: 7, output_tokens: 3 } }),
+    ).toEqual({ inputTokens: 7, outputTokens: 3, totalTokens: 10 });
+    expect(
+      extractGenerationUsage('google', {
+        usageMetadata: { promptTokenCount: 4, candidatesTokenCount: 2, totalTokenCount: 6 },
+      }),
+    ).toEqual({ inputTokens: 4, outputTokens: 2, totalTokens: 6 });
+    expect(extractGenerationUsage('openai', {})).toEqual({
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+    });
+    expect(extractGenerationUsage('openai', { usage: { prompt_tokens: -1 } })).toEqual({
+      inputTokens: null,
+      outputTokens: null,
+      totalTokens: null,
+    });
   });
 });

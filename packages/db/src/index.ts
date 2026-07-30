@@ -1,4 +1,5 @@
 export type {
+  OrganizationGenerationRunResult,
   OrganizationOpportunityView,
   OrganizationTaskView,
 } from '@asterism/core';
@@ -76,6 +77,12 @@ export {
   isOrganizationTask,
   listOrganizationOpportunities,
   listOrganizationTasks,
+  pauseOrganizationGeneration,
+  readOrganizationRunResponse,
+  resumeOrganizationGeneration,
+  retryOrganizationGeneration,
+  runOrganizationGenerationPage,
+  startOrganizationGeneration,
   updateOrganizationTaskGoal,
 } from './organization-tasks';
 export type { CollectionRepoLink } from './queries/collection-repos';

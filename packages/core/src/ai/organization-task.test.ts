@@ -84,6 +84,53 @@ describe('Organization Task domain', () => {
     ).toThrow(new OrganizationTaskDomainError('organization_task_ended'));
   });
 
+  it('walks the generation lifecycle through pause, attention, and plan states', () => {
+    const steps = [
+      ['generation_approved', 'generating'],
+      ['generating', 'generation_paused'],
+      ['generation_paused', 'generating'],
+      ['generating', 'needs_attention'],
+      ['needs_attention', 'generating'],
+      ['needs_attention', 'clarifying'],
+      ['generating', 'plan_ready'],
+      ['plan_ready', 'clarifying'],
+      ['plan_ready', 'ended'],
+    ] as const;
+    for (const [from, to] of steps) {
+      expect(
+        transitionOrganizationTask(
+          { status: from, revision: 7, endedAt: null },
+          {
+            expectedRevision: 7,
+            to,
+          },
+        ),
+      ).toEqual({
+        status: to,
+        revision: 8,
+        endedAt: to === 'ended' ? expect.any(String) : null,
+      });
+    }
+
+    const illegal = [
+      ['plan_ready', 'generating'],
+      ['generation_paused', 'plan_ready'],
+      ['clarifying', 'generating'],
+      ['generating', 'generation_approved'],
+    ] as const;
+    for (const [from, to] of illegal) {
+      expect(() =>
+        transitionOrganizationTask(
+          { status: from, revision: 7, endedAt: null },
+          {
+            expectedRevision: 7,
+            to,
+          },
+        ),
+      ).toThrow(new OrganizationTaskDomainError('organization_task_invalid_transition'));
+    }
+  });
+
   it('discovers explained candidates from the complete authorized library deterministically', () => {
     const snapshot = buildCandidateSnapshot({
       taskId: 'task-1',

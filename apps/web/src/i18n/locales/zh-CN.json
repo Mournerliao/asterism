@@ -536,6 +536,10 @@
       "discovering": "正在发现候选",
       "awaiting_generation_approval": "等待批准 Generation",
       "generation_approved": "已批准 Generation",
+      "generating": "正在生成",
+      "generation_paused": "已暂停生成",
+      "needs_attention": "需要处理",
+      "plan_ready": "Plan 就绪",
       "ended": "已结束"
     },
     "adapters": {
@@ -629,9 +633,48 @@
       "collections": "你的集合",
       "note": "你明确启用的笔记"
     },
-    "approved": {
-      "title": "已批准 Generation",
-      "description": "持久批准已就绪。可恢复的内部分页 Generation 和 Organization Plan 将在下一张实现票中交付。"
+    "generation": {
+      "startTitle": "已批准 Generation",
+      "startDescription": "开始内部分页 Generation。Asterism 每次推进一个有界页面，并保留可恢复的持久进度。",
+      "start": "开始 Generation",
+      "starting": "正在开始…",
+      "title": "正在进行 Generation",
+      "description": "Asterism 每次调用推进一个有界页面。进度是持久的；可在任意 checkpoint 暂停、恢复或结束。",
+      "pages": "页面",
+      "pagesValue": "{{done}} / {{total}}",
+      "calls": "Provider 调用",
+      "tokens": "Token",
+      "ratio": "{{used}} / {{max}}",
+      "checkpoint": "Checkpoint",
+      "checkpointPage": "第 {{index}} / {{total}} 页",
+      "checkpointIdle": "等待下一页",
+      "running": "正在生成第 {{index}} / {{total}} 页",
+      "liveProgress": "已完成 {{done}} / {{total}} 页",
+      "pause": "暂停",
+      "pausing": "正在暂停…",
+      "paused": "Generation 已暂停。持久进度已保留；恢复即可从停止处继续。",
+      "resume": "恢复",
+      "resuming": "正在恢复…",
+      "retry": "重试页面",
+      "retrying": "正在重试…",
+      "continue": "继续",
+      "pageFailed": "某个页面失败。持久进度已保留；继续以重试当前页面。",
+      "inFlight": "另一个会话正在推进某个页面。不会重复执行。",
+      "checkAgain": "再次检查",
+      "attentionReason": {
+        "call_ceiling": "已达到批准的 Provider 调用上限。请检查工作量，然后重试或结束任务。",
+        "token_ceiling": "已达到预估的 Token 上限。请检查工作量，然后重试或结束任务。",
+        "retry_exhausted": "该页面已用尽全部批准的重试次数。请检查 Provider，然后重试或结束任务。",
+        "authorization_changed": "某个候选已失去授权，或其披露内容已变化。请重新发现后再恢复 Generation。"
+      }
+    },
+    "plan": {
+      "title": "Organization Plan 已就绪",
+      "description": "所有页面已归并为一份 immutable、带 revision 的 Plan。可安全查看；尚不会更改你的 Canonical 库。",
+      "revision": "Revision",
+      "actions": "动作",
+      "conflicts": "冲突",
+      "uncertainties": "不确定项"
     },
     "ended": {
       "title": "此任务已只读",
@@ -647,7 +690,8 @@
       "opportunities_load_failed": "无法加载整理机会。Browse 仍可使用；请重试此区域。",
       "tasks_load_failed": "无法加载任务历史。请重试并从 Postgres 恢复。",
       "task_load_failed": "无法从 Postgres 加载此任务。持久状态不会丢失；请重试。",
-      "organization_task_failed": "无法保存任务改动。持久状态未改变；请重试。"
+      "organization_task_failed": "无法保存任务改动。持久状态未改变；请重试。",
+      "organization_retry_exhausted": "此页面没有剩余的批准重试次数。请检查 Provider 或工作量，然后重试或结束任务。"
     }
   },
   "aiOrganization": {

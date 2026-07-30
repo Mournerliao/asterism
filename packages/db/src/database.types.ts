@@ -855,6 +855,79 @@ export interface Database {
         };
         Returns: boolean;
       };
+      start_organization_generation: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+        };
+        Returns: boolean;
+      };
+      pause_organization_generation: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+        };
+        Returns: boolean;
+      };
+      resume_organization_generation: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+        };
+        Returns: boolean;
+      };
+      retry_organization_generation: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+        };
+        Returns: Json;
+      };
+      flag_organization_generation_attention: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_code: string;
+        };
+        Returns: boolean;
+      };
+      claim_organization_generation_page: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_lease_seconds: number;
+        };
+        Returns: Json;
+      };
+      complete_organization_generation_page: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_call_id: string;
+          p_lease_id: string;
+          p_status: string;
+          p_request_hash: string | null;
+          p_truncation: Json | null;
+          p_usage: Json | null;
+          p_error_code: string | null;
+          p_result: Json | null;
+        };
+        Returns: Json;
+      };
+      save_organization_plan: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_plan: Json;
+        };
+        Returns: Json;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

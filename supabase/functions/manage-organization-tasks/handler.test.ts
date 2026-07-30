@@ -15,6 +15,9 @@ const task = {
   snapshot: null,
   manifest: null,
   generationApproval: null,
+  generationRun: null,
+  attentionCode: null,
+  plans: [],
   messages: [],
   endedAt: null,
   createdAt: '2026-07-28T00:00:00.000Z',
@@ -45,6 +48,24 @@ function dependencies(
     listOpportunities: vi.fn().mockResolvedValue([]),
     acceptOpportunity: vi.fn().mockResolvedValue(task),
     ignoreOpportunity: vi.fn().mockResolvedValue(true),
+    startGeneration: vi.fn().mockResolvedValue({ ...task, status: 'generating', revision: 2 }),
+    pauseGeneration: vi
+      .fn()
+      .mockResolvedValue({ ...task, status: 'generation_paused', revision: 2 }),
+    resumeGeneration: vi.fn().mockResolvedValue({ ...task, status: 'generating', revision: 2 }),
+    retryGeneration: vi.fn().mockResolvedValue({ ...task, status: 'generating', revision: 2 }),
+    runGenerationPage: vi.fn().mockResolvedValue({ task, run: { outcome: 'page_succeeded' } }),
+    readPlan: vi.fn().mockResolvedValue({
+      version: 1,
+      taskId: 'task-1',
+      revision: 1,
+      groups: [],
+      conflicts: [],
+      uncertainties: [],
+      counts: { actions: 0, newClassifications: 0, conflicts: 0, uncertainties: 0 },
+      preconditionFingerprint: '',
+      fingerprint: '',
+    }),
     ...overrides,
   };
 }

@@ -10,6 +10,11 @@ import {
   ignoreOrganizationOpportunity,
   listOrganizationOpportunities,
   listOrganizationTasks,
+  pauseOrganizationGeneration,
+  resumeOrganizationGeneration,
+  retryOrganizationGeneration,
+  runOrganizationGenerationPage,
+  startOrganizationGeneration,
   updateOrganizationTaskGoal,
 } from '@asterism/db';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -131,6 +136,52 @@ export const useEndOrganizationTask = () =>
   useTaskMutation((input: { taskId: string; expectedRevision: number }) =>
     endOrganizationTask(supabase, input),
   );
+
+export const useStartOrganizationGeneration = () =>
+  useTaskMutation((input: { taskId: string; expectedRevision: number }) =>
+    startOrganizationGeneration(supabase, input),
+  );
+
+export const usePauseOrganizationGeneration = () =>
+  useTaskMutation((input: { taskId: string; expectedRevision: number }) =>
+    pauseOrganizationGeneration(supabase, input),
+  );
+
+export const useResumeOrganizationGeneration = () =>
+  useTaskMutation((input: { taskId: string; expectedRevision: number }) =>
+    resumeOrganizationGeneration(supabase, input),
+  );
+
+export const useRetryOrganizationGeneration = () =>
+  useTaskMutation((input: { taskId: string; expectedRevision: number }) =>
+    retryOrganizationGeneration(supabase, input),
+  );
+
+/**
+ * Drives one bounded generation page. Unlike the revision mutations it returns
+ * `{ task, run }`: the caller inspects `run.outcome` to decide whether to keep
+ * advancing pages, while the refreshed task is written straight into the detail
+ * cache so live progress stays authoritative.
+ */
+export function useRunOrganizationGenerationPage() {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { taskId: string }) => runOrganizationGenerationPage(supabase, input),
+    onSuccess: (result) => {
+      if (!userId) return;
+      queryClient.setQueryData(organizationTaskKeys.detail(userId, result.task.id), result.task);
+      void queryClient.invalidateQueries({ queryKey: organizationTaskKeys.list(userId) });
+    },
+    onError: (_error, input) => {
+      if (!userId) return;
+      void queryClient.invalidateQueries({
+        queryKey: organizationTaskKeys.detail(userId, input.taskId),
+      });
+    },
+  });
+}
 
 export const useAcceptOrganizationOpportunity = () =>
   useTaskMutation((input: { opportunityId: string; goal: string }) =>

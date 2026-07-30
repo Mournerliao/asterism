@@ -716,3 +716,54 @@ export function interpretOrganizationGenerationResponse(
   if (parsed === null) return { ok: false, reason: 'unparseable_output' };
   return validateOrganizationOutput(parsed, input);
 }
+
+/** Extract the model's text output from an already-parsed provider response body. */
+export function extractGenerationText(adapter: GenerationAdapterId, body: unknown): string | null {
+  return ADAPTER_SPECS[adapter]?.extractText(body) ?? null;
+}
+
+export interface GenerationUsage {
+  inputTokens: number | null;
+  outputTokens: number | null;
+  totalTokens: number | null;
+}
+
+function asTokenCount(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0
+    ? Math.round(value)
+    : null;
+}
+
+/**
+ * Extract the provider-reported token usage from a response body. Missing or
+ * malformed usage degrades to nulls; the total falls back to the part sum so
+ * ceiling accounting still sees providers that omit an explicit total.
+ */
+export function extractGenerationUsage(
+  adapter: GenerationAdapterId,
+  body: unknown,
+): GenerationUsage {
+  const root = asRecord(body);
+  let inputTokens: number | null = null;
+  let outputTokens: number | null = null;
+  let totalTokens: number | null = null;
+  if (adapter === 'google') {
+    const usage = asRecord(root?.usageMetadata);
+    inputTokens = asTokenCount(usage?.promptTokenCount);
+    outputTokens = asTokenCount(usage?.candidatesTokenCount);
+    totalTokens = asTokenCount(usage?.totalTokenCount);
+  } else if (adapter === 'anthropic') {
+    const usage = asRecord(root?.usage);
+    inputTokens = asTokenCount(usage?.input_tokens);
+    outputTokens = asTokenCount(usage?.output_tokens);
+  } else {
+    const usage = asRecord(root?.usage);
+    inputTokens = asTokenCount(usage?.prompt_tokens);
+    outputTokens = asTokenCount(usage?.completion_tokens);
+    totalTokens = asTokenCount(usage?.total_tokens);
+  }
+  if (totalTokens === null && inputTokens !== null && outputTokens !== null) {
+    totalTokens = inputTokens + outputTokens;
+  }
+  return { inputTokens, outputTokens, totalTokens };
+}

@@ -16,6 +16,8 @@
 - [x] **测试策略深度已明确**（2026-07-18）：Phase 1 以 Vitest 单元/集成测试 + 真实环境 smoke test 验收；不新增 E2E 工具、不设覆盖率百分比。重复核心旅程回归或进入跨端阶段时再评估自动化 E2E。详见 `contracts/conventions.md`。
 - [ ] **AI 整理评审剩余次要项**（2026-07-23，来自 UI/UX critique，非阻断）：banner 多条堆叠缺优先级/去重；手动批量整理对话框在大量标签/集合时缺搜索与当前归属提示；确认全成功但 operation 尚未翻转 completed 的瞬间可能出现"需要处理 + 绿勾 + 无按钮"的过渡态。见 `logs/2026-07-23-ai-organization-uiux-critique.md`。
 
+- [ ] **#25 可恢复 Generation 的 code-review follow-up**（2026-07-30，非阻断，均属 robustness / 设计级）：① **failed 页误标 retry_exhausted**（C7/C11）——`claim` RPC 不重领 `failed` 页，而 `retry` 才重置为 `pending`；若用户未手动 retry，驱动 loop 会得到 `exhausted` 并展示 retry_exhausted attention，语义尚可接受但不够精确；同时 per-page `attemptCount` 未在任务面渲染。② **字段 gating 只覆盖 `note`**（C2）——manifest 当前总是批准 description/language/topics，故无实际泄露，但若将来允许选性字段需扩展校验。③ **截断记录的是 limit 而非实际 code point 数**（C4）。④ **token ceiling 启发式**（C8）——用平均预算 `ceil(ceiling/max_total_calls)` 预测下一页是否超预算，UI 已称 “estimated”。⑤ **SQL 级测试缺口**（C19）——claim/complete/pause/resume/retry/save-plan 的状态机目前只由 service / db 层间接验证，仓库无 pgTAP harness。⑥ **a11y 无自动化测试**（C20）——键盘 / live progress / reduced-motion 已手写实现但未由测试锁定。见 `logs/2026-07-30-issue-25-resumable-organization-plans.md`。
+
 - [x] **检索优先范式已落地并经真实库纠偏（ADR 0026–0028，2026-07-27）**：保留 `user_repo_embeddings`、浏览器内 q8 embedding、隐形混合搜索与 Quick Look 中最多 5 条互为 Top-12 近邻的局部语义邻域；全库密度聚类、promotion 与没有独占用户任务的二维语义星图均已移除。后续邻域参数调整只接受真实错误案例驱动，不以填满结果为目标。见 ADR 0027、0028。
 
 ## 未落地的工作项（基础设施）

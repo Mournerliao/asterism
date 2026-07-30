@@ -109,6 +109,17 @@
 
 上述私有表均携带 `user_id`、启用 owner SELECT RLS；普通角色没有状态转换写策略，也不能执行 checkpoint / approval RPC。创建、目标更新、发现、排除、批准与结束只经验证 JWT 的 `manage-organization-tasks` service-role 路径，并以 revision compare-and-set 推进。后续 Generation call、Plan、执行链接、Task Undo 与 legacy cutover 分别由 #25–#28 增量加入，不得提前塞回旧草稿。
 
+### Organization Generation 运行与 Plan（GitHub #25）
+
+`20260730090000_organization_generation_runs.sql` 在批准之上新增可恢复分页执行与归并 Plan：
+
+- `organization_tasks.status` 扩展四个生成期状态：`generating`（分页进行中）、`generation_paused`（用户暂停）、`needs_attention`（触及上限 / 授权漂移 / 重试耗尽）、`plan_ready`（已归并出 Plan）。转换只经受信 RPC 并携带 revision CAS。
+- `organization_generation_page_runs` 保存每页的 `page_index`、稳定 `page_key`、`repo_ids`（每页 ≤50 唯一仓库）、状态机（`pending` / `leased` / `succeeded` / `failed` / `cancelled`）、`attempt_count`、租约 `lease_id` / `lease_expires_at`、成功 `result` 与 `error_code`。`succeeded` 页幂等，不被 `claim` 重领；`failed` 页只能由显式 `retry` 重置回 `pending`。
+- `organization_generation_calls` 是调用账本：每次 `claim` 开一行（`started`），完成时按结果落 `succeeded` / `failed`，租约过期而响应丢失的旧行被后续 claim 关为 `lost`。记录 `usage`（token）、`truncation`、`request_hash`、`error_code`，全部计入调用与 token 上限。
+- `organization_plans` 保存 immutable、revisioned 的归并结果：稳定 repository / 分类 ID 的可审阅 action groups、跨页 `conflicts`（如 near-duplicate 分类名）与 `uncertainties`。归并用 locale-independent 大小写折叠与码位比较，页面顺序、重试次数与 worker 恢复不改变最终 action identity。
+
+仅 service-role 的 8 个 RPC 承载状态机：`start_organization_generation`（approved → generating）、`claim_organization_generation_page`（领取下一 pending / stale-leased 页，判定 complete / in_flight / exhausted / call_ceiling / token_ceiling）、`complete_organization_generation_page`（恰好一次记录成功 / 失败，暂停或结束后到达的在途调用仍落账但不改变页面接受）、`pause` / `resume` / `retry_organization_generation`、`flag_organization_generation_attention` 与 `save_organization_plan`。最大尝试数为 `1 + floor(max_retry_calls / greatest(max_initial_calls, 1))`；token 上限用平均预算 `ceil(estimated_token_ceiling / max_total_calls)` 启发式预判。这些表沿用 owner-only SELECT RLS，普通角色无写策略也不能执行上述 RPC；客户端只经 `manage-organization-tasks` 驱动并读取安全响应投影。
+
 ### `bulk_operations` — 持久化批量操作
 
 - `user_id` → `auth.users(id)`

@@ -226,11 +226,11 @@ describe('Organization Task domain', () => {
       taskId: 'task-1',
       snapshotRevision: 4,
       candidateCount: 101,
-      pageCount: 3,
-      maxInitialCalls: 3,
-      maxRetryCalls: 3,
-      maxTotalCalls: 6,
-      estimatedTokenCeiling: 768_000,
+      pageCount: 21,
+      maxInitialCalls: 21,
+      maxRetryCalls: 21,
+      maxTotalCalls: 42,
+      estimatedTokenCeiling: 5_376_000,
       monetaryCost: { kind: 'unknown' },
       fields: ['full_name', 'description', 'language', 'topics', 'tags', 'collections'],
       truncation: { descriptionCodePoints: 1_000, noteCodePoints: 0 },
@@ -241,7 +241,9 @@ describe('Organization Task domain', () => {
       },
       fingerprint: expect.any(String),
     });
-    expect(manifest.pages.map((page) => page.repositoryIds.length)).toEqual([50, 50, 1]);
+    expect(manifest.pages.map((page) => page.repositoryIds.length)).toEqual([
+      5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 1,
+    ]);
     expect(JSON.stringify(manifest)).not.toMatch(/credential|readme/i);
   });
 

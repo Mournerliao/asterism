@@ -525,6 +525,17 @@ function GenerationPanel({
   const total = run.pages.length;
   const leasedPage = run.pages.find((page) => page.status === 'leased');
   const checkpoint = leasedPage ?? run.pages.find((page) => page.status === 'pending');
+  const failedPage = run.pages.find((page) => page.status === 'failed');
+  const failedPageCanRetry =
+    failedPage === undefined || failedPage.attemptCount < run.maxAttemptsPerPage;
+  const failedReason = (() => {
+    const code = failedPage?.errorCode;
+    if (code === 'provider_output_truncated') return 'provider_output_truncated';
+    if (code === 'schema_mismatch') return 'schema_mismatch';
+    if (code === 'provider_network_error' || code === 'provider_timeout') return 'provider_network';
+    if (code?.startsWith('provider_http_')) return 'provider_http';
+    return 'provider_failed';
+  })();
 
   return (
     <section
@@ -594,16 +605,49 @@ function GenerationPanel({
       </p>
 
       {status === 'needs_attention' ? (
-        <div
-          role="alert"
-          className="flex items-start gap-3 rounded-md border border-warning/30 bg-warning/5 px-4 py-3"
-        >
-          <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
-          <p className="text-caption">
-            {t(
-              `organizationTasks.generation.attentionReason.${task.attentionCode ?? 'retry_exhausted'}`,
-            )}
-          </p>
+        <div role="alert" className="rounded-md border border-warning/30 bg-warning/5 px-4 py-3">
+          <div className="flex items-start gap-3">
+            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            <div className="min-w-0 flex-1">
+              <p className="text-caption">
+                {t(
+                  `organizationTasks.generation.attentionReason.${
+                    task.attentionCode === 'page_failed' && !failedPageCanRetry
+                      ? 'retry_exhausted'
+                      : (task.attentionCode ?? 'retry_exhausted')
+                  }`,
+                )}
+              </p>
+              {failedPage ? (
+                <div className="mt-3 flex flex-col gap-1.5 border-border border-t pt-3 text-caption">
+                  <p>
+                    {t('organizationTasks.generation.failedPage', {
+                      index: failedPage.index,
+                      total,
+                    })}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {t(`organizationTasks.generation.errorReason.${failedReason}`)}
+                  </p>
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 text-micro text-muted-foreground">
+                    <span>
+                      {t('organizationTasks.generation.attempts', {
+                        used: failedPage.attemptCount,
+                        max: run.maxAttemptsPerPage,
+                      })}
+                    </span>
+                    {failedPage.errorCode ? (
+                      <span className="min-w-0 break-all font-mono">
+                        {t('organizationTasks.generation.errorCode', {
+                          code: failedPage.errorCode,
+                        })}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          </div>
         </div>
       ) : null}
 
@@ -681,7 +725,7 @@ function GenerationPanel({
               : t('organizationTasks.generation.resume')}
           </Button>
         ) : null}
-        {status === 'needs_attention' ? (
+        {status === 'needs_attention' && failedPageCanRetry ? (
           <Button
             className="min-w-40"
             disabled={retry.isPending}

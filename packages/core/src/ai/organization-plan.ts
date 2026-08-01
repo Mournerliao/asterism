@@ -205,14 +205,18 @@ export function interpretOrganizationPageOutput(
     }
   >();
   for (const entry of changes) {
+    const tuple = asArray(entry);
     const item = asRecord(entry);
-    if (!item || !hasExactKeys(item, ['action', 'relationType', 'repoId', 'targetId'])) {
+    if (
+      tuple?.length !== 4 &&
+      (!item || !hasExactKeys(item, ['action', 'relationType', 'repoId', 'targetId']))
+    ) {
       return { ok: false, reason: 'schema_mismatch' };
     }
-    const repoId = asString(item.repoId);
-    const targetId = asString(item.targetId);
-    const relationType = item.relationType;
-    const action = item.action;
+    const repoId = asString(tuple ? tuple[0] : item?.repoId);
+    const relationType = tuple ? tuple[1] : item?.relationType;
+    const action = tuple ? tuple[2] : item?.action;
+    const targetId = asString(tuple ? tuple[3] : item?.targetId);
     if (
       repoId === null ||
       targetId === null ||
@@ -257,13 +261,17 @@ export function interpretOrganizationPageOutput(
 
   const groups = new Map<string, Set<string>>();
   for (const entry of created) {
+    const tuple = asArray(entry);
     const item = asRecord(entry);
-    if (!item || !hasExactKeys(item, ['name', 'relationType', 'repoIds'])) {
+    if (
+      tuple?.length !== 3 &&
+      (!item || !hasExactKeys(item, ['name', 'relationType', 'repoIds']))
+    ) {
       return { ok: false, reason: 'schema_mismatch' };
     }
-    const relationType = item.relationType;
-    const nameValue = asString(item.name);
-    const itemRepoIds = asArray(item.repoIds);
+    const relationType = tuple ? tuple[0] : item?.relationType;
+    const nameValue = asString(tuple ? tuple[1] : item?.name);
+    const itemRepoIds = asArray(tuple ? tuple[2] : item?.repoIds);
     if (
       (relationType !== 'tag' && relationType !== 'collection') ||
       nameValue === null ||

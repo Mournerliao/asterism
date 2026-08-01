@@ -11,6 +11,7 @@ import {
   interpretGenerationProbeResponse,
   interpretOrganizationGenerationResponse,
   isCustomGenerationAdapter,
+  isGenerationOutputTruncated,
   isOrganizationDraft,
   parseModelDiscoveryResponse,
   type RawProviderResponse,
@@ -329,6 +330,30 @@ describe('organization generation', () => {
     });
   });
 
+  it('accepts the compact tuple wire format', () => {
+    const content = JSON.stringify({
+      relationChanges: [['repo-1', 'tag', 'remove', 'tag-1']],
+      newClassifications: [['collection', ' AI Reading ', ['repo-1']]],
+    });
+    expect(
+      interpretOrganizationGenerationResponse(
+        'openai',
+        ok({ choices: [{ message: { content } }] }),
+        organizationInput,
+      ),
+    ).toMatchObject({
+      ok: true,
+      draft: {
+        relationChanges: [
+          { repoId: 'repo-1', relationType: 'tag', action: 'remove', targetId: 'tag-1' },
+        ],
+        newClassifications: [
+          { relationType: 'collection', name: 'AI Reading', repoIds: ['repo-1'] },
+        ],
+      },
+    });
+  });
+
   it.each([
     [
       'unknown repository',
@@ -380,6 +405,34 @@ describe('organization generation', () => {
       }),
     ).toBe('ho');
     expect(extractGenerationText('openai', { unexpected: true })).toBeNull();
+  });
+
+  it.each([
+    ['openai', { choices: [{ finish_reason: 'length' }] }],
+    ['openai-compatible', { choices: [{ finish_reason: 'length' }] }],
+    ['anthropic', { stop_reason: 'max_tokens' }],
+    ['google', { candidates: [{ finishReason: 'MAX_TOKENS' }] }],
+  ] as const)('detects %s output truncation without inspecting provider text', (adapter, body) => {
+    expect(isGenerationOutputTruncated(adapter, body)).toBe(true);
+  });
+
+  it('reserves enough output budget for providers that count reasoning tokens', () => {
+    const request = buildOrganizationGenerationRequest({ ...target(), input: organizationInput });
+    expect(JSON.parse(request.body ?? '')).toMatchObject({ max_tokens: 8192 });
+  });
+
+  it('bounds organization output complexity per repository', () => {
+    const request = buildOrganizationGenerationRequest({ ...target(), input: organizationInput });
+    const payload = JSON.parse(request.body ?? '') as {
+      messages: Array<{ role: string; content: string }>;
+    };
+    const system = payload.messages.find((message) => message.role === 'system')?.content;
+
+    expect(system).toContain('at most 4 relationChanges');
+    expect(system).toContain('at most 1 new tag and 1 new collection');
+    expect(system).toContain('Leave uncertain repositories unchanged');
+    expect(system).toContain('Use compact tuple entries, not objects');
+    expect(system).toContain('Return minified JSON');
   });
 
   it('extracts provider usage per adapter and fills missing totals', () => {

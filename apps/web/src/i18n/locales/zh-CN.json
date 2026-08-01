@@ -658,13 +658,24 @@
       "retry": "重试页面",
       "retrying": "正在重试…",
       "continue": "继续",
-      "pageFailed": "某个页面失败。持久进度已保留；继续以重试当前页面。",
+      "pageFailed": "无法确认页面结果。持久进度已保留；继续前请检查权威状态。",
+      "failedPage": "第 {{index}} / {{total}} 页失败",
+      "attempts": "第 {{used}} / {{max}} 次尝试",
+      "errorCode": "错误码：{{code}}",
+      "errorReason": {
+        "provider_output_truncated": "Provider 在完成 JSON 响应前达到了输出上限。",
+        "schema_mismatch": "Provider 返回的 JSON 不符合已批准的整理 schema。",
+        "provider_network": "Provider 连接中断或超时。",
+        "provider_http": "Provider 拒绝了请求或无法处理该请求。",
+        "provider_failed": "Provider 调用失败，但没有更具体且可安全展示的原因。"
+      },
       "inFlight": "另一个会话正在推进某个页面。不会重复执行。",
       "checkAgain": "再次检查",
       "attentionReason": {
         "call_ceiling": "已达到批准的 Provider 调用上限。请检查工作量，然后重试或结束任务。",
         "token_ceiling": "已达到预估的 Token 上限。请检查工作量，然后重试或结束任务。",
         "retry_exhausted": "该页面已用尽全部批准的重试次数。请检查 Provider，然后重试或结束任务。",
+        "page_failed": "某个页面失败。已完成页面与当前 Plan 输入均已保留；请查看原因，然后重试失败页面。",
         "authorization_changed": "某个候选已失去授权，或其披露内容已变化。请重新发现后再恢复 Generation。"
       }
     },

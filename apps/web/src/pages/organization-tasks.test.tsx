@@ -205,5 +205,71 @@ describe('Organization Task pages', () => {
     expect(db.getOrganizationTask.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(container.textContent).toContain('changed in another tab');
   });
+
+  it('shows a safe failed-page diagnosis and the durable retry budget', async () => {
+    db.getOrganizationTask.mockResolvedValue({
+      ...recoveredTask,
+      status: 'needs_attention',
+      revision: 5,
+      attentionCode: 'page_failed',
+      generationRun: {
+        approvalTaskRevision: 3,
+        pages: [
+          {
+            key: 'page-1',
+            index: 1,
+            status: 'failed',
+            attemptCount: 1,
+            errorCode: 'provider_output_truncated',
+          },
+        ],
+        callsUsed: 1,
+        maxTotalCalls: 2,
+        tokensUsed: 13_192,
+        estimatedTokenCeiling: 256_000,
+        maxAttemptsPerPage: 2,
+      },
+    });
+
+    await render('/organization/tasks/task-1');
+
+    expect(container.textContent).toContain('Page 1 of 1 failed');
+    expect(container.textContent).toContain('reached its output limit');
+    expect(container.textContent).toContain('Attempt 1 of 2');
+    expect(container.textContent).toContain('provider_output_truncated');
+    expect(container.textContent).toContain('Retry page');
+  });
+
+  it('does not offer another retry after a page exhausts its approved attempts', async () => {
+    db.getOrganizationTask.mockResolvedValue({
+      ...recoveredTask,
+      status: 'needs_attention',
+      revision: 6,
+      attentionCode: 'page_failed',
+      generationRun: {
+        approvalTaskRevision: 3,
+        pages: [
+          {
+            key: 'page-1',
+            index: 1,
+            status: 'failed',
+            attemptCount: 2,
+            errorCode: 'provider_call_failed',
+          },
+        ],
+        callsUsed: 2,
+        maxTotalCalls: 2,
+        tokensUsed: 0,
+        estimatedTokenCeiling: 256_000,
+        maxAttemptsPerPage: 2,
+      },
+    });
+
+    await render('/organization/tasks/task-1');
+
+    expect(container.textContent).toContain('Every approved retry for a page has been used');
+    expect(container.textContent).toContain('Attempt 2 of 2');
+    expect(container.textContent).not.toContain('Retry page');
+  });
 });
 // @vitest-environment happy-dom

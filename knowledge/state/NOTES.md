@@ -10,6 +10,7 @@
 
 ## 关键指针（决策与契约在哪）
 
+- **#25 真实 smoke（2026-08-01）**：`manage-organization-tasks` 已部署至 Supabase project `hqtrmulypxwdqvzlkhke`，最终 Generation wire schema 为 `organization-generation-v3`（5 repo / page、紧凑 tuple、8,192 output tokens）。真实任务 `29b4c964-6aba-429c-aa4b-27707b499a37` 已到 `plan_ready`，Plan revision 1 / 242 actions / 1 conflict / 0 uncertainties；未 apply，canonical 未变化。reasoning model 可能把隐藏推理计入 completion budget，不能仅按可见 JSON 体积设置 output token。
 - **Organization Task 部署（2026-07-28，#24）**：关联项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260728180000_organization_tasks.sql` 与 `20260728183000_localized_organization_opportunity_goal.sql`，`manage-organization-tasks` 为 `ACTIVE v4`，更新后的 `sync-stars` 为 `ACTIVE v6`。新环境仍须按同一顺序迁移并部署两个函数。前者不需要 BYOK 加密 secret，不读取 credential，也不调用 Provider；缺少 active Generation Connection 时发现不会固化不完整披露。
 - **Phase 2.1 tickets（2026-07-28）**：GitHub #23 已拆为 #24 → #25 → #26 → #27 → #28；#24、#25 已实现，当前 frontier 为被 #25 解锁的 #26。后续不得把一次性 prototype 演化为生产代码，也不得提前实现 #27–#28。
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。
@@ -44,6 +45,8 @@
 - **恢复点**：下一步是凭据 handoff（Supabase + GitHub OAuth），见 `PROGRESS.md` 与 `logs/2026-06-29-phase0-scaffold.md`。
 
 ## 待办提醒（便签级）
+
+- **#25 真实 smoke 恢复点（2026-08-01）**：测试任务 `1b32d025-f397-4663-a972-68b219a4d396` 已停在 `generation_paused`；134 候选 / 3 页，0 页成功，3 次初始调用累计 27,266 tokens。不要直接 Resume 消耗剩余 3 次 retry；先修复 50 仓库页面与 4,096 output-token 上限导致的截断 JSON，并让 UI 显示安全 error code，再新建任务重跑。客户端 `generation` / `plan` checkpoint 契约遗漏已在工作区修复但尚未提交。
 
 - **Phase 2.1 一次性原型（2026-07-28，verdict 已获得）**：运行 `pnpm prototype:natural-ai`；同一 Browse 路由通过 `?variant=A|B|C` 比较引导式工作区 / 规划对话 / 整理控制台，通过 `?scenario=first|incremental` 比较首次历史大库 / 后续新增 Star。用户选择 B，理由是“对话形式更自然”。原型仍仅为开发态内存 stub，无 Provider / canonical 写入；后续规格以对话为主骨架，但必须为复杂审阅、进度与恢复提供不依赖聊天滚动的稳定任务面。完整原型应保留到 throwaway branch 后再从 main 清理 losing variants，不要直接把 B 的原型代码当作生产规格。证据与未决项见 `logs/2026-07-28-natural-ai-organization-prototype.md`。
 - **浏览器 embedding 资产与实测（2026-07-24，#19）**：固定 `Xenova/multilingual-e5-small@761b726…` 的 q8 ONNX（118,308,185 bytes，SHA-256 `f80102d3…c193`），`@huggingface/transformers` 4.2.0；构建脚本写入忽略目录 `.cache/embedding-assets/v1/public`，运行期只从 `/models/` 与 `/embedding-runtime/` 同源读取，禁止远程模型。批量大小固定 16；真实 Chromium 暖缓存 WebGPU 16 条 454ms、WASM 236ms，本机虽 WASM 更快仍按契约 WebGPU 优先并可靠回退。资产来源与复现见 `apps/web/EMBEDDING_ASSETS.md`。

@@ -658,13 +658,24 @@
       "retry": "Retry page",
       "retrying": "Retrying…",
       "continue": "Continue",
-      "pageFailed": "A page failed. Durable progress is kept; continue to retry the current page.",
+      "pageFailed": "The page result could not be confirmed. Durable progress is kept; check the authoritative status before continuing.",
+      "failedPage": "Page {{index}} of {{total}} failed",
+      "attempts": "Attempt {{used}} of {{max}}",
+      "errorCode": "Code: {{code}}",
+      "errorReason": {
+        "provider_output_truncated": "The Provider reached its output limit before completing the JSON response.",
+        "schema_mismatch": "The Provider returned JSON that did not match the approved organization schema.",
+        "provider_network": "The Provider connection was interrupted or timed out.",
+        "provider_http": "The Provider rejected or could not process the request.",
+        "provider_failed": "The Provider call failed without a more specific safe reason."
+      },
       "inFlight": "Another session is advancing a page. No duplicate work will run.",
       "checkAgain": "Check again",
       "attentionReason": {
         "call_ceiling": "The approved Provider call ceiling was reached. Review the workload, then retry or end the task.",
         "token_ceiling": "The estimated token ceiling was reached. Review the workload, then retry or end the task.",
         "retry_exhausted": "Every approved retry for a page has been used. Review the Provider, then retry or end the task.",
+        "page_failed": "A page failed. Completed pages and the current Plan inputs are preserved; review the reason, then retry the failed page.",
         "authorization_changed": "A candidate lost authorization or its disclosed content changed. Rediscover before resuming Generation."
       }
     },

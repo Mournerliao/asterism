@@ -184,7 +184,7 @@ function isMessage(value: unknown): boolean {
     ['user', 'assistant', 'checkpoint'].includes(String(value.role)) &&
     isString(value.text) &&
     (value.checkpointType === null ||
-      ['goal', 'discovery', 'generation_approval', 'ended'].includes(
+      ['goal', 'discovery', 'generation_approval', 'generation', 'plan', 'ended'].includes(
         String(value.checkpointType),
       )) &&
     (value.checkpointRevision === null || isNonNegativeInteger(value.checkpointRevision)) &&

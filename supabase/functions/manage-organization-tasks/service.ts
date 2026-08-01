@@ -3,6 +3,7 @@ import {
   extractGenerationUsage,
   extractJsonObject,
   type GenerationAdapterId,
+  isGenerationOutputTruncated,
   type OrganizationGenerationInput,
   type RawProviderResponse,
 } from '../../../packages/core/src/ai/generation-registry.ts';
@@ -33,7 +34,7 @@ const NOTE_CODE_POINT_LIMIT = 2_000;
 const TOKEN_CEILING_PER_CALL = 128_000;
 const MAX_RETRIES_PER_PAGE = 1;
 const GENERATION_LEASE_SECONDS = 180;
-const GENERATION_REQUEST_SCHEMA = 'organization-generation-v1';
+const GENERATION_REQUEST_SCHEMA = 'organization-generation-v3';
 
 interface RevisionInput {
   taskId: string;
@@ -623,7 +624,16 @@ export function createOrganizationTaskService(dependencies: OrganizationTaskServ
           errorCode,
           result: null,
         });
-        return { task: await reload(), run: { outcome: 'page_failed' as const } };
+        const current = await reload();
+        await dependencies.flagGenerationAttention(userId, {
+          taskId: input.taskId,
+          expectedRevision: current.revision,
+          code: 'page_failed',
+        });
+        return {
+          task: await reload(),
+          run: { outcome: 'attention' as const, attentionCode: 'page_failed' },
+        };
       };
 
       let raw: RawProviderResponse;
@@ -640,6 +650,9 @@ export function createOrganizationTaskService(dependencies: OrganizationTaskServ
 
       const usage = extractGenerationUsage(claim.adapter as GenerationAdapterId, raw.body);
       if (!raw.ok) return failPage(usage, `provider_http_${raw.status}`);
+      if (isGenerationOutputTruncated(claim.adapter as GenerationAdapterId, raw.body)) {
+        return failPage(usage, 'provider_output_truncated');
+      }
       const text = extractGenerationText(claim.adapter as GenerationAdapterId, raw.body);
       const parsed = text === null ? null : extractJsonObject(text);
       const outcome = interpretOrganizationPageOutput(parsed, validationInput);

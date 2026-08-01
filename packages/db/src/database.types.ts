@@ -550,7 +550,14 @@ export interface Database {
           task_id: string;
           role: 'user' | 'assistant' | 'checkpoint';
           text: string;
-          checkpoint_type: 'goal' | 'discovery' | 'generation_approval' | 'ended' | null;
+          checkpoint_type:
+            | 'goal'
+            | 'discovery'
+            | 'generation_approval'
+            | 'generation'
+            | 'plan'
+            | 'ended'
+            | null;
           checkpoint_revision: number | null;
           created_at: string;
         },
@@ -560,7 +567,14 @@ export interface Database {
           task_id: string;
           role: 'user' | 'assistant' | 'checkpoint';
           text: string;
-          checkpoint_type?: 'goal' | 'discovery' | 'generation_approval' | 'ended' | null;
+          checkpoint_type?:
+            | 'goal'
+            | 'discovery'
+            | 'generation_approval'
+            | 'generation'
+            | 'plan'
+            | 'ended'
+            | null;
           checkpoint_revision?: number | null;
           created_at?: string;
         }

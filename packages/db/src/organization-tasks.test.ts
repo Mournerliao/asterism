@@ -135,6 +135,28 @@ describe('Organization Task generation run trust boundary', () => {
     ).toBe(true);
   });
 
+  it('accepts generation and plan checkpoint messages emitted by the #25 migration', () => {
+    const checkpoint = {
+      id: 'message-1',
+      role: 'checkpoint',
+      text: 'generation_started',
+      checkpointType: 'generation',
+      checkpointRevision: 4,
+      createdAt: '2026-07-30T00:00:00.000Z',
+    };
+
+    expect(isOrganizationTask({ ...task, status: 'generating', messages: [checkpoint] })).toBe(
+      true,
+    );
+    expect(
+      isOrganizationTask({
+        ...task,
+        status: 'plan_ready',
+        messages: [{ ...checkpoint, text: 'organization_plan_saved', checkpointType: 'plan' }],
+      }),
+    ).toBe(true);
+  });
+
   it('rejects a generation run leaking provider payloads', () => {
     expect(
       isOrganizationTask({ ...task, generationRun: { ...generationRun, rawPrompt: 'secret' } }),

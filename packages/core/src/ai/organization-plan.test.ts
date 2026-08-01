@@ -68,6 +68,28 @@ describe('interpretOrganizationPageOutput', () => {
     });
   });
 
+  it('accepts compact tuple entries while preserving the internal result shape', () => {
+    expect(
+      interpretOrganizationPageOutput(
+        {
+          relationChanges: [['repo-1', 'tag', 'add', 'tag-1']],
+          newClassifications: [['collection', ' Reading ', ['repo-2']]],
+        },
+        PAGE_INPUT,
+      ),
+    ).toEqual({
+      ok: true,
+      result: {
+        version: 1,
+        relationChanges: [
+          { repoId: 'repo-1', relationType: 'tag', action: 'add', targetId: 'tag-1' },
+        ],
+        newClassifications: [{ relationType: 'collection', name: 'Reading', repoIds: ['repo-2'] }],
+        uncertainties: [],
+      },
+    });
+  });
+
   it('fails the page on structural schema violations', () => {
     const bad = [
       null,

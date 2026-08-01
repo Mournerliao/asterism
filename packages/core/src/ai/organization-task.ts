@@ -9,6 +9,8 @@ export type OrganizationTaskStatus =
   | 'plan_ready'
   | 'ended';
 
+export const ORGANIZATION_GENERATION_PAGE_CAPACITY = 5;
+
 export type OrganizationCandidateReason =
   | { kind: 'goal_term'; value: string }
   | { kind: 'unorganized' }
@@ -84,7 +86,14 @@ export interface OrganizationTaskMessage {
   id: string;
   role: 'user' | 'assistant' | 'checkpoint';
   text: string;
-  checkpointType: 'goal' | 'discovery' | 'generation_approval' | 'ended' | null;
+  checkpointType:
+    | 'goal'
+    | 'discovery'
+    | 'generation_approval'
+    | 'generation'
+    | 'plan'
+    | 'ended'
+    | null;
   checkpointRevision: number | null;
   createdAt: string;
 }
@@ -496,8 +505,8 @@ export function buildGenerationManifest(input: {
     throw new OrganizationTaskDomainError('organization_manifest_invalid');
   }
   const pages: OrganizationGenerationManifest['pages'] = [];
-  for (let start = 0; start < uniqueIds.length; start += 50) {
-    const repositoryIds = uniqueIds.slice(start, start + 50);
+  for (let start = 0; start < uniqueIds.length; start += ORGANIZATION_GENERATION_PAGE_CAPACITY) {
+    const repositoryIds = uniqueIds.slice(start, start + ORGANIZATION_GENERATION_PAGE_CAPACITY);
     const index = pages.length + 1;
     pages.push({
       key: stableHash({ taskId: input.taskId, snapshotRevision: input.snapshotRevision, index }),

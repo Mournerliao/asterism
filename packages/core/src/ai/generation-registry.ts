@@ -172,8 +172,11 @@ const PROBE_USER_PROMPT =
 const ORGANIZATION_SYSTEM_PROMPT =
   'You organize GitHub Stars. Return strict JSON only, with exactly relationChanges and newClassifications. ' +
   'Existing targets must use supplied stable ids. Never invent repository or target ids. ' +
-  'relationChanges entries use repoId, relationType (tag|collection), action (add|remove), targetId. ' +
-  'newClassifications entries use relationType, name, repoIds and only represent additions. No prose or markdown.';
+  'Use compact tuple entries, not objects: relationChanges is [[repoId,relationType,action,targetId]], where relationType is tag|collection and action is add|remove. ' +
+  'newClassifications is [[relationType,name,repoIds]] and only represents additions. ' +
+  'Keep the plan sparse: for each repository emit at most 4 relationChanges, include it in at most 1 new tag and 1 new collection, and omit no-op changes. ' +
+  'Prefer reusing supplied stable targets. Leave uncertain repositories unchanged. Return minified JSON with no prose or markdown.';
+const ORGANIZATION_MAX_OUTPUT_TOKENS = 8192;
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
@@ -549,7 +552,7 @@ export function buildOrganizationGenerationRequest(
       },
       body: JSON.stringify({
         model: target.model,
-        max_tokens: 4096,
+        max_tokens: ORGANIZATION_MAX_OUTPUT_TOKENS,
         temperature: 0,
         system: ORGANIZATION_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }],
@@ -569,7 +572,7 @@ export function buildOrganizationGenerationRequest(
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         generationConfig: {
           temperature: 0,
-          maxOutputTokens: 4096,
+          maxOutputTokens: ORGANIZATION_MAX_OUTPUT_TOKENS,
           responseMimeType: 'application/json',
         },
       }),
@@ -578,7 +581,7 @@ export function buildOrganizationGenerationRequest(
   const payload: Record<string, unknown> = {
     model: target.model,
     temperature: 0,
-    max_tokens: 4096,
+    max_tokens: ORGANIZATION_MAX_OUTPUT_TOKENS,
     messages: [
       { role: 'system', content: ORGANIZATION_SYSTEM_PROMPT },
       { role: 'user', content: prompt },
@@ -635,14 +638,18 @@ function validateOrganizationOutput(
   const relationKeys = new Set<string>();
   const relationChanges: OrganizationRelationChange[] = [];
   for (const entry of changes) {
+    const tuple = asArray(entry);
     const item = asRecord(entry);
-    if (!item || !hasExactKeys(item, ['action', 'relationType', 'repoId', 'targetId'])) {
+    if (
+      tuple?.length !== 4 &&
+      (!item || !hasExactKeys(item, ['action', 'relationType', 'repoId', 'targetId']))
+    ) {
       return { ok: false, reason: 'schema_mismatch' };
     }
-    const repoId = asString(item.repoId);
-    const targetId = asString(item.targetId);
-    const relationType = item.relationType;
-    const action = item.action;
+    const repoId = asString(tuple ? tuple[0] : item?.repoId);
+    const relationType = tuple ? tuple[1] : item?.relationType;
+    const action = tuple ? tuple[2] : item?.action;
+    const targetId = asString(tuple ? tuple[3] : item?.targetId);
     if (
       !repoId ||
       !repoIds.has(repoId) ||
@@ -662,13 +669,17 @@ function validateOrganizationOutput(
   const newNames = { tag: new Set<string>(), collection: new Set<string>() };
   const normalizedNew: OrganizationNewClassification[] = [];
   for (const entry of newClassifications) {
+    const tuple = asArray(entry);
     const item = asRecord(entry);
-    if (!item || !hasExactKeys(item, ['name', 'relationType', 'repoIds'])) {
+    if (
+      tuple?.length !== 3 &&
+      (!item || !hasExactKeys(item, ['name', 'relationType', 'repoIds']))
+    ) {
       return { ok: false, reason: 'schema_mismatch' };
     }
-    const relationType = item.relationType;
-    const nameValue = asString(item.name);
-    const itemRepoIds = asArray(item.repoIds);
+    const relationType = tuple ? tuple[0] : item?.relationType;
+    const nameValue = asString(tuple ? tuple[1] : item?.name);
+    const itemRepoIds = asArray(tuple ? tuple[2] : item?.repoIds);
     if (
       (relationType !== 'tag' && relationType !== 'collection') ||
       !nameValue ||
@@ -720,6 +731,17 @@ export function interpretOrganizationGenerationResponse(
 /** Extract the model's text output from an already-parsed provider response body. */
 export function extractGenerationText(adapter: GenerationAdapterId, body: unknown): string | null {
   return ADAPTER_SPECS[adapter]?.extractText(body) ?? null;
+}
+
+/** Detect native provider stop signals without parsing or persisting generated text. */
+export function isGenerationOutputTruncated(adapter: GenerationAdapterId, body: unknown): boolean {
+  const root = asRecord(body);
+  if (!root) return false;
+  if (adapter === 'anthropic') return root.stop_reason === 'max_tokens';
+  const candidates = asArray(root.candidates);
+  if (adapter === 'google') return asRecord(candidates?.[0])?.finishReason === 'MAX_TOKENS';
+  const choices = asArray(root.choices);
+  return asRecord(choices?.[0])?.finish_reason === 'length';
 }
 
 export interface GenerationUsage {

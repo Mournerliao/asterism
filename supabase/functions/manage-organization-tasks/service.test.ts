@@ -583,11 +583,15 @@ describe('Organization Task generation page runner', () => {
     const result = await createOrganizationTaskService(deps).runGenerationPage('user-1', {
       taskId: 'task-1',
     });
-    expect(result.run.outcome).toBe('page_failed');
+    expect(result.run).toEqual({ outcome: 'attention', attentionCode: 'page_failed' });
     expect(deps.completeGenerationPage).toHaveBeenCalledTimes(1);
     expect(deps.completeGenerationPage).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ status: 'failed', errorCode: 'provider_timeout' }),
+    );
+    expect(deps.flagGenerationAttention).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ code: 'page_failed' }),
     );
   });
 
@@ -601,10 +605,40 @@ describe('Organization Task generation page runner', () => {
     const result = await createOrganizationTaskService(deps).runGenerationPage('user-1', {
       taskId: 'task-1',
     });
-    expect(result.run.outcome).toBe('page_failed');
+    expect(result.run).toEqual({ outcome: 'attention', attentionCode: 'page_failed' });
     expect(deps.completeGenerationPage).toHaveBeenCalledWith(
       'user-1',
       expect.objectContaining({ status: 'failed', errorCode: 'provider_http_500' }),
+    );
+  });
+
+  it('classifies a provider output ceiling separately from malformed JSON', async () => {
+    const deps = dependencies({
+      claimGenerationPage: vi.fn().mockResolvedValue(claimedPage()),
+      getTask: vi.fn().mockResolvedValue(generatingTask),
+      loadGenerationPageContext: vi.fn().mockResolvedValue(pageContextFor(sampleRepository)),
+      callGenerationPage: vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        body: {
+          choices: [{ finish_reason: 'length', message: { content: '{"relationChanges":[' } }],
+          usage: { prompt_tokens: 5000, completion_tokens: 8192, total_tokens: 13192 },
+        },
+      }),
+    });
+
+    const result = await createOrganizationTaskService(deps).runGenerationPage('user-1', {
+      taskId: 'task-1',
+    });
+
+    expect(result.run).toEqual({ outcome: 'attention', attentionCode: 'page_failed' });
+    expect(deps.completeGenerationPage).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        status: 'failed',
+        errorCode: 'provider_output_truncated',
+        usage: { inputTokens: 5000, outputTokens: 8192, totalTokens: 13192 },
+      }),
     );
   });
 

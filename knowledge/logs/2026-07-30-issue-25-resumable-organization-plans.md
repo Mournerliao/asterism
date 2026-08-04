@@ -14,7 +14,7 @@
 - 本切片只到确定性归并出 immutable、revisioned Organization Plan 与 `plan_ready` 摘要；完整 read-plan 文档 UI、分层风险审阅与可靠执行（复用 ADR 0023 批量账本）属于 #26。
 - Generation 只处理已解释候选范围内的公开元数据、当前 canonical 与获准笔记截断值，不读取 README 或其他用户私有数据，不修改 canonical。
 - 归并用 locale-independent 大小写折叠（`toLowerCase`）与码位比较，页面顺序、重试次数与 worker 恢复不改变最终 action identity（C15）。
-- 新增迁移与函数**本会话未向真实 Supabase 环境部署，也未做 smoke test**；部署时需先应用迁移再 `supabase functions deploy manage-organization-tasks`，并确保 `manage-ai-connections` 的 BYOK 加密 secret 已配置且存在 active Generation Connection。旧 `ai_organization_drafts` 与 selection-first UI 的 cutover 仍属 #28。
+- 本次实现会话未部署；随后维护者环境已应用迁移并部署函数，2026-08-04 完成真实环境 smoke。部署与验收结果见 `2026-08-04-issue-25-real-environment-acceptance.md`。旧 `ai_organization_drafts` 与 selection-first UI 的 cutover 仍属 #28。
 
 ## 验证
 

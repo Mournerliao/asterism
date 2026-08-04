@@ -9,6 +9,11 @@
 
 普通客户端对 `bulk_operations` / `bulk_operation_items` 只有本人行的读取权限，不能直接写入状态或关系。函数不会调用 GitHub API，也不会执行 star/unstar。
 
+Organization Task 的确认事务会直接建立 `source: organization_task` 的 operation 与唯一 items；
+普通 `bulk-organize` create 请求仍只接受 `manual` / `ai_draft`，因此客户端不能伪造 Task link。
+确认事务本身不写 canonical 关系，Task operation 与其他来源一样只由本函数的既有有界 executor
+执行、恢复、汇总和重试。
+
 ```bash
 supabase functions deploy bulk-organize
 ```

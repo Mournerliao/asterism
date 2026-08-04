@@ -11,6 +11,8 @@
 ## 关键指针（决策与契约在哪）
 
 - **#25 真实 smoke（2026-08-01）**：`manage-organization-tasks` 已部署至 Supabase project `hqtrmulypxwdqvzlkhke`，最终 Generation wire schema 为 `organization-generation-v3`（5 repo / page、紧凑 tuple、8,192 output tokens）。真实任务 `29b4c964-6aba-429c-aa4b-27707b499a37` 已到 `plan_ready`，Plan revision 1 / 242 actions / 1 conflict / 0 uncertainties；未 apply，canonical 未变化。reasoning model 可能把隐藏推理计入 completion budget，不能仅按可见 JSON 体积设置 output token。
+- **#26 Plan Review / execution hand-off（2026-08-04）**：授权权威是稳定 Task 页的服务端 semantic group fingerprint，不是消息或客户端分类。已有分类新增低风险默认纳入；新建分类 / 移除必须显式批准。确认事务只建立唯一 `source: organization_task` bulk operation/items/link，不内联写 canonical；执行结果与 Task 状态必须从 ADR 0023 ledger 派生。完全相同确认可重放原 operation，任何 Plan / fingerprint / count 变化均冲突。部署与 smoke 清单见 `supabase/functions/manage-organization-tasks/README.md`，实现记录见 `logs/2026-08-04-issue-26-organization-plan-review-execution.md`。
+
 - **Organization Task 部署（2026-07-28，#24）**：关联项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260728180000_organization_tasks.sql` 与 `20260728183000_localized_organization_opportunity_goal.sql`，`manage-organization-tasks` 为 `ACTIVE v4`，更新后的 `sync-stars` 为 `ACTIVE v6`。新环境仍须按同一顺序迁移并部署两个函数。前者不需要 BYOK 加密 secret，不读取 credential，也不调用 Provider；缺少 active Generation Connection 时发现不会固化不完整披露。
 - **Phase 2.1 tickets（2026-07-28）**：GitHub #23 已拆为 #24 → #25 → #26 → #27 → #28；#24、#25 已实现，当前 frontier 为被 #25 解锁的 #26。后续不得把一次性 prototype 演化为生产代码，也不得提前实现 #27–#28。
 - **决策（ADR）**：`knowledge/decisions/*` —— 一条决策一个文件，含背景/取舍/结论。

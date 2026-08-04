@@ -1,7 +1,7 @@
 import {
   type BulkChange,
   type BulkOperation,
-  type BulkOperationSource,
+  type BulkOperationCreateSource,
   invokeBulkOperation,
   listBulkOperations,
 } from '@asterism/db';
@@ -66,7 +66,7 @@ export function useBulkOperationActions() {
     mutationFn: async (input: {
       repoIds: string[];
       changes: BulkChange[];
-      source?: BulkOperationSource;
+      source?: BulkOperationCreateSource;
     }) => {
       if (!userId) throw new Error(NO_USER);
       return invokeBulkOperation(supabase, {

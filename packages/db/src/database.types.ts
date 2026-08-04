@@ -203,7 +203,7 @@ export interface Database {
         Row: {
           id: string;
           user_id: string;
-          source: 'manual' | 'ai_draft';
+          source: 'manual' | 'ai_draft' | 'promotion' | 'organization_task';
           source_draft_id: string | null;
           source_draft_revision: number | null;
           source_draft_suggestions: Json | null;
@@ -216,7 +216,7 @@ export interface Database {
         Insert: {
           id?: string;
           user_id: string;
-          source: 'manual' | 'ai_draft';
+          source: 'manual' | 'ai_draft' | 'promotion' | 'organization_task';
           source_draft_id?: string | null;
           source_draft_revision?: number | null;
           source_draft_suggestions?: Json | null;
@@ -510,6 +510,11 @@ export interface Database {
             | 'discovering'
             | 'awaiting_generation_approval'
             | 'generation_approved'
+            | 'generating'
+            | 'generation_paused'
+            | 'needs_attention'
+            | 'plan_ready'
+            | 'executing'
             | 'ended';
           goal: string;
           suggested_goal: string | null;
@@ -517,6 +522,7 @@ export interface Database {
           revision: number;
           current_snapshot_revision: number | null;
           current_manifest_fingerprint: string | null;
+          attention_code: string | null;
           ended_at: string | null;
           created_at: string;
           updated_at: string;
@@ -531,6 +537,11 @@ export interface Database {
             | 'discovering'
             | 'awaiting_generation_approval'
             | 'generation_approved'
+            | 'generating'
+            | 'generation_paused'
+            | 'needs_attention'
+            | 'plan_ready'
+            | 'executing'
             | 'ended';
           goal: string;
           suggested_goal?: string | null;
@@ -538,6 +549,7 @@ export interface Database {
           revision?: number;
           current_snapshot_revision?: number | null;
           current_manifest_fingerprint?: string | null;
+          attention_code?: string | null;
           ended_at?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -556,6 +568,7 @@ export interface Database {
             | 'generation_approval'
             | 'generation'
             | 'plan'
+            | 'execution'
             | 'ended'
             | null;
           checkpoint_revision: number | null;
@@ -573,6 +586,7 @@ export interface Database {
             | 'generation_approval'
             | 'generation'
             | 'plan'
+            | 'execution'
             | 'ended'
             | null;
           checkpoint_revision?: number | null;
@@ -751,6 +765,192 @@ export interface Database {
           max_total_calls: number;
           estimated_token_ceiling: number;
           approved_at?: string;
+        }
+      >;
+      organization_generation_page_runs: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          approval_id: string;
+          page_key: string;
+          page_index: number;
+          repo_ids: string[];
+          status: 'pending' | 'leased' | 'succeeded' | 'failed' | 'cancelled';
+          attempt_count: number;
+          lease_id: string | null;
+          lease_expires_at: string | null;
+          result: Json | null;
+          error_code: string | null;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          approval_id: string;
+          page_key: string;
+          page_index: number;
+          repo_ids: string[];
+          status?: 'pending' | 'leased' | 'succeeded' | 'failed' | 'cancelled';
+          attempt_count?: number;
+          lease_id?: string | null;
+          lease_expires_at?: string | null;
+          result?: Json | null;
+          error_code?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      organization_generation_calls: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          approval_id: string;
+          page_run_id: string;
+          page_key: string;
+          attempt: number;
+          lease_id: string;
+          connection_id: string;
+          adapter: string;
+          model: string;
+          request_schema: string;
+          request_hash: string | null;
+          fields: string[];
+          truncation: Json | null;
+          status: 'started' | 'succeeded' | 'failed' | 'lost';
+          error_code: string | null;
+          usage: Json | null;
+          started_at: string;
+          finished_at: string | null;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          approval_id: string;
+          page_run_id: string;
+          page_key: string;
+          attempt: number;
+          lease_id: string;
+          connection_id: string;
+          adapter: string;
+          model: string;
+          request_schema?: string;
+          request_hash?: string | null;
+          fields: string[];
+          truncation?: Json | null;
+          status?: 'started' | 'succeeded' | 'failed' | 'lost';
+          error_code?: string | null;
+          usage?: Json | null;
+          started_at?: string;
+          finished_at?: string | null;
+        }
+      >;
+      organization_plans: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          revision: number;
+          plan: Json;
+          precondition_fingerprint: string;
+          fingerprint: string;
+          action_count: number;
+          conflict_count: number;
+          uncertainty_count: number;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          revision: number;
+          plan: Json;
+          precondition_fingerprint: string;
+          fingerprint: string;
+          action_count: number;
+          conflict_count: number;
+          uncertainty_count: number;
+          created_at?: string;
+        }
+      >;
+      organization_plan_action_exclusions: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          plan_revision: number;
+          action_id: string;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          plan_revision: number;
+          action_id: string;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      organization_plan_group_reviews: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          plan_revision: number;
+          group_key: string;
+          risk_type: 'existing_addition' | 'new_classification' | 'removal';
+          group_fingerprint: string;
+          approved: boolean;
+          task_revision: number;
+          reviewed_at: string;
+          created_at: string;
+          updated_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          plan_revision: number;
+          group_key: string;
+          risk_type: 'existing_addition' | 'new_classification' | 'removal';
+          group_fingerprint: string;
+          approved: boolean;
+          task_revision: number;
+          reviewed_at?: string;
+          created_at?: string;
+          updated_at?: string;
+        }
+      >;
+      organization_task_operation_links: DbTable<
+        {
+          id: string;
+          user_id: string;
+          task_id: string;
+          plan_revision: number;
+          plan_fingerprint: string;
+          operation_id: string;
+          kind: 'execution';
+          group_fingerprints: Json;
+          confirmed_counts: Json;
+          created_at: string;
+        },
+        {
+          id?: string;
+          user_id: string;
+          task_id: string;
+          plan_revision: number;
+          plan_fingerprint: string;
+          operation_id: string;
+          kind: 'execution';
+          group_fingerprints: Json;
+          confirmed_counts: Json;
+          created_at?: string;
         }
       >;
     };
@@ -939,6 +1139,26 @@ export interface Database {
           p_task_id: string;
           p_expected_revision: number;
           p_plan: Json;
+        };
+        Returns: Json;
+      };
+      save_organization_plan_review: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_plan_revision: number;
+          p_change: Json;
+        };
+        Returns: boolean;
+      };
+      confirm_organization_plan: {
+        Args: {
+          p_user_id: string;
+          p_task_id: string;
+          p_expected_revision: number;
+          p_plan_revision: number;
+          p_review: Json;
         };
         Returns: Json;
       };

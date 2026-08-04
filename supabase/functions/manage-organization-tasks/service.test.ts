@@ -1,4 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
+import type { OrganizationPlanDocument } from '../../../packages/core/src/ai/organization-plan';
+import { buildOrganizationPlanReview } from '../../../packages/core/src/ai/organization-plan-review';
 import {
   buildOrganizationRepositoryContentFingerprint,
   type OrganizationDiscoveryRepository,
@@ -134,6 +136,12 @@ function dependencies(
     }),
     savePlan: vi.fn().mockResolvedValue({ outcome: 'saved', planRevision: 1 }),
     readPlan: vi.fn().mockResolvedValue(null),
+    loadReviewContext: vi.fn().mockResolvedValue(null),
+    persistPlanReviewCas: vi.fn().mockResolvedValue(true),
+    confirmPlanTransaction: vi.fn().mockResolvedValue({
+      outcome: 'created',
+      operationId: 'operation-1',
+    }),
     ...overrides,
   };
 }
@@ -384,6 +392,213 @@ describe('Organization Task authoritative service', () => {
         message: null,
       }),
     ).rejects.toThrow('organization_task_ended');
+  });
+});
+
+const reviewPlan: OrganizationPlanDocument = {
+  version: 1,
+  taskId: 'task-1',
+  revision: 2,
+  groups: [
+    {
+      key: 'group-1',
+      relationType: 'tag',
+      target: { kind: 'existing', id: 'tag-1', name: 'Agent tools' },
+      actions: [
+        {
+          id: 'action-1',
+          repoId: 'repo-1',
+          relationType: 'tag',
+          action: 'add',
+          target: { kind: 'existing', id: 'tag-1', name: 'Agent tools' },
+          risk: 'low',
+          evidencePages: [1],
+        },
+      ],
+    },
+  ],
+  conflicts: [],
+  uncertainties: [],
+  counts: { actions: 1, newClassifications: 0, conflicts: 0, uncertainties: 0 },
+  preconditionFingerprint: 'precondition-1',
+  fingerprint: 'plan-1',
+};
+
+function reviewDependencies(overrides: Partial<OrganizationTaskServiceDependencies> = {}) {
+  return dependencies({
+    getTask: vi.fn().mockResolvedValue({
+      ...task,
+      status: 'plan_ready',
+      revision: 5,
+      plans: [
+        {
+          revision: 2,
+          actionCount: 1,
+          conflictCount: 0,
+          uncertaintyCount: 0,
+          preconditionFingerprint: 'precondition-1',
+          fingerprint: 'plan-1',
+          createdAt: '2026-08-04T00:00:00.000Z',
+        },
+      ],
+    }),
+    loadReviewContext: vi.fn().mockResolvedValue({
+      plan: reviewPlan,
+      repositories: [
+        {
+          id: 'repo-1',
+          fullName: 'acme/agent-kit',
+          authorized: true,
+          tagIds: [],
+          collectionIds: [],
+        },
+      ],
+      tags: [{ id: 'tag-1', name: 'Agent tools' }],
+      collections: [],
+      exclusions: [],
+      decisions: [],
+    }),
+    ...overrides,
+  });
+}
+
+describe('Organization Plan risk review service', () => {
+  it('returns a safe review projection and rejects stale group fingerprints', async () => {
+    const deps = reviewDependencies();
+    const service = createOrganizationTaskService(deps);
+    const review = await service.readReview('user-1', { taskId: 'task-1', planRevision: 2 });
+    expect(review.counts).toEqual({
+      newClassifications: 0,
+      additions: 1,
+      removals: 0,
+      noOps: 0,
+    });
+
+    await expect(
+      service.reviewPlanGroup('user-1', {
+        taskId: 'task-1',
+        expectedRevision: 5,
+        planRevision: 2,
+        groupKey: review.groups[0]?.key ?? '',
+        groupFingerprint: 'stale-fingerprint',
+        approved: false,
+      }),
+    ).rejects.toThrow('organization_group_fingerprint_changed');
+    expect(deps.persistPlanReviewCas).not.toHaveBeenCalled();
+  });
+
+  it('binds exact displayed counts and fingerprints when confirming', async () => {
+    const currentPlan = {
+      ...task,
+      status: 'plan_ready' as const,
+      revision: 5,
+      plans: [
+        {
+          revision: 2,
+          actionCount: 1,
+          conflictCount: 0,
+          uncertaintyCount: 0,
+          preconditionFingerprint: 'precondition-1',
+          fingerprint: 'plan-1',
+          createdAt: '2026-08-04T00:00:00.000Z',
+        },
+      ],
+    };
+    const deps = reviewDependencies({
+      getTask: vi
+        .fn()
+        .mockResolvedValueOnce(currentPlan)
+        .mockResolvedValueOnce(currentPlan)
+        .mockResolvedValueOnce(currentPlan)
+        .mockResolvedValueOnce({ ...currentPlan, status: 'executing', revision: 6 }),
+    });
+    const service = createOrganizationTaskService(deps);
+    const review = await service.readReview('user-1', { taskId: 'task-1', planRevision: 2 });
+    const result = await service.confirmPlan('user-1', {
+      taskId: 'task-1',
+      expectedRevision: 5,
+      planRevision: 2,
+      planFingerprint: review.planFingerprint,
+      groupFingerprints: review.approvedGroupFingerprints,
+      counts: review.counts,
+    });
+
+    expect(deps.confirmPlanTransaction).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({ review, expectedRevision: 5 }),
+    );
+    expect(result.operationId).toBe('operation-1');
+    expect(result.task.status).toBe('executing');
+  });
+
+  it('keeps review state when exact final counts are stale', async () => {
+    const deps = reviewDependencies();
+    const service = createOrganizationTaskService(deps);
+    const review = await service.readReview('user-1', { taskId: 'task-1', planRevision: 2 });
+    await expect(
+      service.confirmPlan('user-1', {
+        taskId: 'task-1',
+        expectedRevision: 5,
+        planRevision: 2,
+        planFingerprint: review.planFingerprint,
+        groupFingerprints: review.approvedGroupFingerprints,
+        counts: { ...review.counts, additions: 2 },
+      }),
+    ).rejects.toThrow('organization_review_changed');
+    expect(deps.confirmPlanTransaction).not.toHaveBeenCalled();
+  });
+
+  it('recovers a lost confirmation response after the linked operation needs attention', async () => {
+    const needsAttention = {
+      ...task,
+      status: 'needs_attention' as const,
+      revision: 6,
+      execution: {
+        operationId: 'operation-1',
+        operationStatus: 'needs_attention' as const,
+        succeeded: 0,
+        retryableFailed: 1,
+        terminalFailed: 0,
+        dismissed: 0,
+        pending: 0,
+        running: 0,
+        total: 1,
+      },
+    };
+    const deps = reviewDependencies({
+      getTask: vi.fn().mockResolvedValue(needsAttention),
+    });
+    const service = createOrganizationTaskService(deps);
+    const review = buildOrganizationPlanReview({
+      ...(await deps.loadReviewContext('user-1', { taskId: 'task-1', planRevision: 2 })),
+      goal: needsAttention.goal,
+    } as Parameters<typeof buildOrganizationPlanReview>[0]);
+    vi.mocked(deps.loadReviewContext).mockClear();
+
+    const result = await service.confirmPlan('user-1', {
+      taskId: 'task-1',
+      expectedRevision: 5,
+      planRevision: 2,
+      planFingerprint: review.planFingerprint,
+      groupFingerprints: review.approvedGroupFingerprints,
+      counts: review.counts,
+    });
+
+    expect(deps.confirmPlanTransaction).toHaveBeenCalledWith(
+      'user-1',
+      expect.objectContaining({
+        expectedRevision: 5,
+        review: {
+          taskId: 'task-1',
+          planRevision: 2,
+          planFingerprint: review.planFingerprint,
+          approvedGroupFingerprints: review.approvedGroupFingerprints,
+          counts: review.counts,
+        },
+      }),
+    );
+    expect(deps.loadReviewContext).not.toHaveBeenCalled();
+    expect(result).toEqual({ task: needsAttention, operationId: 'operation-1' });
   });
 });
 

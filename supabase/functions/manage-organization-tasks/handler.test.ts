@@ -66,6 +66,45 @@ function dependencies(
       preconditionFingerprint: '',
       fingerprint: '',
     }),
+    readReview: vi.fn().mockResolvedValue({
+      version: 1,
+      taskId: 'task-1',
+      planRevision: 1,
+      planFingerprint: 'plan-1',
+      groups: [],
+      conflicts: [],
+      uncertainties: [],
+      counts: { newClassifications: 0, additions: 0, removals: 0, noOps: 0 },
+      confirmable: true,
+      approvedGroupFingerprints: [],
+    }),
+    excludePlanAction: vi.fn().mockResolvedValue({
+      version: 1,
+      taskId: 'task-1',
+      planRevision: 1,
+      planFingerprint: 'plan-1',
+      groups: [],
+      conflicts: [],
+      uncertainties: [],
+      counts: { newClassifications: 0, additions: 0, removals: 0, noOps: 0 },
+      confirmable: true,
+      approvedGroupFingerprints: [],
+    }),
+    reviewPlanGroup: vi.fn().mockResolvedValue({
+      version: 1,
+      taskId: 'task-1',
+      planRevision: 1,
+      planFingerprint: 'plan-1',
+      groups: [],
+      conflicts: [],
+      uncertainties: [],
+      counts: { newClassifications: 0, additions: 0, removals: 0, noOps: 0 },
+      confirmable: true,
+      approvedGroupFingerprints: [],
+    }),
+    confirmPlan: vi
+      .fn()
+      .mockResolvedValue({ task: { ...task, status: 'executing' }, operationId: 'operation-1' }),
     ...overrides,
   };
 }
@@ -200,5 +239,94 @@ describe('Organization Task trusted HTTP lifecycle', () => {
       }),
     );
     expect((await missing(request({ action: 'read', taskId: 'task-missing' }))).status).toBe(404);
+  });
+
+  it('binds risk review mutations and confirmation to exact revisions and fingerprints', async () => {
+    const deps = dependencies();
+    const handler = createManageOrganizationTasksHandler(deps);
+
+    await handler(request({ action: 'read-review', taskId: 'task-1', planRevision: 2 }));
+    expect(deps.readReview).toHaveBeenCalledWith('user-1', {
+      taskId: 'task-1',
+      planRevision: 2,
+    });
+
+    await handler(
+      request({
+        action: 'review-plan-group',
+        taskId: 'task-1',
+        expectedRevision: 5,
+        planRevision: 2,
+        groupKey: 'group-1',
+        groupFingerprint: 'fingerprint-1',
+        approved: true,
+      }),
+    );
+    expect(deps.reviewPlanGroup).toHaveBeenCalledWith('user-1', {
+      taskId: 'task-1',
+      expectedRevision: 5,
+      planRevision: 2,
+      groupKey: 'group-1',
+      groupFingerprint: 'fingerprint-1',
+      approved: true,
+    });
+
+    await handler(
+      request({
+        action: 'exclude-plan-action',
+        taskId: 'task-1',
+        expectedRevision: 6,
+        planRevision: 2,
+        actionId: 'action-1',
+        excluded: true,
+      }),
+    );
+    expect(deps.excludePlanAction).toHaveBeenCalledWith('user-1', {
+      taskId: 'task-1',
+      expectedRevision: 6,
+      planRevision: 2,
+      actionId: 'action-1',
+      excluded: true,
+    });
+
+    await handler(
+      request({
+        action: 'confirm-plan',
+        taskId: 'task-1',
+        expectedRevision: 7,
+        planRevision: 2,
+        planFingerprint: 'plan-1',
+        groupFingerprints: ['fingerprint-1'],
+        counts: { newClassifications: 0, additions: 1, removals: 0, noOps: 2 },
+      }),
+    );
+    expect(deps.confirmPlan).toHaveBeenCalledWith('user-1', {
+      taskId: 'task-1',
+      expectedRevision: 7,
+      planRevision: 2,
+      planFingerprint: 'plan-1',
+      groupFingerprints: ['fingerprint-1'],
+      counts: { newClassifications: 0, additions: 1, removals: 0, noOps: 2 },
+    });
+  });
+
+  it('rejects malformed or duplicated confirmation bindings before the service seam', async () => {
+    const deps = dependencies();
+    const handler = createManageOrganizationTasksHandler(deps);
+    const base = {
+      action: 'confirm-plan',
+      taskId: 'task-1',
+      expectedRevision: 7,
+      planRevision: 2,
+      planFingerprint: 'plan-1',
+      counts: { newClassifications: 0, additions: 1, removals: 0, noOps: 2 },
+    };
+    expect((await handler(request({ ...base, groupFingerprints: ['same', 'same'] }))).status).toBe(
+      400,
+    );
+    expect(
+      (await handler(request({ ...base, groupFingerprints: [], counts: { additions: 1 } }))).status,
+    ).toBe(400);
+    expect(deps.confirmPlan).not.toHaveBeenCalled();
   });
 });

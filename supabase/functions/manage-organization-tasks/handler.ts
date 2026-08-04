@@ -1,4 +1,5 @@
 import type { OrganizationPlanDocument } from '../../../packages/core/src/ai/organization-plan.ts';
+import type { OrganizationPlanReview } from '../../../packages/core/src/ai/organization-plan-review.ts';
 import type {
   OrganizationOpportunityView,
   OrganizationTaskView,
@@ -52,6 +53,32 @@ export interface OrganizationTaskHttpDependencies {
     userId: string,
     input: { taskId: string; revision: number | null },
   ) => Promise<OrganizationPlanDocument>;
+  readReview: (
+    userId: string,
+    input: { taskId: string; planRevision: number },
+  ) => Promise<OrganizationPlanReview>;
+  excludePlanAction: (
+    userId: string,
+    input: RevisionInput & { planRevision: number; actionId: string; excluded: boolean },
+  ) => Promise<OrganizationPlanReview>;
+  reviewPlanGroup: (
+    userId: string,
+    input: RevisionInput & {
+      planRevision: number;
+      groupKey: string;
+      groupFingerprint: string;
+      approved: boolean;
+    },
+  ) => Promise<OrganizationPlanReview>;
+  confirmPlan: (
+    userId: string,
+    input: RevisionInput & {
+      planRevision: number;
+      planFingerprint: string;
+      groupFingerprints: string[];
+      counts: OrganizationPlanReview['counts'];
+    },
+  ) => Promise<{ task: OrganizationTaskView; operationId: string }>;
   listOpportunities: (userId: string) => Promise<OrganizationOpportunityView[]>;
   acceptOpportunity: (
     userId: string,
@@ -84,18 +111,46 @@ function readRevisionInput(body: Record<string, unknown>): RevisionInput | null 
     : null;
 }
 
+function isPositiveInteger(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1;
+}
+
+function readReviewCounts(value: unknown): OrganizationPlanReview['counts'] | null {
+  if (value === null || typeof value !== 'object' || Array.isArray(value)) return null;
+  const record = value as Record<string, unknown>;
+  const keys = ['additions', 'newClassifications', 'noOps', 'removals'];
+  const actual = Object.keys(record).sort();
+  if (actual.length !== keys.length || !actual.every((key, index) => key === keys[index])) {
+    return null;
+  }
+  if (!keys.every((key) => Number.isInteger(record[key]) && (record[key] as number) >= 0)) {
+    return null;
+  }
+  return record as unknown as OrganizationPlanReview['counts'];
+}
+
 function errorStatus(code: string): number {
   if (
     code === 'organization_task_conflict' ||
     code === 'organization_candidate_authorization_changed' ||
-    code === 'organization_retry_exhausted'
+    code === 'organization_retry_exhausted' ||
+    code === 'organization_group_fingerprint_changed' ||
+    code === 'organization_review_changed' ||
+    code === 'organization_classification_near_match' ||
+    code === 'organization_target_changed' ||
+    code === 'organization_classification_name_invalid' ||
+    code === 'organization_repository_unauthorized' ||
+    code === 'organization_precondition_changed' ||
+    code === 'organization_review_items_required'
   ) {
     return 409;
   }
   if (
     code === 'organization_task_not_found' ||
     code === 'organization_opportunity_not_found' ||
-    code === 'organization_plan_not_found'
+    code === 'organization_plan_not_found' ||
+    code === 'organization_plan_group_not_found' ||
+    code === 'organization_plan_action_not_found'
   ) {
     return 404;
   }
@@ -151,6 +206,18 @@ export function createManageOrganizationTasksHandler(
           plan: await dependencies.readPlan(userId, {
             taskId: body.taskId,
             revision: planRevision,
+          }),
+        });
+      }
+      if (
+        body.action === 'read-review' &&
+        isId(body.taskId) &&
+        isPositiveInteger(body.planRevision)
+      ) {
+        return json({
+          review: await dependencies.readReview(userId, {
+            taskId: body.taskId,
+            planRevision: body.planRevision,
           }),
         });
       }
@@ -248,6 +315,61 @@ export function createManageOrganizationTasksHandler(
       }
       if (revision && body.action === 'retry-generation') {
         return json({ task: await dependencies.retryGeneration(userId, revision) });
+      }
+      if (
+        revision &&
+        body.action === 'exclude-plan-action' &&
+        isPositiveInteger(body.planRevision) &&
+        isId(body.actionId) &&
+        typeof body.excluded === 'boolean'
+      ) {
+        return json({
+          review: await dependencies.excludePlanAction(userId, {
+            ...revision,
+            planRevision: body.planRevision,
+            actionId: body.actionId,
+            excluded: body.excluded,
+          }),
+        });
+      }
+      if (
+        revision &&
+        body.action === 'review-plan-group' &&
+        isPositiveInteger(body.planRevision) &&
+        isId(body.groupKey) &&
+        isId(body.groupFingerprint) &&
+        typeof body.approved === 'boolean'
+      ) {
+        return json({
+          review: await dependencies.reviewPlanGroup(userId, {
+            ...revision,
+            planRevision: body.planRevision,
+            groupKey: body.groupKey,
+            groupFingerprint: body.groupFingerprint,
+            approved: body.approved,
+          }),
+        });
+      }
+      if (
+        revision &&
+        body.action === 'confirm-plan' &&
+        isPositiveInteger(body.planRevision) &&
+        isId(body.planFingerprint) &&
+        Array.isArray(body.groupFingerprints) &&
+        body.groupFingerprints.length <= 5_000 &&
+        body.groupFingerprints.every(isId) &&
+        new Set(body.groupFingerprints).size === body.groupFingerprints.length
+      ) {
+        const counts = readReviewCounts(body.counts);
+        if (!counts) return json({ error: 'invalid_request' }, 400);
+        const result = await dependencies.confirmPlan(userId, {
+          ...revision,
+          planRevision: body.planRevision,
+          planFingerprint: body.planFingerprint,
+          groupFingerprints: body.groupFingerprints as string[],
+          counts,
+        });
+        return json(result);
       }
       if (revision && body.action === 'end') {
         return json({ task: await dependencies.endTask(userId, revision) });

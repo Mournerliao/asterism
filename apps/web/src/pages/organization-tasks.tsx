@@ -2,6 +2,8 @@ import { Badge, Button, Separator, Skeleton, Textarea } from '@asterism/ui';
 import {
   AlertTriangleIcon,
   ArrowRightIcon,
+  CircleMinusIcon,
+  CirclePlusIcon,
   ClipboardCheckIcon,
   Clock3Icon,
   HistoryIcon,
@@ -15,23 +17,29 @@ import {
   SparklesIcon,
   XIcon,
 } from 'lucide-react';
-import { type FormEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { type FormEvent, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BulkOperationBanner } from '../components/bulk-organization';
+import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import {
   useAcceptOrganizationOpportunity,
   useApproveOrganizationGeneration,
+  useConfirmOrganizationPlan,
   useCreateOrganizationTask,
   useDiscoverOrganizationTask,
   useEndOrganizationTask,
   useExcludeOrganizationCandidate,
+  useExcludeOrganizationPlanAction,
   useIgnoreOrganizationOpportunity,
   useOrganizationOpportunities,
+  useOrganizationPlanReview,
   useOrganizationTask,
   useOrganizationTasks,
   usePauseOrganizationGeneration,
   useResumeOrganizationGeneration,
   useRetryOrganizationGeneration,
+  useReviewOrganizationPlanGroup,
   useRunOrganizationGenerationPage,
   useStartOrganizationGeneration,
   useUpdateOrganizationTaskGoal,
@@ -50,6 +58,16 @@ function MutationError({ error }: { error: unknown }) {
     'organization_discovery_interrupted',
     'organization_candidate_authorization_changed',
     'organization_retry_exhausted',
+    'organization_review_changed',
+    'organization_group_fingerprint_changed',
+    'organization_plan_group_not_found',
+    'organization_plan_action_not_found',
+    'organization_classification_near_match',
+    'organization_target_changed',
+    'organization_classification_name_invalid',
+    'organization_repository_unauthorized',
+    'organization_precondition_changed',
+    'organization_review_items_required',
   ].includes(code);
   return (
     <p role="alert" className="text-caption text-destructive">
@@ -380,11 +398,455 @@ function GenerationProgressBar({ value, max }: { value: number; max: number }) {
   );
 }
 
-function GenerationPanel({
+type OrganizationTask = NonNullable<ReturnType<typeof useOrganizationTask>['data']>;
+type OrganizationPlanReview = NonNullable<ReturnType<typeof useOrganizationPlanReview>['data']>;
+type OrganizationPlanReviewGroup = OrganizationPlanReview['groups'][number];
+
+const REVIEW_RISKS = [
+  'existing_addition',
+  'new_classification',
+  'removal',
+] as const satisfies ReadonlyArray<OrganizationPlanReviewGroup['risk']>;
+
+function ReviewGroup({
   task,
+  review,
+  group,
 }: {
-  task: NonNullable<ReturnType<typeof useOrganizationTask>['data']>;
+  task: OrganizationTask;
+  review: OrganizationPlanReview;
+  group: OrganizationPlanReviewGroup;
 }) {
+  const { t } = useTranslation();
+  const reviewGroup = useReviewOrganizationPlanGroup();
+  const excludeAction = useExcludeOrganizationPlanAction();
+  const pending = reviewGroup.isPending || excludeAction.isPending;
+  const explicitApproval = group.risk !== 'existing_addition';
+  const headingId = useId();
+  const actionLabel = group.approved
+    ? t('organizationTasks.review.cancelGroup')
+    : group.risk === 'new_classification'
+      ? t('organizationTasks.review.approveNew')
+      : group.risk === 'removal'
+        ? t('organizationTasks.review.approveRemoval')
+        : t('organizationTasks.review.includeGroup');
+
+  return (
+    <section aria-labelledby={headingId} className="px-4 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-56 flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 id={headingId} className="font-medium text-body">
+              {group.normalizedName}
+            </h4>
+            <Badge variant="outline">
+              {t(`organizationTasks.review.kind.${group.relationType}`)}
+            </Badge>
+            {explicitApproval ? (
+              <Badge variant={group.approved ? 'secondary' : 'outline'}>
+                {group.approved
+                  ? t('organizationTasks.review.approved')
+                  : t('organizationTasks.review.explicitApproval')}
+              </Badge>
+            ) : null}
+          </div>
+          {group.target.kind === 'new' ? (
+            <div className="mt-1 flex flex-col gap-0.5 text-caption text-muted-foreground">
+              <p>
+                {group.equivalentTarget
+                  ? t('organizationTasks.review.equivalent', { name: group.equivalentTarget.name })
+                  : t('organizationTasks.review.normalized', { name: group.normalizedName })}
+              </p>
+              <p>
+                {t('organizationTasks.review.dependencies', {
+                  repositories: group.actions
+                    .slice(0, 3)
+                    .map((action) => action.repositoryName ?? action.repoId)
+                    .join(', '),
+                  count: group.actions.length,
+                })}
+              </p>
+            </div>
+          ) : null}
+          {group.nearMatches.length > 0 ? (
+            <p role="alert" className="mt-2 text-caption text-warning">
+              {t('organizationTasks.review.nearMatches', {
+                names: group.nearMatches.map((entry) => entry.name).join(', '),
+              })}
+            </p>
+          ) : null}
+          {group.validity !== 'valid' && group.validity !== 'near_match' ? (
+            <p role="status" className="mt-2 text-caption text-warning">
+              {t(`organizationTasks.review.validity.${group.validity}`)}
+            </p>
+          ) : null}
+        </div>
+        <Button
+          variant={group.approved ? 'ghost' : 'outline'}
+          size="sm"
+          disabled={pending || group.validity !== 'valid'}
+          aria-pressed={group.approved}
+          aria-label={t('organizationTasks.review.groupAction', {
+            action: actionLabel,
+            target: group.normalizedName,
+          })}
+          aria-busy={reviewGroup.isPending && reviewGroup.variables?.groupKey === group.key}
+          onClick={() =>
+            reviewGroup.mutate({
+              taskId: task.id,
+              expectedRevision: task.revision,
+              planRevision: review.planRevision,
+              groupKey: group.key,
+              groupFingerprint: group.fingerprint,
+              approved: !group.approved,
+            })
+          }
+        >
+          {reviewGroup.isPending && reviewGroup.variables?.groupKey === group.key ? (
+            <LoaderCircleIcon
+              className="size-4 animate-spin motion-reduce:animate-none"
+              aria-hidden="true"
+            />
+          ) : group.risk === 'removal' ? (
+            <CircleMinusIcon className="size-4" aria-hidden="true" />
+          ) : (
+            <CirclePlusIcon className="size-4" aria-hidden="true" />
+          )}
+          {actionLabel}
+        </Button>
+      </div>
+
+      <details className="mt-3 border-t pt-3">
+        <summary className="cursor-pointer select-none text-caption text-link outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+          {t('organizationTasks.review.repositories', { count: group.actions.length })}
+        </summary>
+        <div className="mt-2 divide-y">
+          {group.actions.map((action) => {
+            const excluding =
+              excludeAction.isPending && excludeAction.variables?.actionId === action.id;
+            return (
+              <div key={action.id} className="flex min-h-14 flex-wrap items-center gap-3 py-2">
+                <div className="min-w-56 flex-1">
+                  <p className="truncate font-mono text-caption">
+                    {action.repositoryName ?? action.repoId}
+                  </p>
+                  <p className="text-micro text-muted-foreground">
+                    {t('organizationTasks.review.evidence', {
+                      pages: action.evidencePages.join(', '),
+                    })}
+                  </p>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  disabled={pending}
+                  aria-pressed={!action.excluded}
+                  aria-label={t('organizationTasks.review.repositoryAction', {
+                    action: action.excluded
+                      ? t('organizationTasks.review.includeRepository')
+                      : t('organizationTasks.review.excludeRepository'),
+                    repository: action.repositoryName ?? action.repoId,
+                  })}
+                  aria-busy={excluding}
+                  onClick={() =>
+                    excludeAction.mutate({
+                      taskId: task.id,
+                      expectedRevision: task.revision,
+                      planRevision: review.planRevision,
+                      actionId: action.id,
+                      excluded: !action.excluded,
+                    })
+                  }
+                >
+                  {excluding ? (
+                    <LoaderCircleIcon
+                      className="size-4 animate-spin motion-reduce:animate-none"
+                      aria-hidden="true"
+                    />
+                  ) : null}
+                  {action.excluded
+                    ? t('organizationTasks.review.includeRepository')
+                    : t('organizationTasks.review.excludeRepository')}
+                </Button>
+              </div>
+            );
+          })}
+        </div>
+      </details>
+      <MutationError error={reviewGroup.error ?? excludeAction.error} />
+    </section>
+  );
+}
+
+function PlanReviewPanel({ task }: { task: OrganizationTask }) {
+  const { t } = useTranslation();
+  const plan = task.plans[0];
+  const reviewQuery = useOrganizationPlanReview(task.id, plan?.revision);
+  const confirm = useConfirmOrganizationPlan();
+
+  if (!plan) return null;
+  if (reviewQuery.isLoading) {
+    return (
+      <section aria-label={t('organizationTasks.review.loading')} className="flex flex-col gap-3">
+        <Skeleton className="h-7 w-64" />
+        <Skeleton className="h-44 w-full" />
+      </section>
+    );
+  }
+  if (reviewQuery.isError || !reviewQuery.data) {
+    return (
+      <QueryError
+        message={t('organizationTasks.errors.review_load_failed')}
+        retry={() => void reviewQuery.refetch()}
+      />
+    );
+  }
+  const review = reviewQuery.data;
+
+  return (
+    <section aria-labelledby="organization-plan-review" className="flex flex-col gap-5">
+      <div>
+        <h2 id="organization-plan-review" className="font-semibold text-section-title">
+          {t('organizationTasks.review.title')}
+        </h2>
+        <p className="mt-1 max-w-[70ch] text-body text-muted-foreground">
+          {t('organizationTasks.review.description')}
+        </p>
+      </div>
+
+      {REVIEW_RISKS.map((risk) => {
+        const groups = review.groups.filter((group) => group.risk === risk);
+        if (groups.length === 0) return null;
+        return (
+          <section key={risk} aria-labelledby={`review-risk-${risk}`}>
+            <div className="mb-2 flex items-center gap-2">
+              {risk === 'removal' ? (
+                <CircleMinusIcon className="size-4 text-warning" aria-hidden="true" />
+              ) : (
+                <CirclePlusIcon className="size-4 text-primary" aria-hidden="true" />
+              )}
+              <h3 id={`review-risk-${risk}`} className="font-medium text-body">
+                {t(`organizationTasks.review.risk.${risk}`)}
+              </h3>
+            </div>
+            <div className="divide-y overflow-hidden rounded-lg border bg-card">
+              {groups.map((group) => (
+                <ReviewGroup key={group.key} task={task} review={review} group={group} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
+
+      {review.conflicts.length > 0 || review.uncertainties.length > 0 ? (
+        <section aria-labelledby="review-no-op" className="rounded-lg border bg-muted/40 p-4">
+          <div className="flex items-start gap-3">
+            <AlertTriangleIcon className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden="true" />
+            <div>
+              <h3 id="review-no-op" className="font-medium text-body">
+                {t('organizationTasks.review.noOp')}
+              </h3>
+              <p className="mt-1 text-caption text-muted-foreground">
+                {t('organizationTasks.review.noOpDescription', {
+                  conflicts: review.conflicts.length,
+                  uncertainties: review.uncertainties.length,
+                })}
+              </p>
+              <details className="mt-3 border-t pt-3">
+                <summary className="cursor-pointer select-none text-caption text-link outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+                  {t('organizationTasks.review.noOpItems', {
+                    count: review.conflicts.length + review.uncertainties.length,
+                  })}
+                </summary>
+                <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-caption text-muted-foreground">
+                  {review.conflicts.map((conflict) => (
+                    <li key={`${conflict.relationType}:${conflict.names.join(':')}`}>
+                      {t('organizationTasks.review.noOpDetail.near_duplicate_names', {
+                        names: conflict.names.join(', '),
+                        repositories: conflict.repoIds.join(', '),
+                      })}
+                    </li>
+                  ))}
+                  {review.uncertainties.map((uncertainty) => {
+                    const pages = uncertainty.pageIndexes.join(', ');
+                    const detail = uncertainty.detail;
+                    const values =
+                      detail.kind === 'unknown_repository'
+                        ? { repoId: detail.repoId, pages }
+                        : detail.kind === 'invalid_classification_name'
+                          ? { name: detail.name, pages }
+                          : detail.kind === 'unknown_target'
+                            ? {
+                                relationType: detail.relationType,
+                                targetId: detail.targetId,
+                                pages,
+                              }
+                            : {
+                                repoId: detail.repoId,
+                                relationType: detail.relationType,
+                                targetId: detail.targetId,
+                                pages,
+                              };
+                    return (
+                      <li key={`${detail.kind}:${uncertainty.pageIndexes.join(':')}`}>
+                        {t(`organizationTasks.review.noOpDetail.${detail.kind}`, values)}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </details>
+            </div>
+          </div>
+        </section>
+      ) : null}
+
+      <section aria-labelledby="review-confirm" className="rounded-lg border bg-card p-5">
+        <div className="flex flex-wrap items-end justify-between gap-5">
+          <div>
+            <h3 id="review-confirm" className="font-medium text-body">
+              {t('organizationTasks.review.exactEffects')}
+            </h3>
+            <dl
+              aria-live="polite"
+              aria-atomic="true"
+              className="mt-3 flex flex-wrap gap-x-6 gap-y-3 text-caption"
+            >
+              {(['newClassifications', 'additions', 'removals', 'noOps'] as const).map((key) => (
+                <div key={key}>
+                  <dt className="text-muted-foreground">
+                    {t(`organizationTasks.review.counts.${key}`)}
+                  </dt>
+                  <dd className="mt-0.5 font-mono font-medium text-foreground">
+                    {review.counts[key]}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+          <Button
+            className="min-w-44"
+            disabled={!review.confirmable || confirm.isPending}
+            aria-busy={confirm.isPending}
+            onClick={() =>
+              confirm.mutate({
+                taskId: task.id,
+                expectedRevision: task.revision,
+                planRevision: review.planRevision,
+                planFingerprint: review.planFingerprint,
+                groupFingerprints: review.approvedGroupFingerprints,
+                counts: review.counts,
+              })
+            }
+          >
+            {confirm.isPending ? (
+              <LoaderCircleIcon
+                className="size-4 animate-spin motion-reduce:animate-none"
+                aria-hidden="true"
+              />
+            ) : (
+              <ShieldCheckIcon className="size-4" aria-hidden="true" />
+            )}
+            {confirm.isPending
+              ? t('organizationTasks.review.confirming')
+              : t('organizationTasks.review.confirm')}
+          </Button>
+        </div>
+        {!review.confirmable ? (
+          <p role="alert" className="mt-3 text-caption text-warning">
+            {t('organizationTasks.review.notConfirmable')}
+          </p>
+        ) : null}
+        <MutationError error={confirm.error} />
+      </section>
+    </section>
+  );
+}
+
+function ExecutionPanel({ task }: { task: OrganizationTask }) {
+  const { t } = useTranslation();
+  const execution = task.execution;
+  if (!execution) return null;
+  const settled = execution.succeeded + execution.terminalFailed + execution.dismissed;
+  return (
+    <section aria-labelledby="organization-execution" className="rounded-lg border bg-card p-5">
+      <div className="flex items-start gap-3">
+        {execution.operationStatus === 'completed' ? (
+          <ClipboardCheckIcon className="mt-0.5 size-5 text-success" aria-hidden="true" />
+        ) : (
+          <LoaderCircleIcon
+            className="mt-0.5 size-5 animate-spin text-primary motion-reduce:animate-none"
+            aria-hidden="true"
+          />
+        )}
+        <div className="min-w-0 flex-1">
+          <h2 id="organization-execution" className="font-semibold text-section-title">
+            {t('organizationTasks.execution.title')}
+          </h2>
+          <p className="mt-1 text-body text-muted-foreground">
+            {t(`organizationTasks.execution.status.${execution.operationStatus}`)}
+          </p>
+          <div className="mt-4">
+            <GenerationProgressBar value={settled} max={execution.total} />
+          </div>
+          <dl className="mt-4 grid gap-3 text-caption sm:grid-cols-3 lg:grid-cols-6">
+            {(
+              [
+                'succeeded',
+                'retryableFailed',
+                'terminalFailed',
+                'dismissed',
+                'pending',
+                'running',
+              ] as const
+            ).map((key) => (
+              <div key={key}>
+                <dt className="text-muted-foreground">
+                  {t(`organizationTasks.execution.counts.${key}`)}
+                </dt>
+                <dd className="mt-0.5 font-mono font-medium">{execution[key]}</dd>
+              </div>
+            ))}
+          </dl>
+          <p className="mt-3 font-mono text-micro text-muted-foreground">
+            {t('organizationTasks.execution.operation', { id: execution.operationId })}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TaskExecutionControls({ task }: { task: OrganizationTask }) {
+  const operations = useBulkOperations();
+  const actions = useBulkOperationActions();
+  const resumedOperationRef = useRef<string | null>(null);
+  const operation = operations.data?.find((item) => item.id === task.execution?.operationId);
+
+  useEffect(() => {
+    if (!operation || resumedOperationRef.current === operation.id) return;
+    const hasPending = operation.items.some(
+      (item) => item.status === 'pending' || item.status === 'running',
+    );
+    if (!hasPending) return;
+    resumedOperationRef.current = operation.id;
+    actions.resume.mutate(operation);
+  }, [operation, actions.resume]);
+
+  if (!operation || operation.status === 'completed') return null;
+  return (
+    <BulkOperationBanner
+      operation={operation}
+      resuming={actions.resume.isPending}
+      retrying={actions.retry.isPending}
+      completing={actions.complete.isPending}
+      onResume={() => actions.resume.mutate(operation)}
+      onRetry={() => actions.retry.mutate(operation)}
+      onComplete={() => actions.complete.mutate(operation)}
+    />
+  );
+}
+
+function GenerationPanel({ task }: { task: OrganizationTask }) {
   const { t } = useTranslation();
   const start = useStartOrganizationGeneration();
   const pause = usePauseOrganizationGeneration();
@@ -470,50 +932,53 @@ function GenerationPanel({
   if (status === 'plan_ready') {
     const plan = task.plans[0];
     return (
-      <section
-        aria-labelledby="generation-plan"
-        className="flex flex-col gap-4 rounded-lg border bg-card p-5"
-      >
-        <div className="flex items-start gap-3">
-          <ClipboardCheckIcon className="mt-0.5 size-5 text-success" aria-hidden="true" />
-          <div>
-            <h2 id="generation-plan" className="font-semibold text-section-title">
-              {t('organizationTasks.plan.title')}
-            </h2>
-            <p className="mt-1 text-body text-muted-foreground">
-              {t('organizationTasks.plan.description')}
-            </p>
+      <>
+        <section
+          aria-labelledby="generation-plan"
+          className="flex flex-col gap-4 rounded-lg border bg-card p-5"
+        >
+          <div className="flex items-start gap-3">
+            <ClipboardCheckIcon className="mt-0.5 size-5 text-success" aria-hidden="true" />
+            <div>
+              <h2 id="generation-plan" className="font-semibold text-section-title">
+                {t('organizationTasks.plan.title')}
+              </h2>
+              <p className="mt-1 text-body text-muted-foreground">
+                {t('organizationTasks.plan.description')}
+              </p>
+            </div>
           </div>
-        </div>
-        {plan ? (
-          <dl className="grid gap-x-6 gap-y-4 text-body sm:grid-cols-2 lg:grid-cols-4">
-            <div>
-              <dt className="text-caption text-muted-foreground">
-                {t('organizationTasks.plan.revision')}
-              </dt>
-              <dd className="mt-1 font-mono font-medium">{plan.revision}</dd>
-            </div>
-            <div>
-              <dt className="text-caption text-muted-foreground">
-                {t('organizationTasks.plan.actions')}
-              </dt>
-              <dd className="mt-1 font-medium">{plan.actionCount}</dd>
-            </div>
-            <div>
-              <dt className="text-caption text-muted-foreground">
-                {t('organizationTasks.plan.conflicts')}
-              </dt>
-              <dd className="mt-1 font-medium">{plan.conflictCount}</dd>
-            </div>
-            <div>
-              <dt className="text-caption text-muted-foreground">
-                {t('organizationTasks.plan.uncertainties')}
-              </dt>
-              <dd className="mt-1 font-medium">{plan.uncertaintyCount}</dd>
-            </div>
-          </dl>
-        ) : null}
-      </section>
+          {plan ? (
+            <dl className="grid gap-x-6 gap-y-4 text-body sm:grid-cols-2 lg:grid-cols-4">
+              <div>
+                <dt className="text-caption text-muted-foreground">
+                  {t('organizationTasks.plan.revision')}
+                </dt>
+                <dd className="mt-1 font-mono font-medium">{plan.revision}</dd>
+              </div>
+              <div>
+                <dt className="text-caption text-muted-foreground">
+                  {t('organizationTasks.plan.actions')}
+                </dt>
+                <dd className="mt-1 font-medium">{plan.actionCount}</dd>
+              </div>
+              <div>
+                <dt className="text-caption text-muted-foreground">
+                  {t('organizationTasks.plan.conflicts')}
+                </dt>
+                <dd className="mt-1 font-medium">{plan.conflictCount}</dd>
+              </div>
+              <div>
+                <dt className="text-caption text-muted-foreground">
+                  {t('organizationTasks.plan.uncertainties')}
+                </dt>
+                <dd className="mt-1 font-medium">{plan.uncertaintyCount}</dd>
+              </div>
+            </dl>
+          ) : null}
+        </section>
+        <PlanReviewPanel task={task} />
+      </>
     );
   }
 
@@ -834,7 +1299,7 @@ export function OrganizationTaskDetailPage() {
             </span>
           </div>
         </div>
-        {task.status !== 'ended' ? (
+        {task.status !== 'ended' && !task.execution ? (
           <Button
             variant={endArmed ? 'destructive' : 'ghost'}
             className="min-w-28"
@@ -1060,6 +1525,13 @@ export function OrganizationTaskDetailPage() {
 
       <WorkloadDisclosure task={task} />
 
+      {task.execution ? (
+        <>
+          <ExecutionPanel task={task} />
+          <TaskExecutionControls task={task} />
+        </>
+      ) : null}
+
       {task.status === 'awaiting_generation_approval' && task.manifest && !revisingGoal ? (
         <>
           <Separator />
@@ -1086,11 +1558,12 @@ export function OrganizationTaskDetailPage() {
         </>
       ) : null}
 
-      {task.status === 'generation_approved' ||
-      task.status === 'generating' ||
-      task.status === 'generation_paused' ||
-      task.status === 'needs_attention' ||
-      task.status === 'plan_ready' ? (
+      {!task.execution &&
+      (task.status === 'generation_approved' ||
+        task.status === 'generating' ||
+        task.status === 'generation_paused' ||
+        task.status === 'needs_attention' ||
+        task.status === 'plan_ready') ? (
         <GenerationPanel task={task} />
       ) : null}
 

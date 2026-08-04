@@ -15,6 +15,13 @@ import {
   stableOrganizationHash,
 } from '../../../packages/core/src/ai/organization-plan.ts';
 import {
+  buildOrganizationPlanReview,
+  type OrganizationPlanReview,
+  type OrganizationPlanReviewDecision,
+  type OrganizationPlanReviewInput,
+  type OrganizationPlanRisk,
+} from '../../../packages/core/src/ai/organization-plan-review.ts';
+import {
   buildCandidateSnapshot,
   buildGenerationManifest,
   buildOrganizationRepositoryContentFingerprint,
@@ -99,6 +106,18 @@ export interface CompleteGenerationPageInput {
   usage: { inputTokens: number | null; outputTokens: number | null; totalTokens: number | null };
   errorCode: string | null;
   result: OrganizationPageResult | null;
+}
+
+export type OrganizationPlanReviewContext = Omit<OrganizationPlanReviewInput, 'goal'>;
+
+export type OrganizationPlanConfirmationBinding = Pick<
+  OrganizationPlanReview,
+  'taskId' | 'planRevision' | 'planFingerprint' | 'approvedGroupFingerprints' | 'counts'
+>;
+
+export interface ConfirmOrganizationPlanInput extends RevisionInput {
+  planRevision: number;
+  review: OrganizationPlanReview | OrganizationPlanConfirmationBinding;
 }
 
 export type GenerationRunOutcome = OrganizationGenerationRunOutcome;
@@ -201,6 +220,20 @@ export interface OrganizationTaskServiceDependencies {
     userId: string,
     input: { taskId: string; revision: number | null },
   ) => Promise<OrganizationPlanDocument | null>;
+  loadReviewContext: (
+    userId: string,
+    input: { taskId: string; planRevision: number },
+  ) => Promise<OrganizationPlanReviewContext | null>;
+  persistPlanReviewCas: (
+    userId: string,
+    input:
+      | (RevisionInput & { planRevision: number; actionId: string; excluded: boolean })
+      | (RevisionInput & { planRevision: number; decision: OrganizationPlanReviewDecision }),
+  ) => Promise<boolean>;
+  confirmPlanTransaction: (
+    userId: string,
+    input: ConfirmOrganizationPlanInput,
+  ) => Promise<{ outcome: 'created' | 'replayed'; operationId: string }>;
 }
 
 function requireTask(
@@ -283,6 +316,20 @@ function sanitizeProviderError(error: unknown): string {
 }
 
 export function createOrganizationTaskService(dependencies: OrganizationTaskServiceDependencies) {
+  const readReview = async (
+    userId: string,
+    input: { taskId: string; planRevision: number },
+  ): Promise<OrganizationPlanReview> => {
+    const task = await dependencies.getTask(userId, input.taskId);
+    if (!task) throw new Error('organization_task_not_found');
+    if (!['plan_ready', 'executing', 'completed'].includes(task.status)) {
+      throw new Error('organization_task_invalid_transition');
+    }
+    const context = await dependencies.loadReviewContext(userId, input);
+    if (!context) throw new Error('organization_plan_not_found');
+    return buildOrganizationPlanReview({ ...context, goal: task.goal });
+  };
+
   return {
     listTasks: dependencies.listTasks,
     listOpportunities: dependencies.listOpportunities,
@@ -482,6 +529,142 @@ export function createOrganizationTaskService(dependencies: OrganizationTaskServ
       const plan = await dependencies.readPlan(userId, input);
       if (!plan) throw new Error('organization_plan_not_found');
       return plan;
+    },
+
+    readReview,
+
+    async excludePlanAction(
+      userId: string,
+      input: RevisionInput & {
+        planRevision: number;
+        actionId: string;
+        excluded: boolean;
+      },
+    ): Promise<OrganizationPlanReview> {
+      const task = requireTask(
+        await dependencies.getTask(userId, input.taskId),
+        input.expectedRevision,
+      );
+      if (task.status !== 'plan_ready') throw new Error('organization_task_invalid_transition');
+      if (task.plans[0]?.revision !== input.planRevision) {
+        throw new Error('organization_review_changed');
+      }
+      const review = await readReview(userId, input);
+      if (
+        !review.groups.some((group) => group.actions.some((action) => action.id === input.actionId))
+      ) {
+        throw new Error('organization_plan_action_not_found');
+      }
+      if (!(await dependencies.persistPlanReviewCas(userId, input))) {
+        throw new Error('organization_task_conflict');
+      }
+      return readReview(userId, input);
+    },
+
+    async reviewPlanGroup(
+      userId: string,
+      input: RevisionInput & {
+        planRevision: number;
+        groupKey: string;
+        groupFingerprint: string;
+        approved: boolean;
+      },
+    ): Promise<OrganizationPlanReview> {
+      const task = requireTask(
+        await dependencies.getTask(userId, input.taskId),
+        input.expectedRevision,
+      );
+      if (task.status !== 'plan_ready') throw new Error('organization_task_invalid_transition');
+      if (task.plans[0]?.revision !== input.planRevision) {
+        throw new Error('organization_review_changed');
+      }
+      const review = await readReview(userId, input);
+      const group = review.groups.find((entry) => entry.key === input.groupKey);
+      if (!group) throw new Error('organization_plan_group_not_found');
+      if (group.fingerprint !== input.groupFingerprint) {
+        throw new Error('organization_group_fingerprint_changed');
+      }
+      const decision: OrganizationPlanReviewDecision = {
+        planRevision: input.planRevision,
+        groupKey: group.key,
+        risk: group.risk as OrganizationPlanRisk,
+        groupFingerprint: group.fingerprint,
+        approved: input.approved,
+      };
+      if (
+        !(await dependencies.persistPlanReviewCas(userId, {
+          taskId: input.taskId,
+          expectedRevision: input.expectedRevision,
+          planRevision: input.planRevision,
+          decision,
+        }))
+      ) {
+        throw new Error('organization_task_conflict');
+      }
+      return readReview(userId, input);
+    },
+
+    async confirmPlan(
+      userId: string,
+      input: RevisionInput & {
+        planRevision: number;
+        planFingerprint: string;
+        groupFingerprints: string[];
+        counts: OrganizationPlanReview['counts'];
+      },
+    ): Promise<{ task: OrganizationTaskView; operationId: string }> {
+      const task = requireTask(await dependencies.getTask(userId, input.taskId));
+      const replayingLostResponse =
+        ['executing', 'needs_attention', 'completed'].includes(task.status) &&
+        Boolean(task.execution);
+      if (task.status === 'plan_ready') {
+        requireTask(task, input.expectedRevision);
+        if (task.plans[0]?.revision !== input.planRevision) {
+          throw new Error('organization_review_changed');
+        }
+      } else if (!replayingLostResponse) {
+        throw new Error('organization_task_invalid_transition');
+      }
+      if (replayingLostResponse) {
+        const result = await dependencies.confirmPlanTransaction(userId, {
+          taskId: input.taskId,
+          expectedRevision: input.expectedRevision,
+          planRevision: input.planRevision,
+          review: {
+            taskId: input.taskId,
+            planRevision: input.planRevision,
+            planFingerprint: input.planFingerprint,
+            approvedGroupFingerprints: input.groupFingerprints.toSorted(),
+            counts: input.counts,
+          },
+        });
+        const recovered = await dependencies.getTask(userId, input.taskId);
+        if (!recovered) throw new Error('organization_task_not_found');
+        return { task: recovered, operationId: result.operationId };
+      }
+      const review = await readReview(userId, input);
+      const exactBinding = stableOrganizationHash({
+        planFingerprint: input.planFingerprint,
+        groupFingerprints: input.groupFingerprints.toSorted(),
+        counts: input.counts,
+      });
+      const currentBinding = stableOrganizationHash({
+        planFingerprint: review.planFingerprint,
+        groupFingerprints: review.approvedGroupFingerprints,
+        counts: review.counts,
+      });
+      if (exactBinding !== currentBinding || !review.confirmable) {
+        throw new Error('organization_review_changed');
+      }
+      const result = await dependencies.confirmPlanTransaction(userId, {
+        taskId: input.taskId,
+        expectedRevision: input.expectedRevision,
+        planRevision: input.planRevision,
+        review,
+      });
+      const confirmed = await dependencies.getTask(userId, input.taskId);
+      if (!confirmed) throw new Error('organization_task_not_found');
+      return { task: confirmed, operationId: result.operationId };
     },
 
     /**

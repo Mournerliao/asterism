@@ -77,6 +77,17 @@ export {
   stableOrganizationHash,
 } from './ai/organization-plan';
 export type {
+  OrganizationPlanReview,
+  OrganizationPlanReviewAction,
+  OrganizationPlanReviewDecision,
+  OrganizationPlanReviewGroup,
+  OrganizationPlanReviewInput,
+  OrganizationPlanReviewRepository,
+  OrganizationPlanReviewValidity,
+  OrganizationPlanRisk,
+} from './ai/organization-plan-review';
+export { buildOrganizationPlanReview } from './ai/organization-plan-review';
+export type {
   AiOrganizationDraft,
   AiOrganizationReviewChange,
   AiOrganizationReviewSuggestions,
@@ -96,6 +107,7 @@ export type {
   OrganizationOpportunityView,
   OrganizationPlanSummary,
   OrganizationTaskErrorCode,
+  OrganizationTaskExecutionView,
   OrganizationTaskMessage,
   OrganizationTaskStatus,
   OrganizationTaskView,

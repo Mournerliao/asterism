@@ -94,7 +94,7 @@
 
 ## Phase 2 Tables · 进阶表（批量整理 / AI / 设置）
 
-> **迁移说明（ADR 0029、GitHub #23）**：以下 `ai_organization_drafts` 记录的是 Phase 2 已交付的 selection-first 基线，不再代表下一版 AI 整理的目标模型。Phase 2.1 规格已确定以规范化的 Organization Task、消息 / 事件、候选快照、Generation manifest / page / call、revisioned Plan / action group / approval 与 execution / undo operation link 承载持久任务；具体字段随实现 migration 落入本契约前，当前生产权威 schema 仍是下述旧表。不得在旧草稿上追加隐式分页。`bulk_operations` / `bulk_operation_items` 的可靠执行、恢复与幂等语义继续复用；Task Undo 的关系级有效 mutation identity 见 ADR 0030。
+> **迁移说明（ADR 0029、GitHub #23）**：以下 `ai_organization_drafts` 记录的是 Phase 2 已交付的 selection-first 基线，不再代表下一版 AI 整理的目标模型。Phase 2.1 已增量落地规范化 Organization Task、消息 / 事件、候选快照、Generation manifest / page / call、revisioned Plan、风险审阅与 execution operation link；Task Undo link 与 legacy cutover 仍由 #27–#28 落地。不得在旧草稿上追加隐式分页。`bulk_operations` / `bulk_operation_items` 的可靠执行、恢复与幂等语义继续复用；Task Undo 的关系级有效 mutation identity 见 ADR 0030。
 
 ### Organization Task 基础持久化（GitHub #24）
 
@@ -120,10 +120,21 @@
 
 仅 service-role 的 8 个 RPC 承载状态机：`start_organization_generation`（approved → generating）、`claim_organization_generation_page`（领取下一 pending / stale-leased 页，判定 complete / in_flight / exhausted / call_ceiling / token_ceiling）、`complete_organization_generation_page`（恰好一次记录成功 / 失败，暂停或结束后到达的在途调用仍落账但不改变页面接受）、`pause` / `resume` / `retry_organization_generation`、`flag_organization_generation_attention` 与 `save_organization_plan`。最大尝试数为 `1 + floor(max_retry_calls / greatest(max_initial_calls, 1))`；token 上限用平均预算 `ceil(estimated_token_ceiling / max_total_calls)` 启发式预判。这些表沿用 owner-only SELECT RLS，普通角色无写策略也不能执行上述 RPC；客户端只经 `manage-organization-tasks` 驱动并读取安全响应投影。
 
+### Organization Plan 风险审阅与执行链接（GitHub #26）
+
+`20260804120000_organization_plan_review_execution.sql` 把 immutable Plan 接到人工授权与既有可靠批量执行账本：
+
+- `organization_plan_action_exclusions` 按 task / Plan revision / action ID 保存逐仓库排除；排除会改变服务端 semantic group fingerprint，使该组旧批准失效。
+- `organization_plan_group_reviews` 保存风险类型、服务端 group fingerprint、显式批准 / 取消、决定时 task revision。确认会采用当前 Plan revision 的最新决定；只有 key / risk / fingerprint 完全未变时，上一 Plan revision 的最新决定才可保留。
+- `organization_task_operation_links` 对每个任务唯一绑定 execution operation、准确 Plan revision / fingerprint、排序后的批准组 fingerprint 与确认计数。完全相同的确认重放返回原 operation；任何绑定变化均冲突，不能创建第二份 operation。
+- `organization_tasks.status = executing` 表示已原子移交执行账本。页面展示的 completed / needs-attention 状态与新增 / 移除成功、可重试失败、终态失败、dismissed、pending、running 计数，均从链接的 `bulk_operations` / `bulk_operation_items` 权威账本派生，不由客户端上报。
+
+`save_organization_plan_review` 与 `confirm_organization_plan` 仅向 service-role 开放。确认事务锁定 task 并重新核验 ownership、star authorization、Plan/action/target identity、关系前置条件、名称规范化、near-match guard、最新显式批准、排除和准确汇总；只幂等创建已批准的新分类及唯一 `source: organization_task` operation/items/link。事务内不修改 `repo_tags` / `collection_repos`，实际关系写入只由既有 `bulk-organize` 有界执行器完成。普通客户端对上述三表只有 owner SELECT RLS，无写策略且不能调用 RPC。
+
 ### `bulk_operations` — 持久化批量操作
 
 - `user_id` → `auth.users(id)`
-- `source` — `manual` / `ai_draft`，仅说明操作来源，不改变执行语义
+- `source` — `manual` / `ai_draft` / `promotion` / `organization_task`，仅说明操作来源，不改变执行语义；普通 bulk create 请求只能使用 `manual` / `ai_draft`，`organization_task` 只能由 #26 确认事务创建
 - `source_draft_id` — AI 草稿确认的幂等键（manual 为 null）
 - `source_draft_revision` — 已确认的草稿 revision（manual 为 null）
 - `source_draft_suggestions` — 已确认的完整最终选择（manual 为 null，不含 credential）
@@ -224,7 +235,7 @@
   - SELECT：要求 `user_id = auth.uid()`。
   - INSERT / UPDATE / DELETE：普通客户端无直接表权限；设置写入只经验证用户 JWT 的受信 Edge Function，active connection/model 另由数据库 trigger 强制保持一致。
 
-- **`bulk_operations` / `bulk_operation_items`**
+- **`bulk_operations` / `bulk_operation_items` / `organization_plan_action_exclusions` / `organization_plan_group_reviews` / `organization_task_operation_links`**
   - SELECT：要求 `user_id = auth.uid()`，客户端可读取本人的操作进度与结果。
   - INSERT / UPDATE / DELETE：普通客户端无直接表权限；创建、执行、重试与明确结束只经验证用户 JWT 的受信批量写入路径完成，避免客户端伪造执行结果或绕过状态机。
   - 受信路径必须同时校验操作、项目、仓库成员关系以及目标标签 / 集合都属于当前用户。

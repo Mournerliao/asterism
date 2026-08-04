@@ -57,6 +57,8 @@ export const organizationTaskKeys = {
   list: (userId: string) => ['organization-tasks', userId, 'list'] as const,
   detail: (userId: string, taskId: string) =>
     ['organization-tasks', userId, 'detail', taskId] as const,
+  review: (userId: string, taskId: string, planRevision: number) =>
+    ['organization-tasks', userId, 'review', taskId, planRevision] as const,
   opportunities: (userId: string) => ['organization-tasks', userId, 'opportunities'] as const,
 };
 

@@ -2,10 +2,13 @@ import { DEFAULT_EMBEDDING_MODEL, toQueryInput } from '@asterism/core';
 import {
   acceptOrganizationOpportunity,
   approveOrganizationTaskGeneration,
+  confirmOrganizationPlan,
   createOrganizationTask,
   discoverOrganizationTaskCandidates,
   endOrganizationTask,
+  excludeOrganizationPlanAction,
   excludeOrganizationTaskCandidate,
+  getOrganizationPlanReview,
   getOrganizationTask,
   ignoreOrganizationOpportunity,
   listOrganizationOpportunities,
@@ -13,6 +16,7 @@ import {
   pauseOrganizationGeneration,
   resumeOrganizationGeneration,
   retryOrganizationGeneration,
+  reviewOrganizationPlanGroup,
   runOrganizationGenerationPage,
   startOrganizationGeneration,
   updateOrganizationTaskGoal,
@@ -21,7 +25,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSession } from '../auth/use-session';
 import { readEmbeddingConsent } from '../lib/embedding-consent';
 import { supabase } from '../lib/supabase';
-import { organizationTaskKeys } from './keys';
+import { bulkOperationKeys, organizationTaskKeys } from './keys';
 
 export function useOrganizationTasks() {
   const { session } = useSession();
@@ -41,6 +45,32 @@ export function useOrganizationTask(taskId: string | undefined) {
       userId && taskId ? organizationTaskKeys.detail(userId, taskId) : organizationTaskKeys.all,
     enabled: Boolean(userId && taskId),
     queryFn: () => getOrganizationTask(supabase, taskId as string),
+    refetchInterval: (query) => {
+      const execution = query.state.data?.execution;
+      return execution && ['pending', 'running'].includes(execution.operationStatus)
+        ? 2_000
+        : false;
+    },
+  });
+}
+
+export function useOrganizationPlanReview(
+  taskId: string | undefined,
+  planRevision: number | undefined,
+) {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  return useQuery({
+    queryKey:
+      userId && taskId && planRevision
+        ? organizationTaskKeys.review(userId, taskId, planRevision)
+        : organizationTaskKeys.all,
+    enabled: Boolean(userId && taskId && planRevision),
+    queryFn: () =>
+      getOrganizationPlanReview(supabase, {
+        taskId: taskId as string,
+        planRevision: planRevision as number,
+      }),
   });
 }
 
@@ -178,6 +208,96 @@ export function useRunOrganizationGenerationPage() {
       if (!userId) return;
       void queryClient.invalidateQueries({
         queryKey: organizationTaskKeys.detail(userId, input.taskId),
+      });
+    },
+  });
+}
+
+function usePlanReviewMutation<TInput extends { taskId: string; planRevision: number }>(
+  mutationFn: (input: TInput) => Promise<Awaited<ReturnType<typeof getOrganizationPlanReview>>>,
+) {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: (review, input) => {
+      if (!userId) return;
+      queryClient.setQueryData(
+        organizationTaskKeys.review(userId, input.taskId, input.planRevision),
+        review,
+      );
+      void queryClient.invalidateQueries({
+        queryKey: organizationTaskKeys.detail(userId, input.taskId),
+      });
+      void queryClient.invalidateQueries({ queryKey: organizationTaskKeys.list(userId) });
+    },
+    onError: (_error, input) => {
+      if (!userId) return;
+      void queryClient.invalidateQueries({
+        queryKey: organizationTaskKeys.review(userId, input.taskId, input.planRevision),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: organizationTaskKeys.detail(userId, input.taskId),
+      });
+    },
+  });
+}
+
+export const useExcludeOrganizationPlanAction = () =>
+  usePlanReviewMutation(
+    (input: {
+      taskId: string;
+      expectedRevision: number;
+      planRevision: number;
+      actionId: string;
+      excluded: boolean;
+    }) => excludeOrganizationPlanAction(supabase, input),
+  );
+
+export const useReviewOrganizationPlanGroup = () =>
+  usePlanReviewMutation(
+    (input: {
+      taskId: string;
+      expectedRevision: number;
+      planRevision: number;
+      groupKey: string;
+      groupFingerprint: string;
+      approved: boolean;
+    }) => reviewOrganizationPlanGroup(supabase, input),
+  );
+
+export function useConfirmOrganizationPlan() {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (input: {
+      taskId: string;
+      expectedRevision: number;
+      planRevision: number;
+      planFingerprint: string;
+      groupFingerprints: string[];
+      counts: Awaited<ReturnType<typeof getOrganizationPlanReview>>['counts'];
+    }) => confirmOrganizationPlan(supabase, input),
+    onSuccess: (result, input) => {
+      if (!userId) return;
+      queryClient.setQueryData(organizationTaskKeys.detail(userId, result.task.id), result.task);
+      void Promise.all([
+        queryClient.invalidateQueries({ queryKey: organizationTaskKeys.list(userId) }),
+        queryClient.invalidateQueries({ queryKey: bulkOperationKeys.list(userId) }),
+        queryClient.invalidateQueries({
+          queryKey: organizationTaskKeys.review(userId, input.taskId, input.planRevision),
+        }),
+      ]);
+    },
+    onError: (_error, input) => {
+      if (!userId) return;
+      void queryClient.invalidateQueries({
+        queryKey: organizationTaskKeys.detail(userId, input.taskId),
+      });
+      void queryClient.invalidateQueries({
+        queryKey: organizationTaskKeys.review(userId, input.taskId, input.planRevision),
       });
     },
   });

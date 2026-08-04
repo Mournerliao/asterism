@@ -7,6 +7,7 @@
 ## 待确认 / 开放问题
 
 - [x] **#25 真实 Generation smoke 阻断已解除（2026-08-01）**：页面容量收敛为 5，Provider 输出改用稀疏紧凑 tuple schema v3，并为会把 reasoning 计入 completion budget 的模型将 output tokens 提升至 8,192；跨 Provider 截断信号、稳定错误码、attempt / max、显式 retry 与 retry exhausted UI 均已落地。真实任务 `29b4c964-6aba-429c-aa4b-27707b499a37` 完成 27 / 27 pages 并到达 `plan_ready`（242 actions / 1 conflict / 0 uncertainties），canonical 未变化。见 `logs/2026-08-01-issue-25-real-environment-smoke.md`。
+- [x] **Organization Plan 风险审阅与可靠执行（2026-08-04，GitHub #26）**：三档 risk review、semantic fingerprint 授权、逐仓库排除、准确 exact confirmation、幂等 execution operation link、权威 ledger 恢复与双语稳定 Task UI 已实现；远端部署 / smoke 未在本会话执行。下一实现 ticket 为 #27 安全 Task Undo，不得把 undo 提前混入 #26 operation link。见 `logs/2026-08-04-issue-26-organization-plan-review-execution.md`。
 
 - [x] **AI 整理从 selection-first 转向 intent-first（2026-07-28，ADR 0029）**：用户已确认目标优先的持久整理任务、同步后可忽略的无成本整理机会、首次 / 后续同步差异、用途导向 canonical、风险分层审批与任务级撤销。`50` 退为内部调用边界，选择退为可选精确上下文；产品、UI/UX 与架构契约已同步。见 `decisions/0029-intent-first-ai-organization.md`。
 - [x] **自然 AI 整理对话形态规格与 tickets（Phase 2.1，2026-07-28，GitHub #23–#28）**：以 B「规划对话」为主骨架的 buildable spec 已发布为 #23；实现压缩为 5 张 tracer-bullet tickets，原生依赖链为 #24 → #25 → #26 → #27 → #28。#24 已实现并部署，当前可领取 frontier 为 #25；Task Undo 的有效关系变更身份见 ADR 0030。见 `logs/2026-07-28-natural-ai-organization-spec.md` 与 `logs/2026-07-28-natural-ai-organization-tickets.md`。

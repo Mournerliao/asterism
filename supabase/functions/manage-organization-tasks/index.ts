@@ -5,6 +5,10 @@ import type {
   OrganizationPlanDocument,
 } from '../../../packages/core/src/ai/organization-plan.ts';
 import type {
+  OrganizationPlanReviewDecision,
+  OrganizationPlanReviewRepository,
+} from '../../../packages/core/src/ai/organization-plan-review.ts';
+import type {
   OrganizationCandidateReason,
   OrganizationCandidateSnapshot,
   OrganizationGenerationManifest,
@@ -12,6 +16,7 @@ import type {
   OrganizationGenerationRunView,
   OrganizationOpportunityView,
   OrganizationPlanSummary,
+  OrganizationTaskExecutionView,
   OrganizationTaskMessage,
   OrganizationTaskStatus,
   OrganizationTaskView,
@@ -95,6 +100,27 @@ function embeddingContentHash(input: {
     hash = (hash * 0x100000001b3n) & 0xffffffffffffffffn;
   }
   return hash.toString(16).padStart(16, '0');
+}
+
+function trustedDatabaseError(error: unknown, fallback: string): Error {
+  const message =
+    error && typeof error === 'object' && 'message' in error
+      ? String((error as { message: unknown }).message)
+      : '';
+  const codes = [
+    'organization_task_not_found',
+    'organization_task_conflict',
+    'organization_review_changed',
+    'organization_plan_action_not_found',
+    'organization_plan_review_invalid',
+    'organization_target_changed',
+    'organization_classification_name_invalid',
+    'organization_classification_near_match',
+    'organization_repository_unauthorized',
+    'organization_precondition_changed',
+    'organization_review_items_required',
+  ];
+  return new Error(codes.find((code) => message.includes(code)) ?? fallback);
 }
 
 async function loadTask(
@@ -324,10 +350,69 @@ async function loadTask(
     createdAt: String(planRow.created_at),
   }));
 
+  let execution: OrganizationTaskExecutionView | null = null;
+  const linkResult = await admin
+    .from('organization_task_operation_links')
+    .select('operation_id')
+    .eq('task_id', taskId)
+    .eq('user_id', userId)
+    .eq('kind', 'execution')
+    .maybeSingle();
+  if (linkResult.error) throw new Error('organization_task_read_failed');
+  if (linkResult.data) {
+    const operationId = String((linkResult.data as Record<string, unknown>).operation_id);
+    const [operationResult, itemRows] = await Promise.all([
+      admin
+        .from('bulk_operations')
+        .select('status')
+        .eq('id', operationId)
+        .eq('user_id', userId)
+        .maybeSingle(),
+      loadAllPages<{ status: string }>(async (from, to) => {
+        const result = await admin
+          .from('bulk_operation_items')
+          .select('status')
+          .eq('operation_id', operationId)
+          .eq('user_id', userId)
+          .order('id')
+          .range(from, to);
+        return result as unknown as {
+          data: Array<{ status: string }> | null;
+          error: unknown;
+        };
+      }, 'organization_task_read_failed'),
+    ]);
+    if (operationResult.error || !operationResult.data) {
+      throw new Error('organization_task_read_failed');
+    }
+    const count = (status: string) => itemRows.filter((item) => item.status === status).length;
+    execution = {
+      operationId,
+      operationStatus: (
+        operationResult.data as { status: OrganizationTaskExecutionView['operationStatus'] }
+      ).status,
+      succeeded: count('succeeded'),
+      retryableFailed: count('retryable_failed'),
+      terminalFailed: count('terminal_failed'),
+      dismissed: count('dismissed'),
+      pending: count('pending'),
+      running: count('running'),
+      total: itemRows.length,
+    };
+  }
+
+  const persistedStatus = row.status as OrganizationTaskStatus;
+  const projectedStatus: OrganizationTaskStatus =
+    execution?.operationStatus === 'completed'
+      ? 'completed'
+      : execution?.operationStatus === 'needs_attention'
+        ? 'needs_attention'
+        : persistedStatus;
+
   return {
     id: String(row.id),
     origin: row.origin as OrganizationTaskView['origin'],
-    status: row.status as OrganizationTaskStatus,
+    status: projectedStatus,
     goal: String(row.goal),
     suggestedGoal: typeof row.suggested_goal === 'string' ? row.suggested_goal : null,
     contextRepositoryIds: (row.context_repo_ids as string[]) ?? [],
@@ -344,6 +429,7 @@ async function loadTask(
     generationRun,
     attentionCode: typeof row.attention_code === 'string' ? row.attention_code : null,
     plans,
+    execution,
     messages,
     endedAt: typeof row.ended_at === 'string' ? row.ended_at : null,
     createdAt: String(row.created_at),
@@ -1014,6 +1100,117 @@ function createDataDependencies(
       if (error) throw new Error('organization_task_read_failed');
       if (!data) return null;
       return (data as Record<string, unknown>).plan as unknown as OrganizationPlanDocument;
+    },
+
+    async loadReviewContext(userId, input) {
+      const [plan, library, catalog, exclusions, reviews] = await Promise.all([
+        deps.readPlan(userId, { taskId: input.taskId, revision: input.planRevision }),
+        deps.loadAuthorizedLibrary(userId),
+        loadTagCollectionCatalog(admin, userId),
+        loadAllPages<{ action_id: string }>(async (from, to) => {
+          const result = await admin
+            .from('organization_plan_action_exclusions')
+            .select('action_id')
+            .eq('task_id', input.taskId)
+            .eq('user_id', userId)
+            .eq('plan_revision', input.planRevision)
+            .order('action_id')
+            .range(from, to);
+          return result as unknown as {
+            data: Array<{ action_id: string }> | null;
+            error: unknown;
+          };
+        }, 'organization_task_read_failed'),
+        loadAllPages<Record<string, unknown>>(async (from, to) => {
+          const result = await admin
+            .from('organization_plan_group_reviews')
+            .select('plan_revision, group_key, risk_type, group_fingerprint, approved')
+            .eq('task_id', input.taskId)
+            .eq('user_id', userId)
+            .lte('plan_revision', input.planRevision)
+            .order('plan_revision', { ascending: false })
+            .order('group_key')
+            .range(from, to);
+          return result as unknown as {
+            data: Record<string, unknown>[] | null;
+            error: unknown;
+          };
+        }, 'organization_task_read_failed'),
+      ]);
+      if (!plan) return null;
+      const repositories: OrganizationPlanReviewRepository[] = library.map((repository) => ({
+        id: repository.id,
+        fullName: repository.fullName,
+        authorized: true,
+        tagIds: repository.tags.map((tag) => tag.id),
+        collectionIds: repository.collections.map((collection) => collection.id),
+      }));
+      const decisions: OrganizationPlanReviewDecision[] = reviews.map((review) => ({
+        planRevision: Number(review.plan_revision),
+        groupKey: String(review.group_key),
+        risk: review.risk_type as OrganizationPlanReviewDecision['risk'],
+        groupFingerprint: String(review.group_fingerprint),
+        approved: Boolean(review.approved),
+      }));
+      return {
+        plan,
+        repositories,
+        tags: catalog.tags,
+        collections: catalog.collections,
+        exclusions: exclusions.map((exclusion) => exclusion.action_id),
+        decisions,
+      };
+    },
+
+    async persistPlanReviewCas(userId, input) {
+      const change =
+        'decision' in input
+          ? {
+              kind: 'group_review',
+              groupKey: input.decision.groupKey,
+              risk: input.decision.risk,
+              groupFingerprint: input.decision.groupFingerprint,
+              approved: input.decision.approved,
+            }
+          : {
+              kind: 'exclusion',
+              actionId: input.actionId,
+              excluded: input.excluded,
+            };
+      const { data, error } = await admin.rpc('save_organization_plan_review', {
+        p_user_id: userId,
+        p_task_id: input.taskId,
+        p_expected_revision: input.expectedRevision,
+        p_plan_revision: input.planRevision,
+        p_change: change as unknown as Json,
+      });
+      if (error) throw trustedDatabaseError(error, 'organization_plan_review_write_failed');
+      return Boolean(data);
+    },
+
+    async confirmPlanTransaction(userId, input) {
+      const { data, error } = await admin.rpc('confirm_organization_plan', {
+        p_user_id: userId,
+        p_task_id: input.taskId,
+        p_expected_revision: input.expectedRevision,
+        p_plan_revision: input.planRevision,
+        p_review: input.review as unknown as Json,
+      });
+      if (error) throw trustedDatabaseError(error, 'organization_confirmation_failed');
+      const result = data as unknown as {
+        outcome?: unknown;
+        operationId?: unknown;
+      } | null;
+      if (
+        (result?.outcome !== 'created' && result?.outcome !== 'replayed') ||
+        typeof result.operationId !== 'string'
+      ) {
+        throw new Error('organization_confirmation_failed');
+      }
+      return {
+        outcome: result.outcome,
+        operationId: result.operationId,
+      };
     },
   };
 

@@ -540,6 +540,8 @@
       "generation_paused": "Generation paused",
       "needs_attention": "Needs attention",
       "plan_ready": "Plan ready",
+      "executing": "Executing",
+      "completed": "Completed",
       "ended": "Ended"
     },
     "adapters": {
@@ -687,6 +689,82 @@
       "conflicts": "Conflicts",
       "uncertainties": "Uncertainties"
     },
+    "review": {
+      "title": "Review Organization Plan",
+      "description": "Review the exact repository evidence and risk class. Existing additions are included by default; new classifications and removals require explicit approval.",
+      "loading": "Loading Organization Plan review",
+      "risk": {
+        "existing_addition": "Add to existing classifications",
+        "new_classification": "Proposed new classifications",
+        "removal": "Remove existing relationships"
+      },
+      "kind": {
+        "tag": "Tag",
+        "collection": "Collection"
+      },
+      "approved": "Approved",
+      "explicitApproval": "Explicit approval required",
+      "cancelGroup": "Cancel group",
+      "includeGroup": "Include group",
+      "approveNew": "Approve new classification",
+      "approveRemoval": "Approve removals",
+      "groupAction": "{{action}}: {{target}}",
+      "normalized": "Normalized name: {{name}}",
+      "equivalent": "Will reuse the exact existing equivalent: {{name}}",
+      "dependencies_one": "Representative: {{repositories}} · {{count}} dependent relationship",
+      "dependencies_other": "Representative: {{repositories}} · {{count}} dependent relationships",
+      "nearMatches": "Conservative stop: near existing match {{names}} is not equivalent.",
+      "repositories_one": "Review {{count}} repository",
+      "repositories_other": "Review {{count}} repositories",
+      "evidence": "Evidence pages: {{pages}}",
+      "excludeRepository": "Exclude repository",
+      "includeRepository": "Include repository",
+      "repositoryAction": "{{action}}: {{repository}}",
+      "validity": {
+        "repository_unauthorized": "This repository is no longer authorized. The action is now a no-op.",
+        "target_changed": "The target changed or was removed. This action is now a no-op.",
+        "precondition_changed": "The current relationship no longer matches the Plan precondition. This action is now a no-op."
+      },
+      "noOp": "No operation",
+      "noOpDescription": "{{conflicts}} conflicts and {{uncertainties}} uncertain items remain visible but cannot change organization data.",
+      "noOpItems_one": "Review {{count}} no-op item",
+      "noOpItems_other": "Review {{count}} no-op items",
+      "noOpDetail": {
+        "near_duplicate_names": "Near-duplicate names {{names}} affect repositories {{repositories}}.",
+        "unknown_repository": "Repository {{repoId}} is outside the fixed authorized scope. Evidence pages: {{pages}}.",
+        "invalid_classification_name": "Classification name ‘{{name}}’ is invalid after normalization. Evidence pages: {{pages}}.",
+        "unknown_target": "Unknown {{relationType}} target {{targetId}}. Evidence pages: {{pages}}.",
+        "conflicting_actions": "Repository {{repoId}} has conflicting actions for {{relationType}} target {{targetId}}. Evidence pages: {{pages}}."
+      },
+      "exactEffects": "Exact effects to execute",
+      "counts": {
+        "newClassifications": "New classifications",
+        "additions": "Additions",
+        "removals": "Removals",
+        "noOps": "No operation"
+      },
+      "confirm": "Confirm exact plan",
+      "confirming": "Confirming exact plan…",
+      "notConfirmable": "Resolve near-existing classification matches before confirmation. Nothing will execute while the match is ambiguous."
+    },
+    "execution": {
+      "title": "Organization execution",
+      "status": {
+        "pending": "The trusted operation is queued. This page can be safely reopened.",
+        "running": "The trusted bounded executor is applying the approved relationships.",
+        "needs_attention": "Some items need attention. Only retryable failures can be retried.",
+        "completed": "Every operation item reached a terminal result."
+      },
+      "counts": {
+        "succeeded": "Succeeded",
+        "retryableFailed": "Retryable",
+        "terminalFailed": "Terminal failed",
+        "dismissed": "Dismissed",
+        "pending": "Pending",
+        "running": "Running"
+      },
+      "operation": "Authoritative operation {{id}}"
+    },
     "ended": {
       "title": "This task is read-only",
       "description": "Ended tasks stay in history and cannot be resumed accidentally."
@@ -701,6 +779,17 @@
       "opportunities_load_failed": "Organization opportunities could not be loaded. Browse remains available; retry this section.",
       "tasks_load_failed": "Task history could not be loaded. Retry to recover it from Postgres.",
       "task_load_failed": "This task could not be loaded from Postgres. Retry without losing its durable state.",
+      "review_load_failed": "The authoritative Plan review could not be loaded. Retry before making a decision.",
+      "organization_review_changed": "The Plan review changed in another tab or its preconditions changed. The stale decision was not saved; review the latest exact effects.",
+      "organization_group_fingerprint_changed": "This group changed after it was displayed. The stale decision was not saved; review its latest repository evidence.",
+      "organization_plan_group_not_found": "This review group no longer exists. Reload the latest Plan review.",
+      "organization_plan_action_not_found": "This Plan action no longer exists. Reload the latest Plan review.",
+      "organization_classification_near_match": "A proposed classification is near an existing name but is not equivalent. Resolve it conservatively before confirmation.",
+      "organization_target_changed": "A classification target changed or was removed. Review the latest no-op and exact effects.",
+      "organization_classification_name_invalid": "A proposed classification name is invalid after normalization and cannot execute.",
+      "organization_repository_unauthorized": "A repository is no longer in your authorized Stars. Its stale action did not execute.",
+      "organization_precondition_changed": "A repository relationship changed after review. The stale action did not execute.",
+      "organization_review_items_required": "The current approvals contain no executable relationship changes.",
       "organization_task_failed": "The task change could not be saved. Its durable state is unchanged; retry.",
       "organization_retry_exhausted": "No approved retries remain for this page. Review the Provider or workload, then retry or end the task."
     }

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   isOrganizationOpportunity,
   isOrganizationTask,
+  readOrganizationReviewResponse,
   readOrganizationRunResponse,
   readOrganizationTaskResponse,
 } from './organization-tasks';
@@ -94,6 +95,73 @@ describe('Organization Task data-access trust boundary', () => {
         createdAt: '2026-07-28T00:00:00.000Z',
       }),
     ).toBe(false);
+  });
+});
+
+describe('Organization Plan review trust boundary', () => {
+  const review = {
+    version: 1,
+    taskId: 'task-1',
+    planRevision: 1,
+    planFingerprint: 'plan-1',
+    groups: [
+      {
+        key: 'group-1',
+        sourceGroupKey: 'source-1',
+        risk: 'existing_addition',
+        relationType: 'tag',
+        target: { kind: 'existing', id: 'tag-1', name: 'Agent tools' },
+        normalizedName: 'Agent tools',
+        representativeRepositoryIds: ['repo-1'],
+        equivalentTarget: null,
+        nearMatches: [],
+        fingerprint: 'group-fingerprint-1',
+        approved: true,
+        validity: 'valid',
+        actions: [
+          {
+            id: 'action-1',
+            repoId: 'repo-1',
+            relationType: 'tag',
+            action: 'add',
+            target: { kind: 'existing', id: 'tag-1', name: 'Agent tools' },
+            risk: 'low',
+            evidencePages: [1],
+            repositoryName: 'acme/agent-kit',
+            excluded: false,
+            eligible: true,
+          },
+        ],
+      },
+    ],
+    conflicts: [],
+    uncertainties: [],
+    counts: { newClassifications: 0, additions: 1, removals: 0, noOps: 0 },
+    confirmable: true,
+    approvedGroupFingerprints: ['group-fingerprint-1'],
+  } as const;
+
+  it('accepts only the documented safe review projection', () => {
+    expect(readOrganizationReviewResponse({ review })).toEqual(review);
+    expect(() =>
+      readOrganizationReviewResponse({ review: { ...review, credential: 'secret' } }),
+    ).toThrow();
+    expect(() =>
+      readOrganizationReviewResponse({
+        review: {
+          ...review,
+          groups: [{ ...review.groups[0], rawProviderEvidence: 'private' }],
+        },
+      }),
+    ).toThrow();
+    expect(() =>
+      readOrganizationReviewResponse({
+        review: {
+          ...review,
+          groups: [{ ...review.groups[0], validity: 'maybe' }],
+        },
+      }),
+    ).toThrow();
   });
 });
 

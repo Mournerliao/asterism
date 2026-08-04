@@ -7,6 +7,8 @@ export type OrganizationTaskStatus =
   | 'generation_paused'
   | 'needs_attention'
   | 'plan_ready'
+  | 'executing'
+  | 'completed'
   | 'ended';
 
 export const ORGANIZATION_GENERATION_PAGE_CAPACITY = 5;
@@ -92,6 +94,7 @@ export interface OrganizationTaskMessage {
     | 'generation_approval'
     | 'generation'
     | 'plan'
+    | 'execution'
     | 'ended'
     | null;
   checkpointRevision: number | null;
@@ -161,6 +164,18 @@ export interface OrganizationPlanSummary {
   createdAt: string;
 }
 
+export interface OrganizationTaskExecutionView {
+  operationId: string;
+  operationStatus: 'pending' | 'running' | 'needs_attention' | 'completed';
+  succeeded: number;
+  retryableFailed: number;
+  terminalFailed: number;
+  dismissed: number;
+  pending: number;
+  running: number;
+  total: number;
+}
+
 export interface OrganizationTaskView {
   id: string;
   origin: 'direct_goal' | 'opportunity';
@@ -175,6 +190,7 @@ export interface OrganizationTaskView {
   generationRun: OrganizationGenerationRunView | null;
   attentionCode: string | null;
   plans: OrganizationPlanSummary[];
+  execution?: OrganizationTaskExecutionView | null;
   messages: OrganizationTaskMessage[];
   endedAt: string | null;
   createdAt: string;
@@ -258,7 +274,9 @@ const LEGAL_TRANSITIONS: Record<OrganizationTaskStatus, ReadonlySet<Organization
   generating: new Set(['generation_paused', 'needs_attention', 'plan_ready', 'ended']),
   generation_paused: new Set(['generating', 'ended']),
   needs_attention: new Set(['generating', 'clarifying', 'ended']),
-  plan_ready: new Set(['clarifying', 'ended']),
+  plan_ready: new Set(['clarifying', 'executing', 'ended']),
+  executing: new Set(['needs_attention', 'completed']),
+  completed: new Set(),
   ended: new Set(),
 };
 

@@ -540,6 +540,8 @@
       "generation_paused": "已暂停生成",
       "needs_attention": "需要处理",
       "plan_ready": "Plan 就绪",
+      "executing": "正在执行",
+      "completed": "已完成",
       "ended": "已结束"
     },
     "adapters": {
@@ -687,6 +689,82 @@
       "conflicts": "冲突",
       "uncertainties": "不确定项"
     },
+    "review": {
+      "title": "审阅 Organization Plan",
+      "description": "检查准确的仓库证据和风险分类。已有分类的新增关系默认纳入；新建分类与移除关系必须显式批准。",
+      "loading": "正在加载 Organization Plan 审阅",
+      "risk": {
+        "existing_addition": "添加到已有分类",
+        "new_classification": "建议新建分类",
+        "removal": "移除已有关系"
+      },
+      "kind": {
+        "tag": "标签",
+        "collection": "集合"
+      },
+      "approved": "已批准",
+      "explicitApproval": "需要显式批准",
+      "cancelGroup": "取消此组",
+      "includeGroup": "纳入此组",
+      "approveNew": "批准新建分类",
+      "approveRemoval": "批准移除关系",
+      "groupAction": "{{action}}：{{target}}",
+      "normalized": "规范化名称：{{name}}",
+      "equivalent": "将复用完全等价的已有分类：{{name}}",
+      "dependencies_one": "代表仓库：{{repositories}} · {{count}} 个依赖关系",
+      "dependencies_other": "代表仓库：{{repositories}} · {{count}} 个依赖关系",
+      "nearMatches": "保守停止：与已有分类 {{names}} 名称相近，但并不等价。",
+      "repositories_one": "审阅 {{count}} 个仓库",
+      "repositories_other": "审阅 {{count}} 个仓库",
+      "evidence": "证据页面：{{pages}}",
+      "excludeRepository": "排除此仓库",
+      "includeRepository": "纳入此仓库",
+      "repositoryAction": "{{action}}：{{repository}}",
+      "validity": {
+        "repository_unauthorized": "此仓库已失去授权；该动作现为 no-op。",
+        "target_changed": "目标已变化或被删除；该动作现为 no-op。",
+        "precondition_changed": "当前关系不再符合 Plan 前置条件；该动作现为 no-op。"
+      },
+      "noOp": "不执行操作",
+      "noOpDescription": "{{conflicts}} 个冲突和 {{uncertainties}} 个不确定项会保持可见，但不能修改整理数据。",
+      "noOpItems_one": "查看 {{count}} 个 no-op 条目",
+      "noOpItems_other": "查看 {{count}} 个 no-op 条目",
+      "noOpDetail": {
+        "near_duplicate_names": "近似重复名称 {{names}} 影响仓库 {{repositories}}。",
+        "unknown_repository": "仓库 {{repoId}} 不在固定授权范围内。证据页面：{{pages}}。",
+        "invalid_classification_name": "分类名称“{{name}}”在规范化后无效。证据页面：{{pages}}。",
+        "unknown_target": "未知的 {{relationType}} 目标 {{targetId}}。证据页面：{{pages}}。",
+        "conflicting_actions": "仓库 {{repoId}} 对 {{relationType}} 目标 {{targetId}} 提出了冲突动作。证据页面：{{pages}}。"
+      },
+      "exactEffects": "将执行的准确效果",
+      "counts": {
+        "newClassifications": "新建分类",
+        "additions": "新增关系",
+        "removals": "移除关系",
+        "noOps": "不执行操作"
+      },
+      "confirm": "确认准确 Plan",
+      "confirming": "正在确认准确 Plan…",
+      "notConfirmable": "确认前需处理与已有分类名称相近的建议。匹配仍有歧义时不会执行任何操作。"
+    },
+    "execution": {
+      "title": "整理执行",
+      "status": {
+        "pending": "可信操作正在排队；可安全关闭并重新打开此页面。",
+        "running": "可信有界执行器正在应用已批准的关系。",
+        "needs_attention": "部分项目需要处理；只有可重试失败能够再次重试。",
+        "completed": "所有操作项目都已到达终态。"
+      },
+      "counts": {
+        "succeeded": "成功",
+        "retryableFailed": "可重试",
+        "terminalFailed": "终态失败",
+        "dismissed": "已忽略",
+        "pending": "待处理",
+        "running": "执行中"
+      },
+      "operation": "权威操作 {{id}}"
+    },
     "ended": {
       "title": "此任务已只读",
       "description": "已结束任务会保留在历史中，不能意外恢复。"
@@ -701,6 +779,17 @@
       "opportunities_load_failed": "无法加载整理机会。Browse 仍可使用；请重试此区域。",
       "tasks_load_failed": "无法加载任务历史。请重试并从 Postgres 恢复。",
       "task_load_failed": "无法从 Postgres 加载此任务。持久状态不会丢失；请重试。",
+      "review_load_failed": "无法加载权威 Plan 审阅。做决定前请重试。",
+      "organization_review_changed": "Plan 审阅已在其他标签页改变，或其前置条件发生变化。过期决定没有保存；请检查最新准确效果。",
+      "organization_group_fingerprint_changed": "此组在展示后已发生变化。过期决定没有保存；请检查最新仓库证据。",
+      "organization_plan_group_not_found": "此审阅组已不存在。请重新加载最新 Plan 审阅。",
+      "organization_plan_action_not_found": "此 Plan 动作已不存在。请重新加载最新 Plan 审阅。",
+      "organization_classification_near_match": "建议分类与已有名称相近但并不等价。确认前请保守处理。",
+      "organization_target_changed": "分类目标已变化或被删除。请检查最新 no-op 与准确效果。",
+      "organization_classification_name_invalid": "建议分类名称在规范化后无效，不能执行。",
+      "organization_repository_unauthorized": "某个仓库已不在你的授权 Star 中；其过期动作没有执行。",
+      "organization_precondition_changed": "某个仓库关系在审阅后发生变化；其过期动作没有执行。",
+      "organization_review_items_required": "当前批准中没有可执行的关系变化。",
       "organization_task_failed": "无法保存任务改动。持久状态未改变；请重试。",
       "organization_retry_exhausted": "此页面没有剩余的批准重试次数。请检查 Provider 或工作量，然后重试或结束任务。"
     }

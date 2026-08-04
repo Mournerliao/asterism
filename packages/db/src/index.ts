@@ -1,6 +1,7 @@
 export type {
   OrganizationGenerationRunResult,
   OrganizationOpportunityView,
+  OrganizationPlanReview,
   OrganizationTaskView,
 } from '@asterism/core';
 export type {
@@ -51,6 +52,7 @@ export type {
   BulkChange,
   BulkItemStatus,
   BulkOperation,
+  BulkOperationCreateSource,
   BulkOperationItem,
   BulkOperationRequest,
   BulkOperationSource,
@@ -67,10 +69,13 @@ export { importUserData } from './import-user-data';
 export {
   acceptOrganizationOpportunity,
   approveOrganizationTaskGeneration,
+  confirmOrganizationPlan,
   createOrganizationTask,
   discoverOrganizationTaskCandidates,
   endOrganizationTask,
+  excludeOrganizationPlanAction,
   excludeOrganizationTaskCandidate,
+  getOrganizationPlanReview,
   getOrganizationTask,
   ignoreOrganizationOpportunity,
   isOrganizationOpportunity,
@@ -78,9 +83,11 @@ export {
   listOrganizationOpportunities,
   listOrganizationTasks,
   pauseOrganizationGeneration,
+  readOrganizationReviewResponse,
   readOrganizationRunResponse,
   resumeOrganizationGeneration,
   retryOrganizationGeneration,
+  reviewOrganizationPlanGroup,
   runOrganizationGenerationPage,
   startOrganizationGeneration,
   updateOrganizationTaskGoal,

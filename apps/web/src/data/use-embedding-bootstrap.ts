@@ -1,11 +1,17 @@
 import { DEFAULT_EMBEDDING_MODEL, repoContentHash } from '@asterism/core';
-import { listReposToEmbed, type StarredRepoRecord, upsertRepoEmbedding } from '@asterism/db';
+import {
+  deleteAllRepoEmbeddings,
+  listReposToEmbed,
+  type StarredRepoRecord,
+  upsertRepoEmbedding,
+} from '@asterism/db';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from '../auth/use-session';
 import { runRepositoryEmbeddingBootstrap } from '../lib/embedding-bootstrap';
 import {
   beginEmbeddingPreparation,
+  clearEmbeddingConsent,
   finishEmbeddingPreparation,
   readEmbeddingConsent,
   useEmbeddingConsent,
@@ -186,6 +192,32 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
     [queryClient, records, signature, userId],
   );
 
+  const rebuild = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+    await deleteAllRepoEmbeddings(supabase, userId);
+    completedSignatureRef.current = null;
+    await queryClient.invalidateQueries({ queryKey: embeddingKeys.list(userId) });
+    await run(false);
+  }, [queryClient, run, userId]);
+
+  const clear = useCallback(async () => {
+    if (!userId) {
+      return;
+    }
+    generationRef.current += 1;
+    runningRef.current = null;
+    completedSignatureRef.current = null;
+    consentedUserRef.current = null;
+    await deleteAllRepoEmbeddings(supabase, userId);
+    const { clearEmbeddingRuntimeCache } = await import('../lib/embedding-runtime');
+    await clearEmbeddingRuntimeCache();
+    clearEmbeddingConsent(userId);
+    await queryClient.invalidateQueries({ queryKey: embeddingKeys.list(userId) });
+    setState(INITIAL_STATE);
+  }, [queryClient, userId]);
+
   useEffect(() => {
     if (
       optedIn &&
@@ -208,5 +240,7 @@ export function useEmbeddingBootstrap(records: readonly StarredRepoRecord[]) {
     optedIn,
     start: () => run(true),
     retry: () => run(false),
+    rebuild,
+    clear,
   };
 }

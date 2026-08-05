@@ -16,12 +16,11 @@ import {
   SearchXIcon,
   StarIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
-import { EmbeddingPreparationBanner } from '../components/embedding-preparation-banner';
 import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
@@ -30,11 +29,11 @@ import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
+import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
-import { useEmbeddingBootstrap } from '../data/use-embedding-bootstrap';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
@@ -64,11 +63,12 @@ export function BrowsePage() {
   const { t, i18n } = useTranslation();
   const { view, transitionTo } = useBrowseView();
   const filters = useBrowseFilters();
+  const deferredQuery = useDeferredValue(filters.query);
   const { requestOpen, requestClose, registerContext } = useRepoInspector();
   const selectedRepoId = useRepoInspectorStore((state) => state.record?.repoId);
   const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
   const records = useMemo(() => data ?? [], [data]);
-  const embeddingBootstrap = useEmbeddingBootstrap(records);
+  const embeddingBootstrap = useEmbeddingBootstrapContext();
   const { data: tags, isLoading: tagsLoading } = useTags();
   const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
@@ -138,20 +138,40 @@ export function BrowsePage() {
   const semanticEnabled =
     embeddingBootstrap.optedIn &&
     (embeddingBootstrap.phase === 'ready' || embeddingBootstrap.backend !== null);
-  const { distanceByRepoId } = useSemanticNeighbors(filters.query, { enabled: semanticEnabled });
+  const { distanceByRepoId } = useSemanticNeighbors(deferredQuery, { enabled: semanticEnabled });
+  const deferredFilter = useMemo(
+    () => ({
+      query: deferredQuery,
+      language: filters.language,
+      topic: filters.topic,
+      minStars: filters.minStars,
+      pushedWithinDays: filters.pushedWithinDays,
+      status: filters.status,
+      tagIds: filters.tagIds,
+    }),
+    [
+      deferredQuery,
+      filters.language,
+      filters.minStars,
+      filters.pushedWithinDays,
+      filters.status,
+      filters.tagIds,
+      filters.topic,
+    ],
+  );
 
   const hybrid = useMemo(
     () =>
       rankHybridRepos({
         items: records,
-        filter: toRepoFilter(filters),
+        filter: deferredFilter,
         sort: filters.sort,
         now: Date.now(),
         tagsByRepoId,
         distanceByRepoId,
         semanticLimit: SEMANTIC_MATCH_COUNT,
       }),
-    [records, filters, tagsByRepoId, distanceByRepoId],
+    [records, deferredFilter, filters.sort, tagsByRepoId, distanceByRepoId],
   );
   const visible = useMemo(() => [...hybrid.primary, ...hybrid.semantic], [hybrid]);
   // 语义近邻起始下标：关键词命中之后的第一条；无近邻时为 null（不渲染分隔线）。
@@ -446,11 +466,6 @@ export function BrowsePage() {
               <RepoFilterBar facets={facets} tags={tags ?? []} />
             </GlassControlRow>
             {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
-            <EmbeddingPreparationBanner
-              {...embeddingBootstrap}
-              onStart={() => void embeddingBootstrap.start()}
-              onRetry={() => void embeddingBootstrap.retry()}
-            />
             {bulkOperationContent}
           </div>
         </div>

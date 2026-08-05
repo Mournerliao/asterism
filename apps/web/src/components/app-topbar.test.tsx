@@ -6,7 +6,29 @@ import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../i18n';
+import { useBrowseFilters } from '../stores/browse-filters';
 import { AppTopbar } from './app-topbar';
+
+vi.mock('../auth/use-session', () => ({
+  useSession: () => ({ session: { user: { id: 'user-1' } } }),
+}));
+
+vi.mock('../contexts/embedding-bootstrap-context', () => ({
+  useEmbeddingBootstrapContext: () => ({
+    phase: 'idle',
+    modelProgress: 0,
+    completed: 0,
+    total: 0,
+    backend: null,
+    error: null,
+    optedIn: false,
+    repositoryCount: 1,
+    start: vi.fn(),
+    retry: vi.fn(),
+    rebuild: vi.fn(),
+    clear: vi.fn(),
+  }),
+}));
 
 vi.mock('../data/use-sync-stars', () => ({
   useSyncStars: () => ({
@@ -52,6 +74,7 @@ async function renderTopbar(pathname: string) {
 afterEach(async () => {
   await act(async () => root.unmount());
   container.remove();
+  useBrowseFilters.getState().setQuery('');
 });
 
 describe('AppTopbar route scope', () => {
@@ -65,5 +88,19 @@ describe('AppTopbar route scope', () => {
     await renderTopbar('/collections');
 
     expect(container.querySelector('input[aria-label]')).toBeNull();
+  });
+
+  it('keeps the search input focused when semantic search discovery opens', async () => {
+    await renderTopbar('/');
+    const input = container.querySelector<HTMLInputElement>('input[aria-label]');
+    expect(input).not.toBeNull();
+
+    await act(async () => {
+      input?.focus();
+      useBrowseFilters.getState().setQuery('s');
+    });
+
+    expect(document.activeElement).toBe(input);
+    expect(document.body.textContent).toContain('Search by meaning');
   });
 });

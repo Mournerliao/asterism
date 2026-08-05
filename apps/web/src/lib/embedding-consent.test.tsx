@@ -5,8 +5,11 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   beginEmbeddingPreparation,
+  dismissEmbeddingPrompt,
   embeddingOptInStorageKey,
+  embeddingPromptDismissalStorageKey,
   finishEmbeddingPreparation,
+  readEmbeddingPromptDismissal,
   resetEmbeddingConsentState,
   useEmbeddingAvailability,
 } from './embedding-consent';
@@ -34,6 +37,14 @@ afterEach(async () => {
 });
 
 describe('embedding consent state', () => {
+  it('stores prompt dismissal separately from feature consent', () => {
+    dismissEmbeddingPrompt('user-a');
+
+    expect(readEmbeddingPromptDismissal('user-a')).toBe(true);
+    expect(localStorage.getItem(embeddingPromptDismissalStorageKey('user-a'))).toBe('dismissed');
+    expect(localStorage.getItem(embeddingOptInStorageKey('user-a'))).toBeNull();
+  });
+
   it('caches the storage lookup across renders', async () => {
     localStorage.setItem(embeddingOptInStorageKey('user-a'), 'enabled');
     const getItem = vi.spyOn(Storage.prototype, 'getItem');

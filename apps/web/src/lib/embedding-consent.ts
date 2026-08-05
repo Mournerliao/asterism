@@ -30,6 +30,26 @@ export function embeddingOptInStorageKey(userId: string) {
   return `asterism:embedding-bootstrap:v1:${userId}:${DEFAULT_EMBEDDING_MODEL}`;
 }
 
+export function embeddingPromptDismissalStorageKey(userId: string) {
+  return `asterism:embedding-prompt-dismissed:v1:${userId}:${DEFAULT_EMBEDDING_MODEL}`;
+}
+
+export function readEmbeddingPromptDismissal(userId: string): boolean {
+  try {
+    return localStorage.getItem(embeddingPromptDismissalStorageKey(userId)) === 'dismissed';
+  } catch {
+    return false;
+  }
+}
+
+export function dismissEmbeddingPrompt(userId: string) {
+  try {
+    localStorage.setItem(embeddingPromptDismissalStorageKey(userId), 'dismissed');
+  } catch {
+    // The prompt remains dismissible for the current mounted search surface.
+  }
+}
+
 export function readEmbeddingConsent(userId: string): boolean {
   const cached = consentCache.get(userId);
   if (cached !== undefined) {
@@ -69,6 +89,17 @@ export function finishEmbeddingPreparation(userId: string, token: symbol, succee
     availability: succeeded ? 'available' : 'degraded',
     token,
   });
+  emitChange();
+}
+
+export function clearEmbeddingConsent(userId: string) {
+  try {
+    localStorage.removeItem(embeddingOptInStorageKey(userId));
+  } catch {
+    // Clearing the in-memory state still disables semantic search for this session.
+  }
+  consentCache.set(userId, false);
+  preparationState.delete(userId);
   emitChange();
 }
 

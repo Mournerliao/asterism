@@ -143,3 +143,19 @@ export function getEmbeddingRuntime() {
   }
   return runtime;
 }
+
+const MODEL_CACHE_PATTERN = /transformers|onnx/i;
+
+export async function clearEmbeddingRuntimeCache() {
+  runtime?.dispose();
+  runtime = undefined;
+
+  if (!('caches' in globalThis)) {
+    return;
+  }
+  for (const name of await caches.keys()) {
+    if (MODEL_CACHE_PATTERN.test(name)) {
+      await caches.delete(name);
+    }
+  }
+}

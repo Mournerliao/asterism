@@ -2,12 +2,15 @@ import { Outlet } from 'react-router-dom';
 import { AppTopbar } from '../components/app-topbar';
 import { RepoInspector } from '../components/repo-inspector';
 import { SidebarNav } from '../components/sidebar-nav';
+import { EmbeddingBootstrapProvider } from '../contexts/embedding-bootstrap-context';
 import { RepoInspectorProvider } from '../contexts/repo-inspector-context';
 
 export function AppLayout() {
   return (
     <RepoInspectorProvider>
-      <AppLayoutContent />
+      <EmbeddingBootstrapProvider>
+        <AppLayoutContent />
+      </EmbeddingBootstrapProvider>
     </RepoInspectorProvider>
   );
 }

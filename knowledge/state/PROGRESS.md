@@ -8,6 +8,7 @@
 
 > **AI 整理已完整退役（2026-08-05，ADR 0032）**：Web 已删除 AI Organization 导航、功能路由、页面、旧草稿与自然任务原型，旧 `/organization/*` 地址仅兼容重定向到 Browse；Settings 删除 BYOK Generation Connection；Core / DB 删除 Provider Registry、AI 草稿及 Organization Task / Plan 领域；Supabase 删除四个 AI Edge Function 源码并新增反向 migration，清理 Provider credential、AI 设置、草稿、Task / Plan / Generation 表、RPC 与 AI 来源执行账本。历史 AI 执行已形成的普通标签、集合和 canonical 关系不回滚。手动批量整理、导入导出、浏览器内 embedding、隐形混合搜索与 Related Stars 保留。Phase 2.1 #27–#28 取消，下一 frontier 回到 Phase 3 浏览器扩展。
 > **维护者远端已完成收尾（2026-08-06）**：项目 `hqtrmulypxwdqvzlkhke` 的 migration 已与本地对齐到 `20260805120000`；四个 AI / Organization Edge Functions 与四项 `AI_*` secrets 已删除；现役 `sync-stars` 与 `bulk-organize` 已部署为无 AI 依赖版本。远端只保留 `sync-stars`、`read-repo-readme`、`bulk-organize` 三个 Functions。
+> **语义搜索准备入口已收敛（2026-08-06）**：Browse 内容流不再插入 embedding banner；未启用用户首次在全局搜索框输入时，才在搜索浮层内看到一次性 opt-in，引导关闭按账号与模型记忆且不反复打扰。准备进度 / 降级重试留在同一搜索上下文；Settings 新增永久「搜索」管理区，可随时启用、查看状态、重建索引或经确认清理本地模型与派生向量。embedding bootstrap 已提升至应用布局共享生命周期，跨 Browse / Settings 保持单一运行状态。见 `logs/2026-08-06-semantic-search-entry-redesign.md`。
 
 > 下方关于 AI 整理实现与 smoke 的记录是历史里程碑，不再代表当前产品能力或待继续路线。
 

@@ -1,5 +1,4 @@
 import { deriveRepoFacets, hasActiveFilter, rankHybridRepos, type Tag } from '@asterism/core';
-import type { ConfirmAiOrganizationDraftInput } from '@asterism/db';
 import {
   Button,
   DropdownMenu,
@@ -8,7 +7,6 @@ import {
   DropdownMenuTrigger,
   GlassControlRow,
 } from '@asterism/ui';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   AlertTriangleIcon,
   LoaderCircleIcon,
@@ -20,9 +18,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
-import { useSession } from '../auth/use-session';
-import { AiOrganizationDraftBanner, AiOrganizationPreflight } from '../components/ai-organization';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
@@ -36,15 +31,6 @@ import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons
 import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
-import { useAiConnections, useAiSettings } from '../data/use-ai-connections';
-import {
-  fetchBulkOperationById,
-  useAiOrganizationDraft,
-  useConfirmAiOrganizationDraft,
-  useDiscardAiOrganizationDraft,
-  useGenerateAiOrganizationDraft,
-  useUpdateAiOrganizationDraftReview,
-} from '../data/use-ai-organization';
 import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
@@ -65,12 +51,10 @@ import {
 } from '../lib/bulk-selection';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
-import { supabase } from '../lib/supabase';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
-import { NaturalAiOrganizationPrototype } from './natural-ai-organization-prototype';
 
 function InitialLoadingState({ view }: { view: RepoViewMode }) {
   return view === 'list' ? <RepoListSkeleton /> : <RepoGridSkeleton />;
@@ -78,10 +62,6 @@ function InitialLoadingState({ view }: { view: RepoViewMode }) {
 
 export function BrowsePage() {
   const { t, i18n } = useTranslation();
-  const [searchParams] = useSearchParams();
-  const queryClient = useQueryClient();
-  const { session } = useSession();
-  const userId = session?.user.id;
   const { view, transitionTo } = useBrowseView();
   const filters = useBrowseFilters();
   const { requestOpen, requestClose, registerContext } = useRepoInspector();
@@ -94,13 +74,6 @@ export function BrowsePage() {
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: bulkOperations } = useBulkOperations();
-  const { data: aiConnections, isLoading: aiConnectionsLoading } = useAiConnections();
-  const { data: aiSettings, isLoading: aiSettingsLoading } = useAiSettings();
-  const { data: aiDraft, isLoading: aiDraftLoading } = useAiOrganizationDraft();
-  const generateAiDraft = useGenerateAiOrganizationDraft();
-  const discardAiDraft = useDiscardAiOrganizationDraft();
-  const updateAiDraftReview = useUpdateAiOrganizationDraftReview();
-  const confirmAiDraft = useConfirmAiOrganizationDraft();
   const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
@@ -109,10 +82,7 @@ export function BrowsePage() {
     repoTagsLoading ||
     collectionReposLoading ||
     collectionsLoading ||
-    notesLoading ||
-    aiConnectionsLoading ||
-    aiSettingsLoading ||
-    aiDraftLoading;
+    notesLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
@@ -230,25 +200,9 @@ export function BrowsePage() {
     [collectionRepos],
   );
   const noteRepoIdSet = useMemo(() => toRepoIdSet(noteRepoIds ?? []), [noteRepoIds]);
-  const repoNames = useMemo(
-    () => new Map(records.map((record) => [record.repoId, record.repo.fullName])),
-    [records],
-  );
-  const targetNames = useMemo(
-    () =>
-      new Map([
-        ...(tags ?? []).map((tag) => [tag.id, tag.name] as const),
-        ...(collections ?? []).map((collection) => [collection.id, collection.name] as const),
-      ]),
-    [tags, collections],
-  );
-
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
   const activeBulkOperation = bulkOperations?.find((operation) => operation.status !== 'completed');
-  const activeAiConnection =
-    aiConnections?.find((connection) => connection.id === aiSettings?.generationConnectionId) ??
-    null;
   const activeFilter = hasActiveFilter(toRepoFilter(filters));
   const selectedVisibleCount = useMemo(() => {
     let count = 0;
@@ -291,43 +245,6 @@ export function BrowsePage() {
       onComplete={() => bulkActions.complete.mutate(activeBulkOperation)}
     />
   ) : null;
-  const confirmAndStartAiExecution = async (input: ConfirmAiOrganizationDraftInput) => {
-    const result = await confirmAiDraft.mutateAsync(input);
-    if (userId) {
-      // 对话框已在确认事务后关闭；执行交给横幅管线，失败时横幅会显示可续跑的操作
-      void fetchBulkOperationById(supabase, queryClient, userId, result.operationId)
-        .then((operation) => {
-          if (operation && operation.status !== 'completed') {
-            bulkActions.resume.mutate(operation);
-          }
-        })
-        .catch(() => {});
-    }
-    return result;
-  };
-
-  const aiDraftContent = aiDraft ? (
-    <AiOrganizationDraftBanner
-      draft={aiDraft}
-      repoNames={repoNames}
-      targetNames={targetNames}
-      discarding={discardAiDraft.isPending}
-      confirming={confirmAiDraft.isPending}
-      updatingReviewId={
-        updateAiDraftReview.isPending ? (updateAiDraftReview.variables?.suggestionId ?? null) : null
-      }
-      onUpdate={(change) => updateAiDraftReview.mutateAsync(change)}
-      onConfirm={confirmAndStartAiExecution}
-      onDiscard={() => discardAiDraft.mutateAsync()}
-    />
-  ) : null;
-  const naturalAiPrototypeActive =
-    import.meta.env.DEV && searchParams.get('prototype') === 'natural-ai';
-
-  if (naturalAiPrototypeActive) {
-    return <NaturalAiOrganizationPrototype repoNames={[...repoNames.values()]} />;
-  }
-
   const repoContent = isError ? (
     <EmptyState
       icon={AlertTriangleIcon}
@@ -466,15 +383,6 @@ export function BrowsePage() {
                         >
                           {t(scopeActionKey, { count: total })}
                         </Button>
-                        <AiOrganizationPreflight
-                          selectedRepoIds={[...selectedRepoIds]}
-                          connection={activeAiConnection}
-                          model={aiSettings?.generationModel ?? null}
-                          includeNotes={aiSettings?.includeNotesInAi ?? false}
-                          existingDraft={aiDraft ?? null}
-                          pending={generateAiDraft.isPending}
-                          onGenerate={(repoIds) => generateAiDraft.mutateAsync(repoIds)}
-                        />
                         {selectedRepoIds.size > 0 ? (
                           <Button
                             size="sm"
@@ -544,7 +452,6 @@ export function BrowsePage() {
               onRetry={() => void embeddingBootstrap.retry()}
             />
             {bulkOperationContent}
-            {aiDraftContent}
           </div>
         </div>
 
@@ -603,7 +510,6 @@ export function BrowsePage() {
         {sync.isPending ? <SyncProgressBanner label={t('sync.progress')} /> : null}
 
         {bulkOperationContent}
-        {aiDraftContent}
 
         {repoContent}
       </div>

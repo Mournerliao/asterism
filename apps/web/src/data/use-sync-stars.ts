@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { useGitHubReconnect } from '../auth/use-github-reconnect';
 import { useSession } from '../auth/use-session';
 import { supabase } from '../lib/supabase';
-import { organizationTaskKeys, repoKeys } from './keys';
+import { repoKeys } from './keys';
 
 const NO_PROVIDER_TOKEN = 'NO_PROVIDER_TOKEN';
 
@@ -29,9 +29,6 @@ export function useSyncStars() {
       toast.success(t('sync.success', { count: result.starsLinked }));
       if (userId) {
         void queryClient.invalidateQueries({ queryKey: repoKeys.starred(userId) });
-        void queryClient.invalidateQueries({
-          queryKey: organizationTaskKeys.opportunities(userId),
-        });
       }
     },
     onError: (error) => {

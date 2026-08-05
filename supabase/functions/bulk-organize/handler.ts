@@ -32,7 +32,7 @@ export interface BulkOperationItem extends BulkChange {
 
 export interface BulkOperation {
   id: string;
-  source: 'manual' | 'ai_draft';
+  source: 'manual';
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
@@ -42,7 +42,7 @@ export interface BulkOperation {
 }
 
 export interface CreateBulkOperationInput {
-  source: 'manual' | 'ai_draft';
+  source: 'manual';
   repoIds: string[];
   changes: BulkChange[];
 }
@@ -74,11 +74,7 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
     return null;
   }
   const input = value as Record<string, unknown>;
-  if (
-    (input.source !== 'manual' && input.source !== 'ai_draft') ||
-    !Array.isArray(input.repoIds) ||
-    !Array.isArray(input.changes)
-  ) {
+  if (input.source !== 'manual' || !Array.isArray(input.repoIds) || !Array.isArray(input.changes)) {
     return null;
   }
   const repoIds = [...new Set(input.repoIds.filter(isId))];

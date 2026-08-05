@@ -25,14 +25,11 @@ function FullScreenLoader() {
 
 export function RequireAuth({ children }: { children: ReactNode }) {
   const { session, loading } = useSession();
-  const naturalAiPrototypeBypass =
-    import.meta.env.DEV &&
-    new URLSearchParams(window.location.search).get('prototype') === 'natural-ai';
 
-  if (loading && !naturalAiPrototypeBypass) {
+  if (loading) {
     return <FullScreenLoader />;
   }
-  if (!session && !naturalAiPrototypeBypass) {
+  if (!session) {
     return <Navigate to="/login" replace />;
   }
   return children;

@@ -1,6 +1,6 @@
 # ADR 0030 · Task Undo 使用有效关系变更身份
 
-- Status: Accepted
+- Status: Superseded by ADR 0032
 - Date: 2026-07-28
 - Related: ADR 0023、0029、GitHub #23
 

@@ -1,6 +1,6 @@
 # 0029 · AI 整理采用目标优先的任务模型
 
-- Status: Accepted
+- Status: Superseded by ADR 0032
 - Date: 2026-07-28
 - Supersedes: ADR 0020 中 selection-first、用户自行分批与逐项审阅的产品形态；ADR 0026 中“系统不主动提示”的绝对产品性格
 - Preserves: ADR 0020 的人工授权与 canonical 保护、ADR 0023 的可靠批量账本、ADR 0026–0028 的检索优先与 canonical / derived 双平面

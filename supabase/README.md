@@ -22,6 +22,10 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260728180000_organization_tasks.sql` / `20260728183000_localized_organization_opportunity_goal.sql` | 目标优先 Organization Task、无成本同步机会、候选快照、Generation workload 披露 / 批准与 locale 固化 |
 | `20260730090000_organization_generation_runs.sql` | 已批准 workload 的可恢复分页 Generation、调用账本、暂停 / 恢复 / 重试和 immutable revisioned Organization Plan |
 | `20260804120000_organization_plan_review_execution.sql` | Plan 三档风险审阅、逐 action 排除、服务端 group fingerprint 授权、精确幂等确认与唯一 Organization Task → bulk operation 执行链接 |
+| `20260805120000_remove_ai_organization.sql` | 按 ADR 0032 退役 AI 整理：删除 Provider credential、草稿、Task / Plan / Generation 表与 RPC，移除 AI 来源批量账本，同时保留 canonical 标签、集合、关系与 embedding |
+
+> 2026-08-05 之前的 AI / Organization migration 是已部署环境必须重放的历史；
+> 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛到当前 schema。
 
 > `user_repo_embeddings` 的语义向量属 derived 数据、按用户客户端直写；规模尚小，暂不建 ANN（HNSW / IVFFlat）索引（见 ADR 0026 与 `knowledge/contracts/data-model.md`）。
 
@@ -53,10 +57,7 @@ select tablename, rowsecurity from pg_tables where schemaname = 'public' order b
 ```
 
 `repos / user_stars / tags / repo_tags / collections / collection_repos / notes /
-bulk_operations / bulk_operation_items / ai_provider_connections / user_settings /
-ai_organization_drafts / user_repo_embeddings / organization_tasks /
-organization_plan_action_exclusions / organization_plan_group_reviews /
-organization_task_operation_links` 的
+bulk_operations / bulk_operation_items / user_repo_embeddings` 的
 `rowsecurity` 应均为 `true`。
 
 > 检索优先向量表 `user_repo_embeddings` 的 owner-only 隔离与 `notes` 同构
@@ -89,25 +90,10 @@ OAuth 回流并显示当前用户。
 | `sync-stars` | 受信路径（service role）同步用户 GitHub starred 仓库到 `repos` / `user_stars`，支持增量。详见 `functions/sync-stars/README.md` 与 `knowledge/decisions/0006` |
 | `bulk-organize` | 受信路径（service role）创建并执行持久化批量 tag / collection 关系变更；按逐关系结果恢复和重试。详见 `functions/bulk-organize/README.md` 与 ADR 0023 |
 | `read-repo-readme` | 受保护的 README 读取边界：校验会话与 `user_stars` 成员关系后代理 GitHub REST README HTML，ETag 重验证，token 与内容不落库。详见 `functions/read-repo-readme/README.md` |
-| `manage-ai-connections` | 受信路径（service role）管理 BYOK 生成连接与凭据：JWT 校验、操作限定到 `auth.uid()`、AES-256-GCM 加密、自定义端点过 SSRF / allowlist；`list` 只回传安全投影。详见 `functions/manage-ai-connections/README.md` 与 ADR 0017 / 0018 / 0024 |
-| `manage-ai-organization` | 受信路径（service role）生成、读取、持久化审阅、确认与丢弃唯一 AI 整理草稿：1–50 个权威仓库快照、笔记 opt-in / 2,000 code point 截断、精确 active Connection/model、严格响应校验、原子替换、revision CAS，以及受信确认到可靠批量操作。详见 `functions/manage-ai-organization/README.md` |
-| `manage-organization-tasks` | 受信 Organization Task 生命周期：目标 / Opportunity、候选快照、Generation workload 批准与可恢复分页调用、immutable Plan、三档风险审阅、精确确认到唯一可靠批量 operation、执行账本恢复与明确结束。只有批准后的 Generation 分页会读取加密 credential 并调用 Provider。详见 `functions/manage-organization-tasks/README.md` |
-| `rotate-ai-connections` | 带外密钥轮换例程（service role）：由独立管理员密钥 `AI_CREDENTIAL_ROTATION_SECRET` 保护、用户 handler 不可达；遍历所有凭据，把旧版本密文重加密到 active 版本。详见 `functions/rotate-ai-connections/README.md` 与 ADR 0017 |
 
 ```bash
 # 部署（需 Supabase CLI 且已 link 项目）
 supabase functions deploy sync-stars
 supabase functions deploy bulk-organize
 supabase functions deploy read-repo-readme
-supabase functions deploy manage-ai-connections
-supabase functions deploy manage-ai-organization
-supabase functions deploy manage-organization-tasks
-# 轮换例程不走用户鉴权，只由 x-rotation-secret 保护，需 --no-verify-jwt
-supabase functions deploy rotate-ai-connections --no-verify-jwt
 ```
-
-> `manage-ai-connections` 运行前必须先配置加密主密钥等 secrets（`AI_CREDENTIAL_ENCRYPTION_KEYS`
-> 等，用 `supabase secrets set` 设置，**绝不提交**）；env 变量、密钥轮换与自定义端点
-> allowlist 的完整说明见 `functions/manage-ai-connections/README.md`。带外轮换例程
-> `rotate-ai-connections` 另需 `AI_CREDENTIAL_ROTATION_SECRET`，流程见
-> `functions/rotate-ai-connections/README.md`。

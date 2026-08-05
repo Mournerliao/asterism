@@ -61,7 +61,7 @@ export function BrowseToolbarSkeleton() {
 export function CollectionGridSkeleton() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {THREE_KEYS.map((key) => (
+      {THREE_KEYS.slice(0, 2).map((key) => (
         <Card key={key} className="flex min-h-[130px] flex-col gap-3 rounded-lg p-5">
           <div className="flex items-center justify-between gap-3">
             <Skeleton className="h-4 w-32" />
@@ -251,22 +251,5 @@ export function SettingsRouteLoading({ label }: { label: string }) {
         </section>
       ))}
     </LoadingRegion>
-  );
-}
-
-export function OrganizationRouteLoading({ label }: { label: string }) {
-  return (
-    <LoadingFrame label={label}>
-      <PageHeaderSkeleton action />
-      <Card className="flex flex-col gap-4 p-5">
-        <Skeleton className="h-5 w-48" />
-        <Skeleton className="h-24 w-full" />
-        <Skeleton className="ml-auto h-9 w-32" />
-      </Card>
-      <div className="flex flex-col gap-2">
-        <Skeleton className="h-14 w-full" />
-        <Skeleton className="h-14 w-full" />
-      </div>
-    </LoadingFrame>
   );
 }

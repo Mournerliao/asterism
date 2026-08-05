@@ -1,13 +1,12 @@
 import { lazy, type ReactNode, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
-import { createBrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, Navigate } from 'react-router-dom';
 import { RequireAnon, RequireAuth } from './auth/guards';
 import {
   CollectionDetailRouteLoading,
   CollectionsRouteLoading,
   DashboardRouteLoading,
   ImportExportRouteLoading,
-  OrganizationRouteLoading,
   SettingsRouteLoading,
   TagsRouteLoading,
 } from './components/page-loading-states';
@@ -43,23 +42,11 @@ const ImportExportPage = lazy(() =>
 const SettingsPage = lazy(() =>
   import('./pages/settings').then((module) => ({ default: module.SettingsPage })),
 );
-const OrganizationTasksPage = lazy(() =>
-  import('./pages/organization-tasks').then((module) => ({
-    default: module.OrganizationTasksPage,
-  })),
-);
-const OrganizationTaskDetailPage = lazy(() =>
-  import('./pages/organization-tasks').then((module) => ({
-    default: module.OrganizationTaskDetailPage,
-  })),
-);
-
 type RouteLoadingKind =
   | 'collections'
   | 'collectionDetail'
   | 'tags'
   | 'dashboard'
-  | 'organization'
   | 'importExport'
   | 'settings';
 
@@ -76,8 +63,6 @@ function PageFallback({ kind }: { kind: RouteLoadingKind }) {
       return <TagsRouteLoading label={label} />;
     case 'dashboard':
       return <DashboardRouteLoading label={label} />;
-    case 'organization':
-      return <OrganizationRouteLoading label={label} />;
     case 'importExport':
       return <ImportExportRouteLoading label={label} />;
     case 'settings':
@@ -133,14 +118,7 @@ export const router = createBrowserRouter([
       },
       { path: 'tags', element: lazyPage(<TagsPage />, 'tags') },
       { path: 'dashboard', element: lazyPage(<DashboardPage />, 'dashboard') },
-      {
-        path: 'organization',
-        element: lazyPage(<OrganizationTasksPage />, 'organization'),
-      },
-      {
-        path: 'organization/tasks/:taskId',
-        element: lazyPage(<OrganizationTaskDetailPage />, 'organization'),
-      },
+      { path: 'organization/*', element: <Navigate replace to="/" /> },
       {
         path: 'import-export',
         element: lazyPage(<ImportExportPage />, 'importExport'),

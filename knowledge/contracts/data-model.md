@@ -9,7 +9,7 @@
 - **`repos` 为全局共享、公共可读**：同一个 GitHub 仓库的元数据全局只存一份，所有用户共享读取，避免重复。
 - **用户私有数据按 `user_id` 隔离**：star 关系、标签、集合、笔记、设置等都归属具体用户，彼此不可见。
 - **关系尽量规范化**：多对多关系（仓库↔标签、仓库↔集合）用独立连接表表达。
-- **Phase 2 表按能力解耦落地**：不依赖 AI 的 `bulk_operations` / `bulk_operation_items` 先提供可靠批量写入；`ai_provider_connections`、`ai_organization_drafts` 与 `user_settings` 再承载可选的 AI（BYOK）能力。ADR 0026（Accepted）新增按用户存储的 `user_repo_embeddings` 向量表（derived 数据，浏览器内生成、客户端直写、永不写 canonical，见下）。
+- **进阶能力保持解耦**：`bulk_operations` / `bulk_operation_items` 提供可靠手动批量写入；`user_repo_embeddings` 保存浏览器生成的 derived 向量。AI Provider、草稿、任务与计划表已由 ADR 0032 退役。
 
 约定：所有表含 `id`（主键，uuid 或 bigint，下文不再逐一重复）、`created_at`、`updated_at`（时间戳）。`user_id` 引用 Supabase `auth.users(id)`。
 
@@ -92,114 +92,29 @@
 
 ---
 
-## Phase 2 Tables · 进阶表（批量整理 / AI / 设置）
-
-> **迁移说明（ADR 0029、GitHub #23）**：以下 `ai_organization_drafts` 记录的是 Phase 2 已交付的 selection-first 基线，不再代表下一版 AI 整理的目标模型。Phase 2.1 已增量落地规范化 Organization Task、消息 / 事件、候选快照、Generation manifest / page / call、revisioned Plan、风险审阅与 execution operation link；Task Undo link 与 legacy cutover 仍由 #27–#28 落地。不得在旧草稿上追加隐式分页。`bulk_operations` / `bulk_operation_items` 的可靠执行、恢复与幂等语义继续复用；Task Undo 的关系级有效 mutation identity 见 ADR 0030。
-
-### Organization Task 基础持久化（GitHub #24）
-
-`20260728180000_organization_tasks.sql` 已新增目标优先任务的首个生产切片：
-
-- `organization_opportunities` 保存首次 / 增量同步产生的可忽略机会 kind / count、稳定 sync fingerprint 与可选精确上下文；显示目标由当前 locale 翻译资源生成，接受时才固化为 Task goal。机会只由同步受信路径创建，不访问 credential、不调用 Provider、不修改 canonical。
-- `organization_tasks` 保存 origin、权威 goal、生命周期状态、可选精确 repository ID 上下文、CAS revision、当前候选 revision / manifest fingerprint 与明确结束时间。
-- `organization_task_messages` 与 `organization_task_events` 分别保存对话 / checkpoint 引用和结构化生命周期事件；消息正文不承担状态或授权权威。
-- `organization_candidate_snapshots` / `organization_candidate_items` 保存不可变 revision、完整分页授权库数量、稳定 repository ID、确定性原因、发现版本、纳入决定与披露输入内容指纹；指纹覆盖公开元数据、时间 / 状态、当前 canonical 显示值、获准笔记截断值与实际采用的 derived basis。
-- `organization_generation_manifests` / `organization_generation_manifest_pages` 保存 Connection/Adapter/model、实际字段、截断规则、每页最多 50 个唯一仓库、调用 / 重试 / token 上限与费用可知性；不保存 credential、README、其他用户数据或 Provider payload。
-- `organization_generation_approvals` 将批准绑定任务 revision、候选 revision、manifest fingerprint、Provider 目标、字段 / 截断策略和工作量上限。
-
-上述私有表均携带 `user_id`、启用 owner SELECT RLS；普通角色没有状态转换写策略，也不能执行 checkpoint / approval RPC。创建、目标更新、发现、排除、批准与结束只经验证 JWT 的 `manage-organization-tasks` service-role 路径，并以 revision compare-and-set 推进。后续 Generation call、Plan、执行链接、Task Undo 与 legacy cutover 分别由 #25–#28 增量加入，不得提前塞回旧草稿。
-
-### Organization Generation 运行与 Plan（GitHub #25）
-
-`20260730090000_organization_generation_runs.sql` 在批准之上新增可恢复分页执行与归并 Plan：
-
-- `organization_tasks.status` 扩展四个生成期状态：`generating`（分页进行中）、`generation_paused`（用户暂停）、`needs_attention`（触及上限 / 授权漂移 / 重试耗尽）、`plan_ready`（已归并出 Plan）。转换只经受信 RPC 并携带 revision CAS。
-- `organization_generation_page_runs` 保存每页的 `page_index`、稳定 `page_key`、`repo_ids`（每页 ≤50 唯一仓库）、状态机（`pending` / `leased` / `succeeded` / `failed` / `cancelled`）、`attempt_count`、租约 `lease_id` / `lease_expires_at`、成功 `result` 与 `error_code`。`succeeded` 页幂等，不被 `claim` 重领；`failed` 页只能由显式 `retry` 重置回 `pending`。
-- `organization_generation_calls` 是调用账本：每次 `claim` 开一行（`started`），完成时按结果落 `succeeded` / `failed`，租约过期而响应丢失的旧行被后续 claim 关为 `lost`。记录 `usage`（token）、`truncation`、`request_hash`、`error_code`，全部计入调用与 token 上限。
-- `organization_plans` 保存 immutable、revisioned 的归并结果：稳定 repository / 分类 ID 的可审阅 action groups、跨页 `conflicts`（如 near-duplicate 分类名）与 `uncertainties`。归并用 locale-independent 大小写折叠与码位比较，页面顺序、重试次数与 worker 恢复不改变最终 action identity。
-
-仅 service-role 的 8 个 RPC 承载状态机：`start_organization_generation`（approved → generating）、`claim_organization_generation_page`（领取下一 pending / stale-leased 页，判定 complete / in_flight / exhausted / call_ceiling / token_ceiling）、`complete_organization_generation_page`（恰好一次记录成功 / 失败，暂停或结束后到达的在途调用仍落账但不改变页面接受）、`pause` / `resume` / `retry_organization_generation`、`flag_organization_generation_attention` 与 `save_organization_plan`。最大尝试数为 `1 + floor(max_retry_calls / greatest(max_initial_calls, 1))`；token 上限用平均预算 `ceil(estimated_token_ceiling / max_total_calls)` 启发式预判。这些表沿用 owner-only SELECT RLS，普通角色无写策略也不能执行上述 RPC；客户端只经 `manage-organization-tasks` 驱动并读取安全响应投影。
-
-### Organization Plan 风险审阅与执行链接（GitHub #26）
-
-`20260804120000_organization_plan_review_execution.sql` 把 immutable Plan 接到人工授权与既有可靠批量执行账本：
-
-- `organization_plan_action_exclusions` 按 task / Plan revision / action ID 保存逐仓库排除；排除会改变服务端 semantic group fingerprint，使该组旧批准失效。
-- `organization_plan_group_reviews` 保存风险类型、服务端 group fingerprint、显式批准 / 取消、决定时 task revision。确认会采用当前 Plan revision 的最新决定；只有 key / risk / fingerprint 完全未变时，上一 Plan revision 的最新决定才可保留。
-- `organization_task_operation_links` 对每个任务唯一绑定 execution operation、准确 Plan revision / fingerprint、排序后的批准组 fingerprint 与确认计数。完全相同的确认重放返回原 operation；任何绑定变化均冲突，不能创建第二份 operation。
-- `organization_tasks.status = executing` 表示已原子移交执行账本。页面展示的 completed / needs-attention 状态与新增 / 移除成功、可重试失败、终态失败、dismissed、pending、running 计数，均从链接的 `bulk_operations` / `bulk_operation_items` 权威账本派生，不由客户端上报。
-
-`save_organization_plan_review` 与 `confirm_organization_plan` 仅向 service-role 开放。确认事务锁定 task 并重新核验 ownership、star authorization、Plan/action/target identity、关系前置条件、名称规范化、near-match guard、最新显式批准、排除和准确汇总；只幂等创建已批准的新分类及唯一 `source: organization_task` operation/items/link。事务内不修改 `repo_tags` / `collection_repos`，实际关系写入只由既有 `bulk-organize` 有界执行器完成。普通客户端对上述三表只有 owner SELECT RLS，无写策略且不能调用 RPC。
+## Phase 2 Tables · 进阶表（批量整理 / 语义检索）
 
 ### `bulk_operations` — 持久化批量操作
 
-- `user_id` → `auth.users(id)`
-- `source` — `manual` / `ai_draft` / `promotion` / `organization_task`，仅说明操作来源，不改变执行语义；普通 bulk create 请求只能使用 `manual` / `ai_draft`，`organization_task` 只能由 #26 确认事务创建
-- `source_draft_id` — AI 草稿确认的幂等键（manual 为 null）
-- `source_draft_revision` — 已确认的草稿 revision（manual 为 null）
-- `source_draft_suggestions` — 已确认的完整最终选择（manual 为 null，不含 credential）
-- `source_repo_ids` — 用户确认时固化的选择范围快照
+- `user_id` — 操作所属用户
+- `source` — `manual` / `promotion`；当前产品只创建 `manual`，保留 `promotion` 仅为历史兼容
+- `source_repo_ids` — 确认时固化的 repository ID 范围
 - `status` — `pending` / `running` / `needs_attention` / `completed`
-- `completed_at` — 全部成功或用户明确结束剩余终止失败的时间（可选）
+- `completed_at` — 完成时间（可选）
 
-约束：用户确认写入后才创建；`source_repo_ids` 不随筛选变化或后续同步改变。操作状态由其逐关系项目汇总：仍有待执行项为 `pending` / `running`，存在失败项为 `needs_attention`，全部成功或终止失败已由用户明确结束后为 `completed`。AI 草稿确认以 `(user_id, source_draft_id)` 唯一，并把 revision 与完整最终选择绑定到该幂等结果；仅完全相同的重放返回原 operation，复用草稿 ID 但改变 payload 必须冲突。AI 草稿确认后复用同一模型，不建立另一套 AI 写入通道。
+用户确认后才创建操作。范围不随筛选变化或后续同步改变；状态由逐关系项目汇总。AI 来源的 operation 与草稿幂等字段已随 ADR 0032 删除。
 
 ### `bulk_operation_items` — 批量关系变更
 
-- `user_id` → `auth.users(id)`
 - `operation_id` → `bulk_operations(id)`
-- `repo_id` → `repos(id)`
+- `user_id`、`repo_id`
 - `relation_type` — `tag` / `collection`
-- `target_id` — 对应用户标签或集合的 ID
+- `target_id` — 目标标签或集合 ID
 - `action` — `add` / `remove`
 - `status` — `pending` / `running` / `succeeded` / `retryable_failed` / `terminal_failed` / `dismissed`
-- `attempt_count` — 已执行次数
-- `last_error_code` — 稳定、非敏感的错误码（可选）
-- `last_error_message` — 可展示且不含 credential / token / SQL 细节的错误摘要（可选）
+- `attempt_count`、`last_error_code`、`last_error_message`
 
-约束：一条“仓库 × 关系类型 × 目标 × 动作”是最小执行、结果与重试单位，并在同一操作内唯一。添加已有关系或移除不存在的关系必须视为 `succeeded`。只允许 `retryable_failed` 原样重试；`terminal_failed` 只能由用户明确结束为 `dismissed`，或修正条件后创建新操作。操作与项目的 `user_id` 必须一致，目标标签 / 集合及仓库成员关系必须属于同一用户可见范围。
-
-### `ai_provider_connections` — 用户的 AI Provider Connection
-
-- `user_id` → `auth.users(id)`
-- `adapter` — Provider Registry 中的稳定 Adapter 标识：内置 Provider 或 `openai-compatible`
-- `name` — 用户可识别的 Connection 名称
-- `base_url` — 自定义兼容 endpoint；内置 Adapter 为空并使用项目固定地址
-- `credential_ciphertext` — 对该 Provider 类型化 credential payload 做 authenticated encryption 后的密文
-- `credential_nonce` — 当前密文对应的唯一 nonce
-- `credential_version` — master key / 加密格式版本，用于轮换
-- `credential_hint` — 不敏感提示（可选），不得足以恢复 credential
-- `status` — `untested` / `valid` / `invalid` / `disabled`
-- `generation_capability` — 最近一次 Generation 测试结果与时间（jsonb，可选，不含敏感响应）
-
-约束：每个 Connection 只持有一个 credential；内置 Adapter 每用户最多一个 Connection，自定义 `openai-compatible` 可建立多个具名 Connection，但不组成 credential 池或 fallback 顺序。不同 Adapter 的 credential schema 由服务端验证，不用统一的 `apiKey + baseUrl` 字段表达；普通客户端无该表的直接 SELECT/INSERT/UPDATE/DELETE 权限，所有生命周期操作经验证 JWT 的受信 Edge Function 完成，客户端只读取不含 ciphertext/nonce 的安全投影。自定义 endpoint 必须满足 `conventions.md` 的网络边界。
-
-### `user_settings` — 用户设置
-
-- `user_id` → `auth.users(id)`（唯一，一对一）
-- `generation_connection_id` → `ai_provider_connections(id)` — 当前 Generation Connection（可选）
-- `generation_model` — 当前 generation model（可选）
-- `include_notes_in_ai` — 是否允许把当前用户笔记发送给所选 Generation Provider；首次 AI 分类前必须由用户明确选择
-- `locale` — 语言偏好（en / zh-CN）
-- `theme` — 主题偏好（system / light / dark）
-- `preferences` — 其他偏好（jsonb，可选）
-
-约束：`user_id` 唯一。`generation_connection_id` 与 `generation_model` 必须同时为空或同时非空；非空时 Connection 必须属于当前用户、状态为 `valid`，model 必须精确等于该 Connection 最近一次成功 Generation capability 测试的 model。普通客户端只可读取本人的设置，写入集中在受信 Edge Function，并由数据库 trigger 纵深校验；连接失效、禁用或成功测试的 model 改变时，数据库自动清除不再成立的 active pair。关闭 `include_notes_in_ai` 后，任何 AI Adapter 都不得收到笔记正文。credential 安全与轮换见 `conventions.md` 安全章节、ADR 0017；Provider Registry 见 ADR 0018、0022。
-
-### `ai_organization_drafts` — AI 整理建议草稿
-
-- `user_id` → `auth.users(id)`，唯一；每个用户最多一个活动草稿
-- `suggestions` — review schema v2 的待确认添加 / 移除关系与建议新建分类（jsonb，不含 credential）；现有关系建议保存稳定建议 ID、`relationType`、稳定分类 ID 与 `selected`，生成后默认选中；建议新建分类保存稳定建议 ID、`relationType`、经服务端规范化的名称、依赖的仓库 ID 与 `approved`，生成后默认未批准，不使用名称指代现有分类
-- `source_repo_ids` — 本次用户明确选择的仓库 ID 集合
-- `suggestion_version` — 持久化审阅 schema 的版本；当前为 `2`（Provider 输出的严格生成 schema v1 在受信服务内转换，不直接持久化）
-- `generation_connection_id` → `ai_provider_connections(id)`
-- `generation_adapter` — 生成时的 Adapter 稳定标识，作为 Connection provenance 的一部分
-- `generation_model` — 生成草稿的模型标识
-- `review_state` — 当前为 `review`（人工审阅中，尚未确认写入）
-- `revision` — 每次成功替换或审阅选择更新递增；失败生成与失败审阅写入不改变
-- `created_at` / `updated_at` — 当前草稿生成与最近替换时间
-
-约束：草稿按 `user_id` 隔离且每个用户最多一个活动草稿；刷新或离开页面后可继续审阅。现有关系建议默认选中并可逐项取消；建议新分类默认未批准，只有单独批准后其依赖关系才具备后续确认资格。每次审阅 mutation 必须携带期望 revision，并由受信函数通过 compare-and-set 原子推进；旧标签页发生冲突时保留较新草稿并要求客户端重新读取。草稿中的现有分类 ID 必须属于当前用户，未知 ID 不得持久化；新分类名称必须先完成 NFKC、大小写与空白规范化，规范化等价名称由数据库唯一约束保证只存在一个并复用其稳定 ID；保守的去标点近似键若命中非等价名称则确认失败并保留草稿，禁止静默重定向用户已批准的目标。开始新生成前提示用户将替换旧草稿，新生成成功后原子替换，生成失败保留旧草稿及其审阅选择；主动丢弃直接删除。确认必须在一个受信数据库事务中重新校验最终勾选，幂等创建已确认的新标签 / 集合，创建 `source: "ai_draft"` 的 `bulk_operations` 与全部 `bulk_operation_items`，并仅在这些记录成功落库后删除草稿；实际关系写入不属于该事务，但正常确认响应后客户端必须立即驱动既有有界执行器，响应丢失或执行中断时从权威 operation 状态恢复。草稿不得包含 API credential、其他用户数据或 README。
+约束：`(operation_id, repo_id, relation_type, target_id, action)` 唯一。实际关系写入只由受信 `bulk-organize` 执行器完成。
 
 ### `user_repo_embeddings` — 仓库语义向量（derived 平面，ADR 0026）
 
@@ -227,22 +142,9 @@
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
 
-- **`ai_organization_drafts`**
-  - 普通客户端角色无直接表权限；RLS 仍以 `user_id = auth.uid()` 的 owner SELECT 作为纵深防御。
-  - 生成 / 原子替换、读取与丢弃只经验证用户 JWT 的受信 Edge Function；客户端只能通过 `packages/db` 使用严格响应守卫后的安全投影。
-
-- **`user_settings`**
-  - SELECT：要求 `user_id = auth.uid()`。
-  - INSERT / UPDATE / DELETE：普通客户端无直接表权限；设置写入只经验证用户 JWT 的受信 Edge Function，active connection/model 另由数据库 trigger 强制保持一致。
-
-- **`bulk_operations` / `bulk_operation_items` / `organization_plan_action_exclusions` / `organization_plan_group_reviews` / `organization_task_operation_links`**
+- **`bulk_operations` / `bulk_operation_items`**
   - SELECT：要求 `user_id = auth.uid()`，客户端可读取本人的操作进度与结果。
-  - INSERT / UPDATE / DELETE：普通客户端无直接表权限；创建、执行、重试与明确结束只经验证用户 JWT 的受信批量写入路径完成，避免客户端伪造执行结果或绕过状态机。
-  - 受信路径必须同时校验操作、项目、仓库成员关系以及目标标签 / 集合都属于当前用户。
-
-- **`ai_provider_connections`**
-  - 普通客户端角色无直接表权限；RLS 仍启用为纵深防御。
-  - 验证用户 JWT 的设置 Edge Function 通过受信服务端角色执行保存、测试、启用/停用、替换与删除。
-  - 客户端设置页只通过受信接口读取 provider、name、base URL、状态、capability 与非敏感提示，不返回 ciphertext、nonce 或完整 credential。
+  - INSERT / UPDATE / DELETE：普通客户端无直接表权限；创建、执行、重试与明确结束只经受信批量写入路径完成。
+  - 受信路径必须校验操作、项目、仓库成员关系以及目标标签 / 集合都属于当前用户。
 
 > 通用规则：只有 `repos` 全局可读；用户私有数据都以 `auth.uid()` 与行内 `user_id` 匹配作为访问前提。连接表冗余存 `user_id` 即为简化此类 RLS 过滤。

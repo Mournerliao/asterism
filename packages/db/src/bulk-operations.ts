@@ -27,8 +27,8 @@ export interface BulkOperationItem extends BulkChange {
   lastErrorMessage: string | null;
 }
 
-export type BulkOperationSource = 'manual' | 'ai_draft' | 'promotion' | 'organization_task';
-export type BulkOperationCreateSource = 'manual' | 'ai_draft';
+export type BulkOperationSource = 'manual' | 'promotion';
+export type BulkOperationCreateSource = 'manual';
 
 export interface BulkOperation {
   id: string;
@@ -85,12 +85,7 @@ function isBulkItem(value: unknown): value is BulkOperationItem {
   );
 }
 
-const validSources = new Set<BulkOperationSource>([
-  'manual',
-  'ai_draft',
-  'promotion',
-  'organization_task',
-]);
+const validSources = new Set<BulkOperationSource>(['manual', 'promotion']);
 
 function isBulkOperation(value: unknown): value is BulkOperation {
   if (!value || typeof value !== 'object') return false;

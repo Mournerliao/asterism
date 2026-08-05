@@ -5,14 +5,14 @@
 **Asterism** is an open-source, self-deployable manager for your GitHub Stars. It
 turns a sprawling, unsearchable list of starred repositories into an organized
 sky — tag them, group them into collections, take notes, and find repositories
-through keyword search and structured filters. The responsive Web app, AI-assisted
-organization, and bulk workflows are complete; the browser extension and desktop
-app follow next.
+through keyword and semantic search, structured filters, and reliable manual bulk
+workflows. The browser extension and desktop app follow next.
 
-> Status: **Phase 2 AI (BYOK) + bulk organization complete.** The responsive Web
-> application, real Supabase flows, encrypted Generation Connections, reviewable
-> AI organization drafts, and recoverable bulk workflows are environment-tested.
-> Phase 3 is the browser extension; contracts and roadmap live in
+> Status: **Phase 2 bulk organization + browser semantic retrieval complete.**
+> The responsive Web application, real Supabase flows, recoverable manual bulk
+> workflows, invisible hybrid search, and Related Stars are implemented. Server-side
+> AI organization and BYOK Connections were retired in ADR 0032. Phase 3 is the
+> browser extension; contracts and roadmap live in
 > [`knowledge/`](knowledge/).
 
 ---
@@ -37,8 +37,8 @@ for the authoritative feature scope and acceptance criteria.
   tags, star count, update time, and archive status.
 - **Stats dashboard** to understand your stars at a glance.
 - **Import / export** so your data stays yours.
-- **AI (BYOK)** — reviewable organization suggestions using your own encrypted
-  Generation Connection; models never write organization data without confirmation.
+- **Private semantic retrieval** — browser-generated embeddings power invisible
+  hybrid search and Related Stars without a hosted AI provider.
 - **i18n** — English by default, with built-in Simplified Chinese (`zh-CN`).
 
 ## Tech stack
@@ -95,10 +95,11 @@ asterism/
 
 **Asterism** 是一个开源、可自部署的 GitHub Star 管理器。它把杂乱、难以检索的
 star 列表整理成一片有序的星空：打标签、归集合、写笔记，并通过关键词和结构化筛选查找仓库。
-优先完成响应式 Web，随后交付 AI（BYOK）与批量整理，再推出浏览器扩展与桌面端。
+优先完成响应式 Web、手动批量整理与浏览器内语义检索，再推出浏览器扩展与桌面端。
 
-> 当前状态：**Phase 2 AI（BYOK）+ 批量整理已完成。** 响应式 Web、真实 Supabase 核心链路、
-> 加密 Generation Connection、可审阅 AI 整理草稿与可恢复批量操作均已验收；下一阶段为浏览器扩展，
+> 当前状态：**Phase 2 批量整理 + 浏览器内语义检索已完成。** 响应式 Web、真实 Supabase
+> 核心链路、可恢复手动批量操作、隐形混合搜索与 Related Stars 已落地；服务端 AI 整理与
+> BYOK Connection 已按 ADR 0032 退役。下一阶段为浏览器扩展，
 > 架构与路线图见 [`knowledge/`](knowledge/)。
 
 - 功能、技术栈与目录结构详见上文英文部分，权威功能范围见

@@ -21,10 +21,11 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 
 ## Scope · 范围
 
-- **阶段顺序**：响应式 Web → AI（BYOK）+ 批量整理 → 浏览器扩展 → 桌面（Tauri），各端共享 `core` / `ui` / `db`。
+- **阶段顺序**：响应式 Web → 批量整理 + 浏览器内语义检索 → 浏览器扩展 → 桌面（Tauri），各端共享 `core` / `ui` / `db`。
 - **数据源**：用户自己的 GitHub starred 仓库（通过 GitHub GraphQL API 拉取）。
 - **后端**：Supabase（Auth + Postgres source-of-truth + Edge Functions），TanStack Query 提供会话内请求缓存。当前不承诺离线浏览；多个客户端会话不主动推送收敛，进入页面、查询刷新、完成本地操作或重新连接后读取最新状态。
-- **AI 能力**：Phase 2 起采用 BYOK，非必选，仅用于生成可审阅的整理建议。服务端通过类型化 Generation Provider Registry 接入上游，不把所有供应商压成单一 OpenAI-compatible 接口；凭据持久化加密。首批内置 OpenAI、Google Gemini、Anthropic 与 OpenRouter，并提供受控的自定义 OpenAI-compatible Connection；DeepSeek 等兼容服务由用户填写 endpoint、credential 与模型 ID 接入，无需逐一内置。这套 BYOK Generation 不含服务端 Embedding Provider；语义检索由 ADR 0026（Accepted）的**浏览器内 embedding**（非 BYOK，向量存 `user_repo_embeddings`）单独承载，落地为 Phase 2 之后的里程碑。
+- **语义能力**：隐形混合搜索与 Related Stars 使用浏览器内 embedding，向量按用户存于 `user_repo_embeddings`；它不依赖 BYOK，也不写入标签、集合或笔记。
+- **AI 整理退役**：产品不再提供服务端 Generation、BYOK Connection、AI 整理草稿或 Organization Task。历史 AI 执行已经形成的普通标签、集合及关系继续作为 canonical 用户数据保留。
 
 各阶段交付节奏见 `../roadmap.md`。
 
@@ -123,26 +124,11 @@ Phase 1 必须提供可执行的 self-deployment runbook，覆盖 migrations、G
 
 以下能力不属于 MVP，按路线图分阶段交付，验收标准在对应阶段细化。
 
-> **ADR 0026–0028 重构 AI 整理方向**：产品采用**检索优先 + 双平面**；canonical 只有用户显式操作可修改，derived 语义能力永不自动写入。浏览器内 embedding（默认 `multilingual-e5-small`，非 BYOK）只通过隐形混合搜索与局部语义邻域服务用户任务。真实个人库验证已否定全库涌现簇、簇 promotion 与二维语义星图，BYOK Generation 不承担簇命名。
-
-- **目标优先 AI 整理**（ADR 0029，BYOK Generation）：用户描述希望完成的整理结果，系统使用 derived 元数据、embedding、现有 canonical 关系、时间与状态，从用户授权的完整 Star 库中发现候选并解释范围；手动选择只提供可选的精确上下文。Generation 在内部按 Provider / 工具安全边界有界分页，单次最多 50 个仓库，但该限制不得成为用户任务上限或要求用户自行规划批次。开始任务前必须披露目标 Provider、发送字段、长文本截断边界和可理解的费用 / 工作量预估；用户可以暂停、恢复或结束任务，失败不得丢失已完成的安全步骤。
-- **同步后的整理机会**：同步完成后可以基于本地 / 用户自有后端的 derived 信息提示少量、可忽略的整理机会；提示本身不得调用 BYOK、产生推理费用或修改 canonical。只有用户接受目标后，系统才可启动 Generation 并形成可审阅计划。首次同步提供一次用途导向的初始整理，后续同步主要维护新增 Star；不得把任一流程强制塑造成 Inbox Zero。
-- **用途导向的 canonical 结构**：标签、集合与笔记表达用户未来如何使用收藏；内容相似度只负责发现候选。AI 必须优先复用现有分类，可以提出新分类，但不得把全库互斥分簇或自动主题命名包装成用户的天然知识体系。
-- **风险分层审阅与撤销**：加入已有分类可按动作组聚合预览、抽查并排除个别仓库；新分类的名称和代表成员必须单独确认；移除已有关系独立呈现并采用更严格的确认；不确定项不操作。确认前显示准确的最终关系数，确认后复用持久化批量账本。每次已执行的 AI 整理任务必须支持任务级撤销；撤销只反转原任务实际产生且之后未发生有效用户变更的关系，冲突项保守跳过并反馈，同时保留后来被用户继续使用的分类。
-- **AI 数据与身份边界**：现有分类候选同时包含稳定 ID 与显示名称；模型对现有分类的建议必须引用稳定 ID，服务端拒绝未知或不属于当前用户的 ID。新分类先做名称规范化及等价 / 近似检查。分类输入可包含 owner/name、描述、语言、GitHub topics、现有标签 / 集合，并仅在用户明确同意后包含当前用户笔记；README、API credential 与其他用户私有数据不得发送给 AI Provider。模型不能无人值守地修改 canonical 数据。
+> **ADR 0032 退役 AI 整理**：Asterism 保留手动批量整理与浏览器内语义检索，不再提供 BYOK Generation、AI 草稿、Organization Task 或同步后整理机会。历史执行结果继续作为普通 canonical 数据保留。
 - **失效仓库检测**：识别已删除 / 已归档 / 长期无更新的仓库并提示。
 - **批量整理**（Phase 2）：多选仓库后批量添加/移除标签、加入/移出集合、导出选中仓库；只修改 Asterism 私有数据，不执行 GitHub star/unstar，也不申请 `public_repo` scope。用户执行“全选当前筛选结果”时，系统立即把当时匹配的仓库固化为一个**选择范围快照**（repository ID 集合）；后续筛选变化或同步新增仓库不得悄然改变该批工作的对象，界面持续显示准确数量，用户可清空后重新选择。批量关系写入以一条“仓库 × 标签或集合 × 添加或移除动作”为最小执行与重试单位：成功项保留，失败项单独报告且只重试失败关系；重复添加已有关系或移除不存在的关系视为成功，确保重试幂等。执行前尚未确认的勾选只属于当前会话；用户确认后必须形成持久化的**批量操作记录**，保存稳定的选择范围、动作和逐关系结果，使页面刷新、关闭或网络中断后仍可继续查看并重试。失败关系分为**可重试失败**（网络、超时或临时服务故障）与**终止失败**（目标已删除、权限/归属不成立或请求无效）；终止失败不得原样反复重试。批量操作只有在全部关系成功，或剩余终止失败被用户明确结束后，才进入完成状态。选中仓库导出复用现有格式：JSON 是包含所选仓库及其标签、集合、笔记的可恢复部分备份，导入时只合并对应数据而不删除库中其他内容；CSV 是所选仓库清单，Markdown 是包含组织信息的可读归档，二者仍不承诺恢复。导出按固定 repository ID 范围读取下载时的最新 Postgres 权威数据；导出不写数据，因此不建立批量操作记录，失败后原位重新生成。
 - **保存视图 / 查询历史**（Phase 2 之后按需评估）：Phase 2 的批量整理只作用于当前手动选择或当前筛选结果，不持久化命名筛选，也不保存关键词或语义查询历史。
 - **语义搜索 / 相关收藏**：ADR 0026（Accepted）确立**检索优先范式**；ADR 0027 基于真实 518 条个人 Star 验证，用保守的局部语义邻域取代全库涌现簇；ADR 0028 进一步移除没有独占用户任务的二维语义星图。浏览器内 embedding（默认 `multilingual-e5-small`，非 BYOK）支撑隐形混合搜索和 Repo Quick Look 中最多 5 条互为 Top-12 近邻的相关收藏；无可信结果时不展示。向量按用户存于 `user_repo_embeddings`（derived 数据，永不写 canonical）。
-
-### AI Organization Language · AI 整理语言
-
-- **整理机会（Organization Opportunity）**：同步后由 derived 信息发现的无费用、可忽略提示；它不是任务、草稿或写入授权。
-- **整理任务（Organization Task）**：用户接受或主动表达的整理目标，是 AI 可以发现范围与规划动作的授权边界。
-- **整理计划（Organization Plan）**：任务产生的可审阅动作组；仍不是 canonical 状态。
-- **任务撤销（Task Undo）**：针对一次已执行整理任务恢复其关系变更的显式操作，不等同于删除分类。
-
----
 
 ## Extension-Specific · 浏览器扩展专属能力
 
@@ -157,7 +143,6 @@ Phase 1 必须提供可执行的 self-deployment runbook，覆盖 migrations、G
 - **不做 GitHub 客户端**：不替代 GitHub 浏览代码、issue、PR 等功能，只聚焦 star 的组织与管理。
 - **不管理他人的 star**：只管理登录用户自己的 starred 仓库，不做社交 / 公共分享星单（至少 MVP 与近期路线图内不做）。
 - **不做通用书签管理器**：范围限定在 GitHub 仓库，不扩展到任意 URL 收藏。
-- **不内置 AI 模型 / 不代付费用**：AI 一律 BYOK，项目不托管模型、不承担推理费用。
-- **不做通用 AI Gateway**：Phase 2 不提供多 key 排序、跨 Provider 自动 fallback、预算、限流或 ZDR 路由；调用失败不得回退到 Asterism 付费的系统额度。自定义 OpenAI-compatible Connection 是受控 Adapter，不会改变原生 Provider 的类型化集成，也不会把任意 URL 直接交给服务端访问。
+- **不提供服务端 AI 整理**：不保存 Provider credential，不调用 Generation Provider，不生成或执行 AI 整理计划。
 - **不做实时协作 / 团队工作区**：MVP 与近期路线图聚焦个人使用，不做多人协作。
 - **不采集匿名产品遥测**：当前不加入自建或第三方产品行为采集。未来若出现明确分析需求，必须重新定义采集范围、关闭机制、自部署行为与隐私说明。

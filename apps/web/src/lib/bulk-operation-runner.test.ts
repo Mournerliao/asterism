@@ -5,7 +5,7 @@ import { runBulkOperationUntilSettled } from './bulk-operation-runner';
 function operation(statuses: BulkOperation['items'][number]['status'][]): BulkOperation {
   return {
     id: 'operation-1',
-    source: 'ai_draft',
+    source: 'manual',
     sourceRepoIds: ['repo-1'],
     status: statuses.some((status) => status === 'pending') ? 'pending' : 'completed',
     completedAt: null,

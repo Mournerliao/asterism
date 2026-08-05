@@ -21,7 +21,7 @@ flowchart TD
   subgraph supabase [Supabase]
     auth[Auth: GitHub OAuth]
     pg[(Postgres)]
-    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize / manage-ai-organization / manage-organization-tasks]
+    fn[Edge Functions: sync-stars / read-repo-readme / bulk-organize]
   end
   gh[GitHub GraphQL / REST API]
 
@@ -39,7 +39,7 @@ flowchart TD
 
 - **clients（端）**：各端只负责平台壳与组装，业务逻辑下沉到共享包。
 - **shared（共享包）**：跨端复用的核心；不含任何平台专有 API（见 `conventions.md` 目录边界）。
-- **Supabase（后端）**：Auth 鉴权、Postgres 作为 source-of-truth、Edge Functions 承载同步与 AI 嵌入等服务端逻辑。业务数据不使用 Realtime 订阅；客户端在查询边界重新读取权威状态。
+- **Supabase（后端）**：Auth 鉴权、Postgres 作为 source-of-truth、Edge Functions 承载同步、README 代理与批量整理等受信服务端逻辑。业务数据不使用 Realtime 订阅；客户端在查询边界重新读取权威状态。
 - **GitHub GraphQL / REST API**：上游数据源；stars 同步走 GraphQL，实时 README HTML 走受保护 Edge Function 调用 REST。
 
 ## Tech Stack · 技术栈
@@ -82,7 +82,7 @@ asterism/
 │   └── config/         # 共享工程配置（tsconfig / tailwind / biome 预设等）
 └── supabase/
     ├── migrations/     # 数据库迁移（schema + RLS）
-    └── functions/      # Edge Functions（sync-stars / read-repo-readme / bulk-organize / AI generation 等）
+    └── functions/      # Edge Functions（sync-stars / read-repo-readme / bulk-organize）
 ```
 
 包命名遵循 `@asterism/*`；共享包为私有 workspace（不发 npm）。目录边界规则见 `conventions.md`。
@@ -117,19 +117,11 @@ sequenceDiagram
 
 > Stars 同步由受信 Edge Function `sync-stars` 执行，满足「全局 `repos` 仅受信路径写」的 RLS 约束。批量整理继续使用与 AI 无关的持久化执行路径：用户确认后固化 repository ID 范围与逐关系项目，服务端按有界批次执行并记录结果；成功项目保留，恢复时只领取待执行或可重试失败项目，幂等关系写保证重复提交不产生脏数据。客户端只经 `packages/db` 创建、触发、查询、重试或明确结束操作，并在查询边界重新读取权威状态。
 
-> ADR 0029 把 AI 整理改为目标优先任务。同步后的整理机会只读取本地或用户自有后端中的 derived 信息，不调用 BYOK；用户接受目标后，任务才可用 derived 搜索 / facet / embedding 在完整授权库中发现候选，并由验证 JWT 的受信路径调用 Generation Provider。Generation 每次仍按最多 50 个仓库等安全边界有界执行，但分页、跨页归并、重试与恢复属于一个持久化任务，不转嫁给用户。模型只产生带稳定 repository / 分类 ID 的可审阅动作组；受信确认重新校验最终范围和目标后，继续复用 ADR 0023 的批量账本。任务级撤销通过记录原任务实际成功的关系变更建立反向、同样可恢复的批量操作，并按 ADR 0030 的有效关系 mutation identity 跳过原任务之后发生用户变更的冲突项；不允许模型直接回写 canonical。旧的单活动草稿路径在替代规格落地前只作为现有实现基线。Phase 2.1 的持久任务边界与迁移规格见 GitHub #23。
+> ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通标签、集合及关系仍是 canonical 用户数据，不由退役迁移回滚。
 
-> GitHub #25 落地可恢复分页：已批准的 Generation 工作量由**客户端驱动的有界 loop** 逐页推进——Web 在任务处于 `generating` 时反复调用 `manage-organization-tasks` 的 run-page 动作，每次只推进一页（≤50 个唯一仓库），并在任何非成功 outcome（call_ceiling / token_ceiling / exhausted / in_flight / drift / page_failed / plan_ready）处停止，不转嫁给用户“下一批 50 条”的决定。受信路径内部先以 service-role RPC 领取并租约一页、开调用账本行，再经类型化 Provider Registry 发起单次 Generation 调用，成功 / 失败都恰好一次地写回页面与账本；成功页刷新或响应丢失后不重复接受，失败页需显式重试。所有页面最终由 locale-independent 的确定性规则归并为 immutable、revisioned 的 Organization Plan（`plan_ready`），页面顺序 / 重试 / worker 恢复不改变最终 action identity。该切片只到归并 Plan 与 `plan_ready` 摘要；完整 read-plan 文档 UI、风险审阅与可靠执行（复用 ADR 0023 批量账本）属于 #26。
+> 语义检索保持纯浏览器内边界：浏览器生成 repository/query embedding，只把用户向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于隐形混合搜索与 Related Stars；它不经过 BYOK，不自动修改 canonical。
 
-BYOK credential 通过独立设置 Edge Function 保存：明文只进入当前函数内存，由服务端 master key 做 authenticated encryption；普通客户端查询只获得 provider、credential 状态与非敏感提示，不获得 ciphertext、nonce 或完整 credential。AI Edge Functions 在服务端按版本解密后，通过类型化 Provider Registry 调用对应原生 Adapter；Provider credential schema 可以不同，不以 `apiKey + baseUrl` 作为统一数据模型。
-
-Phase 2 的 BYOK Provider 架构只有 Generation Provider，用于生成标签 / 集合整理建议，**不含服务端 Embedding Provider**：ADR 0026（Accepted）的语义检索刻意不走 BYOK Provider，而由**浏览器内 embedding**（非 BYOK 平台能力，向量存 `user_repo_embeddings`）驱动，故「无服务端 Embedding Provider」这条边界不变，「无语义搜索」已被 0026 重构为检索优先。内置 Adapter 为 OpenAI、Google Gemini、Anthropic 与 OpenRouter；自定义 OpenAI-compatible Connection 由用户提供名称、HTTPS endpoint、credential 与模型 ID。`/models` 可用于发现模型，但不是兼容前提；发现失败时允许手填模型 ID。只有通过 Generation capability 测试的 Connection / model 才能用于分类。
-
-每个 Connection 只持有一个 credential，不实现 credential 池、多 key 排序、跨 Provider 自动 fallback、预算或限流，也不得回退到 Asterism 付费的系统额度。自定义 Connection 的 Generation 测试调用标准 chat completion，并验证返回可解析、非空且满足建议 schema。详见 ADR 0017、0018、0022。
-
-AI 整理输入来自用户任务的已解释候选范围：已持久化的公开仓库内容（owner/name、描述、语言、GitHub topics）以及当前用户现有标签 / 集合；现有分类候选以稳定 ID + 显示名称发送，模型对现有分类的建议只接受稳定 ID，服务端拒绝未知或不属于当前用户的 ID。建议新建分类使用带 `relationType` 的名称，由服务端规范化并检查大小写、空白与近似名称。单次 Generation 请求最多包含 50 个仓库，服务端再次校验上限；完整任务可由系统内部有界分页，但必须披露整体工作量、保持稳定任务身份、支持暂停 / 恢复，并以确定性规则处理跨页重复或近似分类。当前用户私有笔记只有在用户明确启用 `include_notes_in_ai` 后才加入 Generation 输入。任务开始前必须展示实际字段、长文本截断上限与目标 Provider；超过上限的长文本只按已披露边界截断，关闭笔记发送后不得把笔记正文传给任何 Adapter。不得读取其他用户的笔记或组织数据，也不得把 README 发送给 Generation Provider。
-
-README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，不进入 Phase 2 的 AI 分类输入，也不建立搜索索引。
+README 继续遵循 ADR 0011：只在用户打开工作区时实时获取，HTML 仅有 5 分钟会话内缓存，也不建立搜索索引。
 
 ### README 实时读取
 
@@ -143,4 +135,4 @@ README 工作区走独立的非持久化读取链：Web 路由 → TanStack Quer
 - **最小权限原则**：默认申请满足只读浏览所需的最小 scope，避免过度授权。
 - **会话**：跨端共享 Supabase 会话；扩展端可用 `chrome.identity.launchWebAuthFlow` 或共享会话两种方式之一。
 
-权限相关的安全约束（密钥不入库、BYOK 加密等）见 `conventions.md` 与 `data-model.md`。
+权限与密钥安全约束见 `conventions.md` 与 `data-model.md`。

@@ -1,6 +1,6 @@
 # ADR 0031 · 客户端驱动的有界分页 Generation loop
 
-- Status: Accepted
+- Status: Superseded by ADR 0032
 - Date: 2026-07-30
 - Related: ADR 0023、0029、0030、GitHub #23、#25
 

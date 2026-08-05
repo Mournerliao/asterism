@@ -1,6 +1,6 @@
 # 0018 · 类型化 Generation Provider Registry
 
-- Status: Accepted
+- Status: Superseded by ADR 0032
 - Date: 2026-07-18
 
 > ADR 0022 已移除 Embedding 与语义搜索；本 ADR 当前只适用于 Generation Provider。

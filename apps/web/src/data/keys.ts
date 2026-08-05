@@ -37,31 +37,6 @@ export const bulkOperationKeys = {
   list: (userId: string) => ['bulk-operations', userId] as const,
 };
 
-export const aiConnectionKeys = {
-  all: ['ai-connections'] as const,
-  list: (userId: string) => ['ai-connections', userId] as const,
-};
-
-export const aiSettingsKeys = {
-  all: ['ai-settings'] as const,
-  detail: (userId: string) => ['ai-settings', userId] as const,
-};
-
-export const aiOrganizationKeys = {
-  all: ['ai-organization'] as const,
-  draft: (userId: string) => ['ai-organization', 'draft', userId] as const,
-};
-
-export const organizationTaskKeys = {
-  all: ['organization-tasks'] as const,
-  list: (userId: string) => ['organization-tasks', userId, 'list'] as const,
-  detail: (userId: string, taskId: string) =>
-    ['organization-tasks', userId, 'detail', taskId] as const,
-  review: (userId: string, taskId: string, planRevision: number) =>
-    ['organization-tasks', userId, 'review', taskId, planRevision] as const,
-  opportunities: (userId: string) => ['organization-tasks', userId, 'opportunities'] as const,
-};
-
 export const embeddingKeys = {
   all: ['embeddings'] as const,
   search: (userId: string, query: string) => ['embeddings', 'search', userId, query] as const,

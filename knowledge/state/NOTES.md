@@ -1,5 +1,9 @@
 # NOTES · 工作便签
 
+- **本地 Supabase CLI（2026-08-06）**：仓库根 devDependency 已提供 `supabase@2.109.1`，并已通过 `pnpm exec supabase --version` 验证。Windows 环境不依赖全局 `supabase` 命令；当前仍缺 Docker，因此本地数据库启动与 migration smoke 仍需先补齐容器运行时。
+
+- **AI 整理退役的远端收尾（2026-08-06）**：维护者项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260804120000_organization_plan_review_execution.sql` 与 `20260805120000_remove_ai_organization.sql`，删除四个退役 Edge Functions 和四项 `AI_*` secrets，并部署不再依赖 AI 表的 `sync-stars` / `bulk-organize`。其他自托管环境仍须顺序重放历史 migration，再由退役 migration 收敛；不要删除历史 migration。见 ADR 0032 与 `logs/2026-08-06-retire-ai-organization-remote.md`。
+
 > 持久状态层（Durable State）的"草稿纸"。模型没有跨会话记忆，本文件就是放在 **context 之外** 的便签：随手记下中途的发现、临时结论、易忘的指针，下次进来先扫一眼即可快速恢复状态。
 
 ## 如何使用本文件

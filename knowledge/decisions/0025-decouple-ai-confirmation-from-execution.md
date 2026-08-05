@@ -1,6 +1,6 @@
 # 0025 · AI 整理确认事务与批量执行解耦
 
-- Status: Accepted
+- Status: Superseded by ADR 0032
 - Date: 2026-07-23
 
 ## 背景

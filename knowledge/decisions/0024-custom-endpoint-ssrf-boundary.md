@@ -1,6 +1,6 @@
 # 0024 · 自定义 endpoint SSRF 边界与部署者 allowlist
 
-- Status: Accepted
+- Status: Superseded by ADR 0032
 - Date: 2026-07-20
 
 > 落实 `contracts/conventions.md` 的「AI Provider 网络边界」，关闭 BACKLOG「Phase 2 技术验证 — 自定义 endpoint 安全」。承接 ADR 0017（BYOK 加密）与 0018（Provider Registry）。

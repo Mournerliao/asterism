@@ -18,7 +18,6 @@ import { LogOutIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
-import { AiConnectionsManager } from '../components/ai-connections-manager';
 import { PageHeader } from '../components/page-header';
 import { supabase } from '../lib/supabase';
 
@@ -136,8 +135,6 @@ export function SettingsPage() {
           </Button>
         </div>
       </section>
-
-      <AiConnectionsManager />
     </div>
   );
 }

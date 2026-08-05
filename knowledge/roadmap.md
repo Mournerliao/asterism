@@ -6,15 +6,14 @@
 
 - **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
 - **Phase 1 已完成**：Web MVP 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁已于 2026-07-18 全部验收。
-- **Phase 2 已完成**：可靠批量整理与选中导出、加密 BYOK Generation Connections，以及可生成、持久化审阅并经受信事务确认的 AI 整理草稿已于 2026-07-23 全部验收；维护者 Supabase 环境已完成真实链路 smoke，四道工程门禁全绿。
-- **Phase 2.1 正在实现**：ADR 0029 已接受目标优先的自然 AI 整理调整；用户选择 B「规划对话」作为主交互骨架，buildable spec 为 GitHub #23，实现 tickets 为 #24–#28。#24、#25 已完成并经真实环境验收，当前 frontier 为 #26 风险审阅 / 可靠执行。Phase 3 在该调整完成前暂不启动。
+- **Phase 2 已完成并收敛**：可靠手动批量整理、选中导出、浏览器内 embedding、隐形混合搜索与 Related Stars 已交付；服务端 AI 整理及 BYOK Generation 于 2026-08-05 按 ADR 0032 退役。
+- **当前 frontier 为 Phase 3**：浏览器扩展可开始，AI 整理不再阻塞跨端路线。
 
 | 阶段 | 名称 | 状态 |
 | --- | --- | --- |
 | Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
 | Phase 1 | Web MVP | Done（2026-07-18） |
-| Phase 2 | AI（BYOK）+ 批量整理 | Done（2026-07-23） |
-| Phase 2.1 | 自然 AI 整理调整 | 实现中（#24、#25 Done；frontier #26） |
+| Phase 2 | 批量整理 + 浏览器内语义检索 | Done（2026-08-05，AI 整理已退役） |
 | Phase 3 | 浏览器扩展 Extension | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |
 
@@ -48,37 +47,19 @@
 
 完成判据：用户可登录、同步、组织（标签/集合/笔记）、搜索筛选并查看统计，数据按 RLS 隔离且经 `packages/db` 从 Postgres 读取；提供可执行的 Supabase Cloud + 静态托管自部署文档。当前不承诺离线浏览、主动跨会话推送或完整 Supabase Docker 自托管。
 
-## Phase 2 · AI（BYOK）+ 批量整理
+## Phase 2 · 批量整理 + 浏览器内语义检索
 
-目标：先深化 Web 的 AI 辅助分类与重度用户整理工作流，再扩展到新端。
-
-里程碑：
-
-- AI 自动分类：只处理用户手动选择或“全选当前筛选结果”的仓库，调用前显示数量，不扫描或自动整理整个库；可建议添加或移除标签 / 集合关系，并生成可逐项审阅、取消的整理建议草稿。未确认草稿按用户持久化，刷新或离开后可继续；确认、丢弃或重新生成后清理旧草稿。优先复用用户现有标签 / 集合，新分类经规范化与近似名称检查后作为独立建议，只有用户单独确认才创建。添加与移除经用户明确确认后通过批量整理写入，不提供无人值守自动修改。
-- AI 数据范围：分类固定使用 owner/name、描述、语言、GitHub topics 与用户现有标签 / 集合；当前用户笔记只有在明确启用后才发送。首次分类前展示发送字段与目标 Provider；README 和其他用户私有数据不发送。
-- Edge Functions：服务端安全持有/转发用户 Generation credential，并执行分类调用。
-- Generation Provider Registry：首批内置 OpenAI、Google Gemini、Anthropic 与 OpenRouter Adapter，只有通过 Generation capability 测试的 Connection / model 才能用于分类。
-- 自定义兼容 Connection：用户可填写具名 HTTPS endpoint、credential 与模型 ID，接入 DeepSeek 等 OpenAI-compatible 服务；`/models` 发现失败时允许手填模型 ID。
-- BYOK：每个 Connection 保存一个类型化 credential，由 Edge Function 持久化加密，支持测试、启用/停用、替换、删除与 master key 轮换（`ai_provider_connections`）；不建立多 key 池或 fallback 顺序。
-- 批量整理：先于 AI 落地。手动选择或“全选当前筛选结果”在确认时固化 repository ID 范围；标签 / 集合写入使用持久化批量操作与逐关系结果，成功项保留、失败项分类、只重试可重试失败，刷新或中断后可恢复。选中仓库可导出 JSON 部分备份、CSV 清单或 Markdown 可读归档；不持久化命名筛选，也不保存关键词或语义查询历史。
-- 权限边界：批量整理只写 Asterism 私有数据，不执行 GitHub star/unstar，不申请 `public_repo` scope。
-- 范围边界：ADR 0026（Accepted）确立**检索优先范式**，取代此前「不含 Embedding / 语义搜索」的边界——引入浏览器内 embedding（默认 `multilingual-e5-small`，非 BYOK）、隐形混合搜索与相关收藏；向量按用户存于 `user_repo_embeddings`、客户端直写。ADR 0027 基于真实个人库验证否决全库涌现簇与 promotion，ADR 0028 移除没有独占用户任务的二维语义星图；正式语义交互收敛为搜索与 Repo Quick Look 中允许为空的局部邻域。
-
-完成判据：用户配置通过测试的 Generation Connection 与自有 credential 后，可生成、审阅并取消部分 AI 整理建议，在明确确认后通过批量整理写入标签 / 集合；模型不得直接改写用户组织数据。内置与自定义兼容 Connection 遵循同一 Generation capability 测试和密钥安全合同；credential 不明文落库、不返回客户端、不进入仓库或日志，并可测试、启用/停用、替换、删除及完成 master key 轮换。系统不自动回退到 Asterism 付费额度，也不在本阶段建设多 key、跨 Provider fallback、预算或限流 Gateway；重度用户可完成可访问、可恢复的批量本地整理，全程不扩大 GitHub OAuth 写权限。Browse 搜索继续使用 Phase 1 的关键词能力。
-
-## Phase 2.1 · 自然 AI 整理调整
-
-目标：让系统承担范围发现与技术分批，用户只需表达整理结果并审批有长期语义或破坏风险的动作。
+目标：深化 Web 端的可靠整理与查找能力，再扩展到新端。
 
 里程碑：
 
-- 用真实个人库原型验证“整理机会 → 整理目标 → 全库候选解释 → 风险分层审阅 → 执行 / 撤销”的完整体验。
-- 首次同步帮助用户建立用途导向的初始秩序；后续同步主要维护新增内容，并只在存在清晰机会时给出可忽略提示，不追求 Inbox Zero。
-- Generation 在一个持久整理任务内按 Provider / 工具边界有界分页，向用户披露整体范围、费用与进度；手动选择退为可选精确上下文。
-- 加入已有分类、新分类与移除关系按风险使用不同确认粒度；不确定项不操作。
-- 执行继续复用可靠批量账本，并提供任务级撤销；canonical / derived、BYOK、稳定 ID 与隐私披露边界不变。
+- 手动选择或“全选当前筛选结果”在确认时固化 repository ID 范围。
+- 标签 / 集合写入使用持久化逐关系账本，成功项保留，失败项分类并可恢复重试。
+- 选中仓库可导出 JSON 部分备份、CSV 清单或 Markdown 可读归档。
+- 浏览器内 `multilingual-e5-small` embedding 支撑隐形混合搜索与 Related Stars；向量按用户存于 `user_repo_embeddings`，不写 canonical。
+- 不提供服务端 Generation、BYOK Connection、AI 草稿或 Organization Task；历史 AI 执行形成的普通标签、集合及关系继续保留。
 
-完成判据：经批准的原型、规格与实现共同证明，数百条 Star 的用户无需手工挑批或逐条通读即可委托一个完整整理目标；全过程可解释、可暂停 / 恢复、按风险授权且可按任务撤销。具体 schema、状态机、费用策略与 UI 形态不在路线图中预设。
+完成判据：重度用户可完成可访问、可恢复的手动批量整理，并在 embedding 不可用时无损降级到关键词搜索；全过程不扩大 GitHub OAuth 写权限，不保存 AI Provider credential。
 
 ## Phase 3 · 浏览器扩展（Extension）
 

@@ -23,6 +23,7 @@ import {
   SelectValue,
 } from '@asterism/ui';
 import { ArrowUpDownIcon, ChevronDownIcon, SlidersHorizontalIcon, XIcon } from 'lucide-react';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import { FacetPicker } from './facet-picker';
@@ -34,7 +35,15 @@ const FILTER_TRIGGER_CLASS =
   'rounded-lg border-[var(--glass-border)] text-caption shadow-none hover:bg-accent/70';
 const ACTIVE_FILTER_TRIGGER_CLASS = 'border-primary/30 bg-primary/5 hover:bg-primary/10';
 
-export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[] }) {
+export function RepoFilterBar({
+  facets,
+  tags,
+  children,
+}: {
+  facets: RepoFacets;
+  tags: Tag[];
+  children?: ReactNode;
+}) {
   const { t, i18n } = useTranslation();
   const filters = useBrowseFilters();
   const active = hasActiveFilter(toRepoFilter(filters));
@@ -204,9 +213,6 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
             <XIcon className="size-4" />
           </Button>
         ) : null}
-      </div>
-
-      <div className="ml-0 flex shrink-0 items-center sm:ml-auto">
         <Select value={filters.sort} onValueChange={(value) => filters.setSort(value as RepoSort)}>
           <SelectTrigger size="sm" className={`${FILTER_TRIGGER_CLASS} min-w-40`}>
             <ArrowUpDownIcon className="size-4 text-muted-foreground" />
@@ -220,6 +226,10 @@ export function RepoFilterBar({ facets, tags }: { facets: RepoFacets; tags: Tag[
           </SelectContent>
         </Select>
       </div>
+
+      {children ? (
+        <div className="ml-0 flex shrink-0 items-center sm:ml-auto">{children}</div>
+      ) : null}
     </div>
   );
 }

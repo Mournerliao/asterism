@@ -1,5 +1,7 @@
 # NOTES · 工作便签
 
+- **Browse 选择入口与模式（2026-08-06）**：排序控件已并入 Language / Topic / More filters 的左侧筛选组；批量选择入口移动到筛选行右端。进入选择模式后，页面头部保持标题、视图切换、筛选与排序的稳定结构，选择数量、全选范围、整理、导出 / 清空与完成全部收拢到固定在内容视口底部的操作栏；桌面滚动、390px 窄屏及 en / zh-CN 已完成浏览器核验。见 `logs/2026-08-06-browse-selection-toolbar-layout.md` 与 `logs/2026-08-06-browse-selection-mode-redesign.md`。
+
 - **本地 Supabase CLI（2026-08-06）**：仓库根 devDependency 已提供 `supabase@2.109.1`，并已通过 `pnpm exec supabase --version` 验证。Windows 环境不依赖全局 `supabase` 命令；当前仍缺 Docker，因此本地数据库启动与 migration smoke 仍需先补齐容器运行时。
 
 - **AI 整理退役的远端收尾（2026-08-06）**：维护者项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260804120000_organization_plan_review_execution.sql` 与 `20260805120000_remove_ai_organization.sql`，删除四个退役 Edge Functions 和四项 `AI_*` secrets，并部署不再依赖 AI 表的 `sync-stars` / `bulk-organize`。其他自托管环境仍须顺序重放历史 migration，再由退役 migration 收敛；不要删除历史 migration。见 ADR 0032 与 `logs/2026-08-06-retire-ai-organization-remote.md`。

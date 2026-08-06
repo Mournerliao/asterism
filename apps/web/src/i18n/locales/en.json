@@ -177,6 +177,33 @@
       "activity": "Activity"
     }
   },
+  "collectionDial": {
+    "title": "Try the Collection Dial",
+    "description": "A throwaway surface for testing how a temporary collection chooser feels during Browse. Pick a repository, rotate with Q / E or the arrows, then drop it into one collection.",
+    "browseSurface": "Starred repositories",
+    "continuousHint": "10-repository desktop run",
+    "activeRepo": "Ready to place",
+    "target": "Active collection",
+    "pick": "Pick up",
+    "dragHint": "Q / E or ← / → rotates without wrapping. Drop is the only simulated write.",
+    "drop": "Drop here",
+    "pending": "Saving…",
+    "failure": "The simulated write failed. The repository and target are still held.",
+    "retry": "Retry",
+    "success": "Added to {{collection}}",
+    "undone": "Last drop undone",
+    "undo": "Undo",
+    "cancel": "Cancel pickup",
+    "previous": "Previous collection",
+    "next": "Next collection",
+    "reset": "Reset prototype",
+    "dockTitle": "Collection Dock",
+    "dockDescription": "The target stays in reach while the list keeps its browsing rhythm.",
+    "emptyDial": "Pick up a repository to open the dial.",
+    "variantNav": "Prototype variants",
+    "previousVariant": "Previous prototype variant",
+    "nextVariant": "Next prototype variant"
+  },
   "drawer": {
     "title": "Repository Details",
     "stars": "{{value}} stars",

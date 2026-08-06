@@ -177,6 +177,33 @@
       "activity": "动态"
     }
   },
+  "collectionDial": {
+    "title": "试用集合盘",
+    "description": "这是一个用于验证 Browse 中临时集合选择器的抛弃式原型。选择仓库后，用 Q / E 或方向键转动，再投放到一个集合。",
+    "browseSurface": "已收藏仓库",
+    "continuousHint": "桌面连续处理 10 个仓库",
+    "activeRepo": "待投放仓库",
+    "target": "当前集合",
+    "pick": "拿起",
+    "dragHint": "Q / E 或 ← / → 转动，不循环。投放是唯一模拟写入。",
+    "drop": "投放到这里",
+    "pending": "保存中…",
+    "failure": "模拟写入失败。仓库和目标仍保留，可重试。",
+    "retry": "重试",
+    "success": "已加入 {{collection}}",
+    "undone": "已撤销上次投放",
+    "undo": "撤销",
+    "cancel": "取消拿起",
+    "previous": "上一个集合",
+    "next": "下一个集合",
+    "reset": "重置原型",
+    "dockTitle": "集合 Dock",
+    "dockDescription": "浏览列表保持节奏，目标集合始终在手边。",
+    "emptyDial": "选择一个仓库即可打开集合盘。",
+    "variantNav": "原型变体",
+    "previousVariant": "上一个原型变体",
+    "nextVariant": "下一个原型变体"
+  },
   "drawer": {
     "title": "仓库详情",
     "stars": "{{value}} Star",

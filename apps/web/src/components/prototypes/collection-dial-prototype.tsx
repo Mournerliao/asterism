@@ -1,11 +1,5 @@
 import { Button } from '@asterism/ui';
-import {
-  CheckIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  GripVerticalIcon,
-  RotateCcwIcon,
-} from 'lucide-react';
+import { ArrowRightIcon, CheckIcon, GripVerticalIcon, RotateCcwIcon } from 'lucide-react';
 import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
@@ -126,9 +120,9 @@ function getVisibleFolderCount(width: number): VisibleFolderCount {
   return 3;
 }
 
-function getVisibleWindowStart(target: number, count: VisibleFolderCount) {
+function getCenteredWindowStart(target: number, count: VisibleFolderCount) {
   const half = Math.floor(count / 2);
-  return Math.min(Math.max(target - half, 0), COLLECTIONS.length - count);
+  return target - half;
 }
 
 function getFolderPosition(count: VisibleFolderCount, slot: number): FolderPosition {
@@ -209,11 +203,13 @@ function CollectionFolder({
 }) {
   const { t } = useTranslation();
   const position = getFolderPosition(visibleCount, slot);
+  const centerSlot = Math.floor(visibleCount / 2);
   const style = {
     '--folder-x': position.x,
     '--folder-y': position.y,
     '--folder-rotate': `${position.rotate}deg`,
     '--folder-scale': position.scale,
+    '--folder-depth': Math.max(0, visibleCount - Math.abs(slot - centerSlot)),
   } as CSSProperties;
 
   return (
@@ -229,7 +225,7 @@ function CollectionFolder({
         tabIndex={visible ? 0 : -1}
         aria-hidden={visible ? undefined : true}
         aria-label={t('collectionDial.selectCollection', { collection: name })}
-        aria-current={selected ? 'true' : undefined}
+        aria-pressed={selected}
       >
         <span className="collection-folder__shadow" aria-hidden="true" />
         <span className="collection-folder__back" aria-hidden="true">
@@ -241,8 +237,10 @@ function CollectionFolder({
         <span className="collection-folder__front" aria-hidden="true">
           <span className="collection-folder__shine" />
         </span>
-        <span className="collection-folder__label">{name}</span>
       </button>
+      <span className="collection-folder__label" aria-hidden="true">
+        {name}
+      </span>
     </div>
   );
 }
@@ -272,6 +270,7 @@ export function CollectionDialPrototype() {
   const dragOverlayRef = useRef<HTMLDivElement | null>(null);
   const suppressClickRef = useRef(false);
   const timersRef = useRef<number[]>([]);
+  const failedRepoIdsRef = useRef(new Set<string>());
 
   useEffect(() => {
     const element = prototypeRef.current;
@@ -296,22 +295,41 @@ export function CollectionDialPrototype() {
 
   useEffect(() => clearTimers, [clearTimers]);
 
-  const rotate = useCallback((direction: number) => {
-    setTarget((current) => Math.max(0, Math.min(COLLECTIONS.length - 1, current + direction)));
-    setHoveredTarget(null);
-  }, []);
+  const selectTarget = useCallback(
+    (index: number) => {
+      if (phase === 'pending') return;
+      setTarget(Math.max(0, Math.min(COLLECTIONS.length - 1, index)));
+      setHoveredTarget(null);
+      setPhase('ready');
+      setUndoAvailable(false);
+    },
+    [phase],
+  );
+
+  const rotate = useCallback(
+    (direction: number) => {
+      if (phase === 'pending') return;
+      setTarget((current) => Math.max(0, Math.min(COLLECTIONS.length - 1, current + direction)));
+      setHoveredTarget(null);
+      setPhase('ready');
+      setUndoAvailable(false);
+    },
+    [phase],
+  );
 
   const reset = useCallback(() => {
     clearTimers();
     pointerSessionRef.current = null;
     dragPointRef.current = null;
     setActiveId(null);
+    setTarget(3);
     setHoveredTarget(null);
     setPhase('ready');
     setDragging(false);
     setDragPoint(null);
     setDropVector(null);
     setUndoAvailable(false);
+    failedRepoIdsRef.current.clear();
   }, [clearTimers]);
 
   const pick = useCallback((repo: Repo) => {
@@ -332,7 +350,12 @@ export function CollectionDialPrototype() {
     const element = document.elementFromPoint(point.x, point.y);
     const folder = element?.closest<HTMLElement>('[data-collection-index]');
     const index = folder ? Number(folder.dataset.collectionIndex) : Number.NaN;
-    setHoveredTarget(Number.isInteger(index) ? index : null);
+    if (Number.isInteger(index)) {
+      setHoveredTarget(index);
+      setTarget(index);
+      return;
+    }
+    setHoveredTarget(null);
   }, []);
 
   const finishDrop = useCallback(
@@ -360,14 +383,15 @@ export function CollectionDialPrototype() {
         setDragPoint(null);
         setDropVector(null);
         setHoveredTarget(null);
-        if (active.id === '4') {
+        if (active.id === '4' && !failedRepoIdsRef.current.has(active.id)) {
+          failedRepoIdsRef.current.add(active.id);
           setPhase('failure');
           return;
         }
         setPhase('success');
         setLastAction(t('collectionDial.success', { collection: COLLECTIONS[collectionIndex] }));
         setUndoAvailable(true);
-      }, 460);
+      }, 240);
       timersRef.current.push(timer);
     },
     [active.id, phase, t],
@@ -467,19 +491,19 @@ export function CollectionDialPrototype() {
       const tag = targetElement?.tagName;
       if (tag === 'INPUT' || tag === 'TEXTAREA' || targetElement?.isContentEditable) return;
 
-      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'q') {
+      if (activeId && (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'q')) {
         event.preventDefault();
         rotate(-1);
       }
-      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'e') {
+      if (activeId && (event.key === 'ArrowRight' || event.key.toLowerCase() === 'e')) {
         event.preventDefault();
         rotate(1);
       }
       if (
         event.key === 'Enter' &&
         activeId &&
-        phase !== 'pending' &&
-        targetElement?.closest('.collection-dial-repo, .collection-folder')
+        phase === 'ready' &&
+        targetElement?.closest('.collection-dial-repo')
       ) {
         event.preventDefault();
         finishDrop(target);
@@ -498,7 +522,7 @@ export function CollectionDialPrototype() {
         '--drop-y': `${dropVector?.y ?? 0}px`,
       } as CSSProperties)
     : undefined;
-  const visibleWindowStart = getVisibleWindowStart(target, visibleFolderCount);
+  const visibleWindowStart = getCenteredWindowStart(target, visibleFolderCount);
 
   return (
     <div
@@ -542,44 +566,67 @@ export function CollectionDialPrototype() {
       </section>
 
       {activeId ? (
-        <section
-          className="collection-dial-tray"
-          aria-label={t('collectionDial.dialLabel')}
-          onWheel={(event) => {
-            if (Math.abs(event.deltaY) < 4) return;
-            rotate(event.deltaY > 0 ? 1 : -1);
-          }}
-        >
-          <div className="collection-dial-tray__scrim" />
+        <section className="collection-dial-tray" aria-label={t('collectionDial.dialLabel')}>
+          <div className="collection-dial-tray__scrim" aria-hidden="true" />
           <div className="collection-dial-tray__shell">
-            <div className="collection-dial-tray__arc" aria-hidden="true" />
-            <div className="sr-only" role="status" aria-live="polite">
-              <span>{phase === 'failure' ? t('collectionDial.failureShort') : active.name}</span>
-              <strong>
-                {phase === 'pending' ? t('collectionDial.pending') : t('collectionDial.hoverHint')}
-              </strong>
+            <div className="collection-dial-tray__context">
+              <div className="collection-dial-tray__placement">
+                <span className="collection-dial-tray__repo">{active.name}</span>
+                <ArrowRightIcon aria-hidden="true" />
+                <span className="collection-dial-tray__target">{COLLECTIONS[target]}</span>
+                <span className="collection-dial-tray__position">
+                  {t('collectionDial.position', {
+                    current: target + 1,
+                    total: COLLECTIONS.length,
+                  })}
+                </span>
+                <span className="collection-dial-tray__key-hint" aria-hidden="true">
+                  <kbd>Q</kbd>
+                  <kbd>E</kbd>
+                  <span>{t('collectionDial.switchHint')}</span>
+                </span>
+              </div>
+              <p
+                id="collection-dial-status"
+                className="collection-dial-tray__status"
+                data-error={phase === 'failure' || undefined}
+                role="status"
+                aria-live="polite"
+              >
+                {phase === 'failure'
+                  ? t('collectionDial.failureShort')
+                  : phase === 'pending'
+                    ? t('collectionDial.pending')
+                    : phase === 'success'
+                      ? lastAction
+                      : t('collectionDial.selectionHint')}
+              </p>
+              <div className="collection-dial-tray__actions">
+                <Button size="sm" variant="ghost" onClick={reset} disabled={phase === 'pending'}>
+                  {t('collectionDial.cancel')}
+                </Button>
+                {phase === 'failure' ? (
+                  <Button size="sm" onClick={() => finishDrop(target)}>
+                    <RotateCcwIcon className="size-3.5" />
+                    {t('collectionDial.retry')}
+                  </Button>
+                ) : phase !== 'success' ? (
+                  <Button
+                    size="sm"
+                    onClick={() => finishDrop(target)}
+                    disabled={phase === 'pending'}
+                    aria-describedby="collection-dial-status"
+                    aria-keyshortcuts="Enter"
+                  >
+                    {phase === 'pending'
+                      ? t('collectionDial.pending')
+                      : t('collectionDial.addToCollection', {
+                          collection: COLLECTIONS[target],
+                        })}
+                  </Button>
+                ) : null}
+              </div>
             </div>
-
-            <button
-              type="button"
-              className="collection-dial-tray__step collection-dial-tray__step--previous"
-              onClick={() => rotate(-1)}
-              disabled={target === 0}
-              aria-label={t('collectionDial.previous')}
-            >
-              <ChevronLeftIcon />
-              <kbd>Q</kbd>
-            </button>
-            <button
-              type="button"
-              className="collection-dial-tray__step collection-dial-tray__step--next"
-              onClick={() => rotate(1)}
-              disabled={target === COLLECTIONS.length - 1}
-              aria-label={t('collectionDial.next')}
-            >
-              <kbd>E</kbd>
-              <ChevronRightIcon />
-            </button>
 
             <div className="collection-dial-tray__folders">
               {COLLECTIONS.map((collection, index) => {
@@ -594,26 +641,16 @@ export function CollectionDialPrototype() {
                     visible={visible}
                     name={collection}
                     selected={target === index}
-                    open={hoveredTarget === index || (!dragging && target === index)}
+                    open={
+                      (dragging && hoveredTarget === index) ||
+                      (phase === 'pending' && target === index)
+                    }
                     pending={phase === 'pending' && target === index}
-                    onSelect={() => {
-                      setTarget(index);
-                      setHoveredTarget(null);
-                      finishDrop(index);
-                    }}
+                    onSelect={() => selectTarget(index)}
                   />
                 );
               })}
             </div>
-
-            {phase === 'failure' ? (
-              <div className="collection-dial-tray__actions">
-                <Button size="sm" variant="outline" onClick={() => finishDrop(target)}>
-                  <RotateCcwIcon className="size-3.5" />
-                  {t('collectionDial.retry')}
-                </Button>
-              </div>
-            ) : null}
           </div>
         </section>
       ) : null}

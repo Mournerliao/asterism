@@ -40,7 +40,7 @@
 .collection-dial-prototype__browse {
   width: 100%;
   overflow-y: auto;
-  padding: 7.5rem 1.5rem 23rem;
+  padding: 7.5rem 1.5rem 20rem;
   transition:
     filter 220ms var(--ease-out-quart),
     opacity 220ms var(--ease-out-quart);
@@ -111,8 +111,7 @@
 }
 
 .collection-dial-repo:focus-visible,
-.collection-folder:focus-visible,
-.collection-dial-tray__step:focus-visible {
+.collection-folder:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
@@ -165,83 +164,135 @@
 .collection-dial-tray {
   position: absolute;
   z-index: 10;
-  inset: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 22rem;
   pointer-events: none;
-  animation: collection-tray-enter 360ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  animation: collection-tray-enter 220ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 
 .collection-dial-tray__scrim {
   position: absolute;
-  inset: 0;
+  inset: -5rem 0 0;
   background: linear-gradient(
     to bottom,
-    transparent 38%,
-    color-mix(in oklch, var(--background) 42%, transparent) 60%,
-    color-mix(in oklch, var(--background) 94%, transparent) 100%
+    transparent 0%,
+    color-mix(in oklch, var(--background) 12%, transparent) 18%,
+    color-mix(in oklch, var(--background) 34%, transparent) 48%,
+    color-mix(in oklch, var(--background) 64%, transparent) 100%
   );
-  backdrop-filter: blur(2px);
-  mask-image: linear-gradient(to bottom, transparent 34%, black 74%);
+  backdrop-filter: blur(16px) saturate(1.08);
+  mask-image: linear-gradient(to bottom, transparent 0%, black 42%);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 42%);
 }
 
 .collection-dial-tray__shell {
   position: absolute;
-  bottom: -11rem;
+  bottom: 0;
   left: 50%;
-  width: min(68rem, 100%);
-  height: 31rem;
+  width: min(72rem, 100%);
+  height: 22rem;
   overflow: visible;
   pointer-events: auto;
   transform: translateX(-50%);
 }
 
-.collection-dial-tray__shell::before {
+.collection-dial-tray__context {
   position: absolute;
-  z-index: -1;
-  top: 2.5rem;
-  right: 4%;
-  bottom: 8rem;
-  left: 4%;
-  content: "";
-  background:
-    radial-gradient(
-      ellipse at 50% 38%,
-      color-mix(in oklch, var(--primary) 11%, var(--glass-surface-strong)) 0%,
-      color-mix(in oklch, var(--card) 72%, transparent) 46%,
-      transparent 76%
-    ),
-    linear-gradient(
-      to bottom,
-      color-mix(in oklch, var(--glass-surface-strong) 68%, transparent),
-      color-mix(in oklch, var(--background) 84%, transparent)
-    );
-  border-radius: 50%;
-  filter: blur(26px);
-  opacity: 0.94;
-  transform: scaleX(1.04);
+  z-index: 8;
+  top: 0.75rem;
+  left: 50%;
+  display: grid;
+  width: min(38rem, calc(100% - 8rem));
+  justify-items: center;
+  gap: 0.5rem;
+  transform: translateX(-50%);
 }
 
-.collection-dial-tray__shell::after {
-  position: absolute;
-  z-index: -1;
-  right: 12%;
-  bottom: 10.5rem;
-  left: 12%;
-  height: 4.5rem;
-  content: "";
-  background: color-mix(in oklch, var(--foreground) 9%, transparent);
-  border-radius: 50%;
-  filter: blur(24px);
-  opacity: 0.52;
+.collection-dial-tray__placement {
+  display: flex;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  color: var(--foreground);
+  font-size: 0.875rem;
+  font-weight: 600;
 }
 
-.collection-dial-tray__arc {
-  display: none;
+.collection-dial-tray__placement svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+}
+
+.collection-dial-tray__repo,
+.collection-dial-tray__target {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-dial-tray__repo {
+  max-width: 15rem;
+}
+
+.collection-dial-tray__target {
+  max-width: 13rem;
+  color: var(--link);
+}
+
+.collection-dial-tray__position {
+  flex: 0 0 auto;
+  padding: 0.125rem 0.375rem;
+  color: var(--muted-foreground);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  font-weight: 500;
+  background: var(--muted);
+  border-radius: var(--radius-sm);
+}
+
+.collection-dial-tray__key-hint {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: var(--text-micro);
+  font-weight: 500;
+}
+
+.collection-dial-tray__key-hint kbd {
+  display: grid;
+  width: 1.25rem;
+  height: 1.25rem;
+  place-items: center;
+  font-family: var(--font-mono);
+  background: color-mix(in oklch, var(--muted) 72%, transparent);
+  border: 1px solid color-mix(in oklch, var(--border) 72%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.collection-dial-tray__status {
+  min-height: 1rem;
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+  text-align: center;
+}
+
+.collection-dial-tray__status[data-error] {
+  color: var(--destructive);
 }
 
 .collection-dial-tray__folders {
   position: absolute;
   z-index: 4;
-  top: 6.1rem;
+  top: 7.35rem;
   left: 50%;
   width: 0;
   height: 0;
@@ -251,24 +302,30 @@
   position: absolute;
   top: 0;
   left: 0;
+  z-index: var(--folder-depth);
   width: 8rem;
   height: 7.5rem;
   transform: translateX(clamp(-42vw, calc(var(--folder-x) * 1px), 42vw))
-    translateY(calc(var(--folder-y) * 1px)) rotate(var(--folder-rotate)) scale(var(--folder-scale));
+    translateY(calc(var(--folder-y) * 1px));
   transform-origin: 50% 100%;
   pointer-events: none;
+  filter: blur(2px) saturate(0.86);
   opacity: 0;
   transition:
     opacity 160ms ease-out,
-    transform 260ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+    filter 220ms ease-out,
+    transform 320ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .collection-folder-position[data-visible] {
   pointer-events: auto;
+  filter: none;
   opacity: 1;
 }
 
 .collection-folder {
+  --folder-back-border: color-mix(in oklch, var(--border) 78%, var(--muted-foreground));
+  --folder-front-border: color-mix(in oklch, var(--border) 66%, var(--muted-foreground));
   position: relative;
   display: block;
   width: 100%;
@@ -276,18 +333,25 @@
   padding: 0;
   color: var(--foreground);
   perspective: 420px;
-  transform: translateX(-50%);
+  transform: translateX(-50%) rotate(var(--folder-rotate)) scale(var(--folder-scale));
   transform-style: preserve-3d;
-  transition: transform 220ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.collection-folder[data-selected] {
+  --folder-back-border: color-mix(in oklch, var(--primary) 62%, var(--border));
+  --folder-front-border: color-mix(in oklch, var(--primary) 62%, var(--border));
 }
 
 .collection-folder:hover,
 .collection-folder[data-selected] {
-  transform: translateX(-50%) translateY(-0.4rem) scale(1.035);
+  transform: translateX(-50%) translateY(-0.35rem) rotate(var(--folder-rotate))
+    scale(var(--folder-scale));
 }
 
 .collection-folder[data-open] {
-  transform: translateX(-50%) translateY(-1.1rem) scale(1.08);
+  transform: translateX(-50%) translateY(-0.9rem) rotate(var(--folder-rotate))
+    scale(calc(var(--folder-scale) + 0.05));
 }
 
 .collection-folder__shadow {
@@ -329,7 +393,7 @@
     color-mix(in oklch, var(--card) 88%, var(--secondary)),
     color-mix(in oklch, var(--secondary) 84%, var(--muted-foreground))
   );
-  border: 1px solid color-mix(in oklch, var(--border) 78%, var(--muted-foreground));
+  border: 1px solid var(--folder-back-border);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
   transform-origin: 50% 100%;
   transition: transform 240ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
@@ -393,7 +457,7 @@
     color-mix(in oklch, var(--card) 72%, var(--secondary)),
     color-mix(in oklch, var(--secondary) 78%, var(--muted-foreground))
   );
-  border: 1px solid color-mix(in oklch, var(--border) 66%, var(--muted-foreground));
+  border: 1px solid var(--folder-front-border);
   box-shadow:
     inset 0 1px 0 var(--glass-highlight),
     inset 0 -2px 4px color-mix(in oklch, var(--foreground) 12%, transparent);
@@ -446,15 +510,15 @@
 }
 
 .collection-folder[data-pending] .collection-folder__mouth {
-  animation: collection-mouth-receive 460ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+  animation: collection-mouth-receive 240ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
 }
 
 .collection-folder__label {
   position: absolute;
   z-index: 5;
-  right: -0.5rem;
-  bottom: -0.2rem;
-  left: -0.5rem;
+  top: 7.05rem;
+  left: 0;
+  width: 9.5rem;
   overflow: hidden;
   color: var(--foreground);
   font-size: var(--text-caption);
@@ -464,67 +528,18 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   text-shadow: 0 1px 0 var(--background);
+  transform: translateX(-50%);
 }
 
-.collection-dial-tray__step {
-  position: absolute;
-  z-index: 6;
-  top: 10.8rem;
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  min-width: 2.75rem;
-  min-height: 2.75rem;
-  justify-content: center;
-  color: var(--muted-foreground);
-  background: var(--glass-surface-strong);
-  border-radius: 9999px;
-  box-shadow: var(--glass-shadow);
-  transition:
-    color 150ms ease-out,
-    background-color 150ms ease-out,
-    transform 150ms ease-out;
-}
-
-.collection-dial-tray__step:hover:not(:disabled) {
-  color: var(--foreground);
-  background: var(--accent);
-  transform: scale(1.04);
-}
-
-.collection-dial-tray__step:disabled {
-  cursor: not-allowed;
-  opacity: 0.35;
-}
-
-.collection-dial-tray__step svg {
-  width: 1rem;
-  height: 1rem;
-}
-
-.collection-dial-tray__step kbd {
-  font-family: var(--font-mono);
-  font-size: var(--text-micro);
-}
-
-.collection-dial-tray__step--previous {
-  left: 2rem;
-}
-
-.collection-dial-tray__step--next {
-  right: 2rem;
+.collection-folder[data-selected] + .collection-folder__label {
+  color: var(--link);
 }
 
 .collection-dial-tray__actions {
-  position: absolute;
-  z-index: 8;
-  top: 5.25rem;
-  bottom: auto;
-  left: 50%;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  transform: translateX(-50%);
 }
 
 .collection-drag-object {
@@ -576,8 +591,8 @@
     )
     translate(-50%, -50%) rotate(2deg) scale(0.16);
   transition:
-    transform 420ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)),
-    opacity 300ms 120ms ease-in;
+    transform 220ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 160ms 60ms ease-in;
 }
 
 .collection-dial-toast {
@@ -612,11 +627,11 @@
 @keyframes collection-tray-enter {
   from {
     opacity: 0;
-    transform: translateY(3.5rem) scale(0.98);
+    transform: translateY(1.5rem);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
@@ -655,7 +670,7 @@
   }
 
   .collection-dial-prototype__browse {
-    padding: 6.25rem 1rem 21rem;
+    padding: 6.25rem 1rem 19rem;
   }
 
   .collection-dial-prototype__repos {
@@ -663,36 +678,56 @@
   }
 
   .collection-dial-tray__shell {
-    bottom: -12.5rem;
     width: 100%;
-    height: 29rem;
+    height: 19rem;
   }
 
-  .collection-dial-tray__shell::before {
-    right: -8%;
-    left: -8%;
-    filter: blur(20px);
+  .collection-dial-tray {
+    height: 19rem;
+  }
+
+  .collection-dial-tray__context {
+    top: 0.5rem;
+    width: calc(100% - 2rem);
+  }
+
+  .collection-dial-tray__scrim {
+    inset: -2.5rem 0 0;
+    background: linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in oklch, var(--background) 18%, transparent) 16%,
+      color-mix(in oklch, var(--background) 42%, transparent) 44%,
+      color-mix(in oklch, var(--background) 70%, transparent) 100%
+    );
+    backdrop-filter: blur(14px) saturate(1.08);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 28%);
+    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 28%);
+  }
+
+  .collection-dial-tray__placement {
+    width: 100%;
+    gap: 0.375rem;
+    font-size: var(--text-body);
+  }
+
+  .collection-dial-tray__repo,
+  .collection-dial-tray__target {
+    max-width: 35%;
+  }
+
+  .collection-dial-tray__key-hint {
+    display: none;
   }
 
   .collection-dial-tray__folders {
-    top: 6.75rem;
+    top: 6.5rem;
     transform: scale(0.76);
   }
 
-  .collection-dial-tray__step {
-    top: 5.75rem;
-  }
-
-  .collection-dial-tray__step--previous {
-    left: 0.75rem;
-  }
-
-  .collection-dial-tray__step--next {
-    right: 0.75rem;
-  }
-
-  .collection-dial-tray__actions {
-    top: 5.75rem;
+  .collection-folder__label {
+    transform: translateX(-50%) scale(1.3158);
   }
 }
 
@@ -705,5 +740,19 @@
   .collection-drag-object[data-committing] {
     opacity: 0;
     transform: translate3d(var(--drag-x), var(--drag-y), 0) translate(-50%, -50%);
+  }
+
+  .collection-folder-position,
+  .collection-folder,
+  .collection-folder__shadow,
+  .collection-folder__back,
+  .collection-folder__paper,
+  .collection-folder__mouth,
+  .collection-folder__front {
+    transition: none;
+  }
+
+  .collection-folder[data-pending] .collection-folder__mouth {
+    animation: none;
   }
 }

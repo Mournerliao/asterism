@@ -1,0 +1,709 @@
+.collection-dial-prototype {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  margin: -1.5rem;
+  overflow: hidden;
+  background: var(--background);
+  isolation: isolate;
+}
+
+.collection-dial-prototype__header {
+  position: absolute;
+  z-index: 4;
+  top: 0;
+  right: 0;
+  left: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(to bottom, var(--background) 72%, transparent);
+}
+
+.collection-dial-prototype__header h1 {
+  font-size: var(--text-page-title);
+  font-weight: 700;
+  line-height: 2rem;
+}
+
+.collection-dial-prototype__header p {
+  max-width: 64ch;
+  margin-top: 0.25rem;
+  color: var(--muted-foreground);
+  font-size: var(--text-body);
+  line-height: var(--leading-body);
+}
+
+.collection-dial-prototype__browse {
+  width: 100%;
+  overflow-y: auto;
+  padding: 7.5rem 1.5rem 23rem;
+  transition:
+    filter 220ms var(--ease-out-quart),
+    opacity 220ms var(--ease-out-quart);
+}
+
+.collection-dial-prototype[data-dial-visible] .collection-dial-prototype__browse {
+  filter: saturate(0.82);
+}
+
+.collection-dial-prototype__section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 64rem;
+  margin: 0 auto 0.75rem;
+}
+
+.collection-dial-prototype__section-heading h2 {
+  font-size: var(--text-drawer-title);
+  font-weight: 600;
+}
+
+.collection-dial-prototype__section-heading span {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+}
+
+.collection-dial-prototype__repos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  max-width: 64rem;
+  margin: 0 auto;
+}
+
+.collection-dial-repo {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4.125rem;
+  padding: 0.75rem;
+  color: var(--foreground);
+  text-align: left;
+  touch-action: none;
+  user-select: none;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  transition:
+    background-color 150ms var(--ease-out-quart),
+    border-color 150ms var(--ease-out-quart),
+    transform 150ms var(--ease-out-quart);
+}
+
+.collection-dial-repo:hover {
+  background: color-mix(in oklch, var(--card) 82%, var(--accent));
+  border-color: color-mix(in oklch, var(--border) 45%, var(--primary));
+}
+
+.collection-dial-repo:active {
+  transform: scale(0.992);
+}
+
+.collection-dial-repo[data-active] {
+  background: color-mix(in oklch, var(--card) 88%, var(--primary));
+  border-color: var(--primary);
+}
+
+.collection-dial-repo:focus-visible,
+.collection-folder:focus-visible,
+.collection-dial-tray__step:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+
+.collection-dial-repo__grip {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.75rem;
+  height: 2.5rem;
+  place-items: center;
+  color: var(--muted-foreground);
+  background: var(--muted);
+  border-radius: var(--radius-md);
+}
+
+.collection-dial-repo__grip svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.collection-dial-repo__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.collection-dial-repo__name,
+.collection-dial-repo__description {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-dial-repo__name {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.collection-dial-repo__description,
+.collection-dial-repo__action {
+  color: var(--muted-foreground);
+  font-size: var(--text-caption);
+  line-height: var(--leading-caption);
+}
+
+.collection-dial-repo__action {
+  flex: 0 0 auto;
+}
+
+.collection-dial-tray {
+  position: absolute;
+  z-index: 10;
+  inset: 0;
+  pointer-events: none;
+  animation: collection-tray-enter 360ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)) both;
+}
+
+.collection-dial-tray__scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to bottom,
+    transparent 38%,
+    color-mix(in oklch, var(--background) 42%, transparent) 60%,
+    color-mix(in oklch, var(--background) 94%, transparent) 100%
+  );
+  backdrop-filter: blur(2px);
+  mask-image: linear-gradient(to bottom, transparent 34%, black 74%);
+}
+
+.collection-dial-tray__shell {
+  position: absolute;
+  bottom: -11rem;
+  left: 50%;
+  width: min(68rem, 100%);
+  height: 31rem;
+  overflow: visible;
+  pointer-events: auto;
+  transform: translateX(-50%);
+}
+
+.collection-dial-tray__shell::before {
+  position: absolute;
+  z-index: -1;
+  top: 2.5rem;
+  right: 4%;
+  bottom: 8rem;
+  left: 4%;
+  content: "";
+  background:
+    radial-gradient(
+      ellipse at 50% 38%,
+      color-mix(in oklch, var(--primary) 11%, var(--glass-surface-strong)) 0%,
+      color-mix(in oklch, var(--card) 72%, transparent) 46%,
+      transparent 76%
+    ),
+    linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--glass-surface-strong) 68%, transparent),
+      color-mix(in oklch, var(--background) 84%, transparent)
+    );
+  border-radius: 50%;
+  filter: blur(26px);
+  opacity: 0.94;
+  transform: scaleX(1.04);
+}
+
+.collection-dial-tray__shell::after {
+  position: absolute;
+  z-index: -1;
+  right: 12%;
+  bottom: 10.5rem;
+  left: 12%;
+  height: 4.5rem;
+  content: "";
+  background: color-mix(in oklch, var(--foreground) 9%, transparent);
+  border-radius: 50%;
+  filter: blur(24px);
+  opacity: 0.52;
+}
+
+.collection-dial-tray__arc {
+  display: none;
+}
+
+.collection-dial-tray__folders {
+  position: absolute;
+  z-index: 4;
+  top: 6.1rem;
+  left: 50%;
+  width: 0;
+  height: 0;
+}
+
+.collection-folder-position {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 8rem;
+  height: 7.5rem;
+  transform: translateX(clamp(-42vw, calc(var(--folder-x) * 1px), 42vw))
+    translateY(calc(var(--folder-y) * 1px)) rotate(var(--folder-rotate)) scale(var(--folder-scale));
+  transform-origin: 50% 100%;
+  pointer-events: none;
+  opacity: 0;
+  transition:
+    opacity 160ms ease-out,
+    transform 260ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collection-folder-position[data-visible] {
+  pointer-events: auto;
+  opacity: 1;
+}
+
+.collection-folder {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  color: var(--foreground);
+  perspective: 420px;
+  transform: translateX(-50%);
+  transform-style: preserve-3d;
+  transition: transform 220ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collection-folder:hover,
+.collection-folder[data-selected] {
+  transform: translateX(-50%) translateY(-0.4rem) scale(1.035);
+}
+
+.collection-folder[data-open] {
+  transform: translateX(-50%) translateY(-1.1rem) scale(1.08);
+}
+
+.collection-folder__shadow {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.58rem;
+  left: 0.55rem;
+  height: 1rem;
+  background: color-mix(in oklch, var(--foreground) 24%, transparent);
+  border-radius: 50%;
+  filter: blur(5px);
+  opacity: 0.58;
+  transform: translateY(0.45rem) scaleX(0.9);
+  transition:
+    opacity 220ms var(--ease-out-quart),
+    transform 220ms var(--ease-out-quart);
+}
+
+.collection-folder[data-open] .collection-folder__shadow {
+  opacity: 0.38;
+  transform: translateY(0.72rem) scaleX(1.06);
+}
+
+.collection-folder__back,
+.collection-folder__front,
+.collection-folder__mouth {
+  position: absolute;
+  right: 0.5rem;
+  bottom: 1.15rem;
+  left: 0.5rem;
+  display: block;
+  border-radius: 0.45rem 0.45rem 0.6rem 0.6rem;
+}
+
+.collection-folder__back {
+  height: 4.7rem;
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklch, var(--card) 88%, var(--secondary)),
+    color-mix(in oklch, var(--secondary) 84%, var(--muted-foreground))
+  );
+  border: 1px solid color-mix(in oklch, var(--border) 78%, var(--muted-foreground));
+  box-shadow: inset 0 1px 0 var(--glass-highlight);
+  transform-origin: 50% 100%;
+  transition: transform 240ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collection-folder__tab {
+  position: absolute;
+  top: -0.65rem;
+  left: 0.6rem;
+  width: 3.25rem;
+  height: 1.15rem;
+  background: inherit;
+  border: inherit;
+  border-bottom: 0;
+  border-radius: 0.45rem 0.45rem 0 0;
+}
+
+.collection-folder__paper {
+  position: absolute;
+  right: 0.55rem;
+  left: 0.55rem;
+  display: block;
+  height: 3.4rem;
+  background: color-mix(in oklch, var(--card) 96%, var(--primary));
+  border-radius: 0.25rem;
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 10%, transparent);
+  transform-origin: 50% 100%;
+  transition: transform 240ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collection-folder__paper--rear {
+  top: 0.45rem;
+  transform: rotate(-1deg) translateY(0.2rem);
+}
+
+.collection-folder__paper--front {
+  top: 0.68rem;
+  transform: rotate(1.5deg) translateY(0.32rem);
+}
+
+.collection-folder__mouth {
+  z-index: 2;
+  bottom: 1.3rem;
+  height: 2.9rem;
+  background: color-mix(in oklch, var(--foreground) 36%, transparent);
+  filter: blur(1px);
+  opacity: 0;
+  transform: scaleY(0.2);
+  transform-origin: 50% 100%;
+  transition:
+    opacity 120ms ease-out,
+    transform 240ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collection-folder__front {
+  z-index: 3;
+  height: 4.15rem;
+  overflow: hidden;
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklch, var(--card) 72%, var(--secondary)),
+    color-mix(in oklch, var(--secondary) 78%, var(--muted-foreground))
+  );
+  border: 1px solid color-mix(in oklch, var(--border) 66%, var(--muted-foreground));
+  box-shadow:
+    inset 0 1px 0 var(--glass-highlight),
+    inset 0 -2px 4px color-mix(in oklch, var(--foreground) 12%, transparent);
+  transform: rotateX(0deg);
+  transform-origin: 50% 100%;
+  transition:
+    transform 240ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)),
+    filter 180ms ease-out;
+}
+
+.collection-folder__shine {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, var(--glass-highlight), transparent 42%);
+  opacity: 0.72;
+}
+
+.collection-folder[data-open] .collection-folder__back {
+  background: linear-gradient(
+    145deg,
+    color-mix(in oklch, var(--primary) 18%, var(--card)),
+    color-mix(in oklch, var(--primary) 42%, var(--secondary))
+  );
+  border-color: color-mix(in oklch, var(--primary) 54%, var(--border));
+  transform: rotateX(-8deg) translateY(-0.18rem);
+}
+
+.collection-folder[data-open] .collection-folder__paper--rear {
+  transform: rotate(-3deg) translateY(-0.7rem);
+}
+
+.collection-folder[data-open] .collection-folder__paper--front {
+  transform: rotate(2deg) translateY(-0.35rem);
+}
+
+.collection-folder[data-open] .collection-folder__mouth {
+  opacity: 0.78;
+  transform: scaleY(1);
+}
+
+.collection-folder[data-open] .collection-folder__front {
+  background: linear-gradient(
+    155deg,
+    color-mix(in oklch, var(--primary) 28%, var(--card)),
+    color-mix(in oklch, var(--primary) 58%, var(--secondary))
+  );
+  border-color: color-mix(in oklch, var(--primary) 62%, var(--border));
+  filter: brightness(1.04);
+  transform: rotateX(-56deg) translateY(0.35rem);
+}
+
+.collection-folder[data-pending] .collection-folder__mouth {
+  animation: collection-mouth-receive 460ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1));
+}
+
+.collection-folder__label {
+  position: absolute;
+  z-index: 5;
+  right: -0.5rem;
+  bottom: -0.2rem;
+  left: -0.5rem;
+  overflow: hidden;
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  font-weight: 600;
+  line-height: var(--leading-caption);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: 0 1px 0 var(--background);
+}
+
+.collection-dial-tray__step {
+  position: absolute;
+  z-index: 6;
+  top: 10.8rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  justify-content: center;
+  color: var(--muted-foreground);
+  background: var(--glass-surface-strong);
+  border-radius: 9999px;
+  box-shadow: var(--glass-shadow);
+  transition:
+    color 150ms ease-out,
+    background-color 150ms ease-out,
+    transform 150ms ease-out;
+}
+
+.collection-dial-tray__step:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--accent);
+  transform: scale(1.04);
+}
+
+.collection-dial-tray__step:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
+.collection-dial-tray__step svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.collection-dial-tray__step kbd {
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+}
+
+.collection-dial-tray__step--previous {
+  left: 2rem;
+}
+
+.collection-dial-tray__step--next {
+  right: 2rem;
+}
+
+.collection-dial-tray__actions {
+  position: absolute;
+  z-index: 8;
+  top: 5.25rem;
+  bottom: auto;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transform: translateX(-50%);
+}
+
+.collection-drag-object {
+  --drag-x: 0px;
+  --drag-y: 0px;
+  --drop-x: 0px;
+  --drop-y: 0px;
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  left: 0;
+  display: flex;
+  max-width: 17rem;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  pointer-events: none;
+  color: var(--foreground);
+  font-size: var(--text-body);
+  font-weight: 600;
+  background: var(--card);
+  border: 1px solid var(--primary);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 8px color-mix(in oklch, var(--foreground) 18%, transparent);
+  transform: translate3d(var(--drag-x), var(--drag-y), 0) translate(-50%, -50%) rotate(-1.5deg)
+    scale(1.02);
+  will-change: transform, opacity;
+}
+
+.collection-drag-object svg {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  color: var(--muted-foreground);
+}
+
+.collection-drag-object span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.collection-drag-object[data-committing] {
+  opacity: 0;
+  transform: translate3d(
+      calc(var(--drag-x) + var(--drop-x)),
+      calc(var(--drag-y) + var(--drop-y)),
+      0
+    )
+    translate(-50%, -50%) rotate(2deg) scale(0.16);
+  transition:
+    transform 420ms var(--ease-out-quint, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 300ms 120ms ease-in;
+}
+
+.collection-dial-toast {
+  position: absolute;
+  z-index: 30;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  color: var(--foreground);
+  font-size: var(--text-caption);
+  background: var(--popover);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--glass-shadow);
+  animation: collection-toast-enter 220ms var(--ease-out-quart) both;
+}
+
+.collection-dial-toast svg {
+  width: 0.9rem;
+  height: 0.9rem;
+  color: var(--success);
+}
+
+.collection-dial-toast button {
+  margin-left: 0.25rem;
+  color: var(--link);
+  font-weight: 600;
+}
+
+@keyframes collection-tray-enter {
+  from {
+    opacity: 0;
+    transform: translateY(3.5rem) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes collection-mouth-receive {
+  0%,
+  100% {
+    opacity: 0.78;
+    transform: scaleY(1);
+  }
+  58% {
+    opacity: 1;
+    transform: scaleY(1.34) scaleX(1.06);
+  }
+}
+
+@keyframes collection-toast-enter {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 720px) {
+  .collection-dial-prototype__header {
+    padding: 1rem;
+  }
+
+  .collection-dial-prototype__header p,
+  .collection-dial-prototype__section-heading span,
+  .collection-dial-repo__action {
+    display: none;
+  }
+
+  .collection-dial-prototype__browse {
+    padding: 6.25rem 1rem 21rem;
+  }
+
+  .collection-dial-prototype__repos {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .collection-dial-tray__shell {
+    bottom: -12.5rem;
+    width: 100%;
+    height: 29rem;
+  }
+
+  .collection-dial-tray__shell::before {
+    right: -8%;
+    left: -8%;
+    filter: blur(20px);
+  }
+
+  .collection-dial-tray__folders {
+    top: 6.75rem;
+    transform: scale(0.76);
+  }
+
+  .collection-dial-tray__step {
+    top: 5.75rem;
+  }
+
+  .collection-dial-tray__step--previous {
+    left: 0.75rem;
+  }
+
+  .collection-dial-tray__step--next {
+    right: 0.75rem;
+  }
+
+  .collection-dial-tray__actions {
+    top: 5.75rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collection-dial-tray,
+  .collection-dial-toast {
+    animation: none;
+  }
+
+  .collection-drag-object[data-committing] {
+    opacity: 0;
+    transform: translate3d(var(--drag-x), var(--drag-y), 0) translate(-50%, -50%);
+  }
+}

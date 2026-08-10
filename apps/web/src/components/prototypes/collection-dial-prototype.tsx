@@ -5,14 +5,23 @@ import {
   ChevronRightIcon,
   GripVerticalIcon,
   RotateCcwIcon,
-  XIcon,
 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import {
+  type CSSProperties,
+  type PointerEvent as ReactPointerEvent,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
+import './collection-dial-prototype.css';
 
-type Variant = 'A' | 'B' | 'C';
 type Repo = { id: string; name: string; description: string; collection?: string };
+type Phase = 'ready' | 'pending' | 'success' | 'failure';
+type Point = { x: number; y: number };
+type VisibleFolderCount = 3 | 5 | 7;
+type FolderPosition = { x: number; y: number; rotate: number; scale: number };
 
 const REPOS: Repo[] = [
   {
@@ -76,356 +85,566 @@ const REPOS: Repo[] = [
     collection: 'Frontend',
   },
 ];
-const FIRST_REPO: Repo = REPOS[0] ?? { id: '1', name: 'vercel/ai', description: '' };
-const COLLECTIONS = ['AI tooling', 'Reading list', 'UI systems', 'Frontend', 'Tooling'];
-const VARIANTS: Record<Variant, string> = { A: '浅弧卡槽', B: 'Dock 纵深', C: '明显轮盘' };
 
-function DialState({
-  active,
-  target,
-  phase,
-  lastAction,
-  onPrev,
-  onNext,
-  onDrop,
-  onCancel,
-  onRetry,
-  onUndo,
-}: {
-  active: Repo;
-  target: number;
-  phase: 'ready' | 'pending' | 'success' | 'failure';
-  lastAction: string;
-  onPrev: () => void;
-  onNext: () => void;
-  onDrop: () => void;
-  onCancel: () => void;
-  onRetry: () => void;
-  onUndo: () => void;
-}) {
-  const { t } = useTranslation();
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="mt-4 rounded-lg border border-primary/40 bg-card p-4 shadow-sm"
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <p className="text-caption text-muted-foreground">{t('collectionDial.activeRepo')}</p>
-          <p className="font-semibold">{active.name}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onCancel}
-          className="rounded-md p-1 text-muted-foreground hover:bg-accent"
-          aria-label={t('collectionDial.cancel')}
-        >
-          <XIcon className="size-4" />
-        </button>
-      </div>
-      <p className="mt-2 text-caption text-muted-foreground">{t('collectionDial.dragHint')}</p>
-      <div className="mt-4 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={onPrev}
-          className="rounded-md border p-2 hover:bg-accent"
-          aria-label={t('collectionDial.previous')}
-        >
-          <ChevronLeftIcon className="size-4" />
-        </button>
-        <div className="min-w-0 flex-1 text-center">
-          <p className="text-caption text-muted-foreground">{t('collectionDial.target')}</p>
-          <p className="truncate font-semibold text-primary">{COLLECTIONS[target]}</p>
-        </div>
-        <button
-          type="button"
-          onClick={onNext}
-          className="rounded-md border p-2 hover:bg-accent"
-          aria-label={t('collectionDial.next')}
-        >
-          <ChevronRightIcon className="size-4" />
-        </button>
-      </div>
-      {phase === 'failure' ? (
-        <div className="mt-3 rounded-md bg-destructive/10 p-2 text-caption text-destructive">
-          {t('collectionDial.failure')}
-        </div>
-      ) : null}
-      {phase === 'success' ? (
-        <div className="mt-3 rounded-md bg-success/10 p-2 text-caption text-success">
-          {lastAction}{' '}
-          <button type="button" onClick={onUndo} className="ml-2 underline">
-            {t('collectionDial.undo')}
-          </button>
-        </div>
-      ) : null}
-      <div className="mt-4 flex flex-wrap items-center justify-end gap-2">
-        {phase === 'failure' ? (
-          <Button size="sm" variant="outline" onClick={onRetry}>
-            <RotateCcwIcon className="size-3.5" />
-            {t('collectionDial.retry')}
-          </Button>
-        ) : null}
-        {phase !== 'success' ? (
-          <Button size="sm" onClick={onDrop} disabled={phase === 'pending'}>
-            {phase === 'pending' ? t('collectionDial.pending') : t('collectionDial.drop')}
-          </Button>
-        ) : null}
-      </div>
-    </div>
-  );
+const FIRST_REPO: Repo = REPOS[0] ?? { id: '1', name: 'vercel/ai', description: '' };
+const COLLECTIONS = [
+  'AI tooling',
+  'Reading list',
+  'UI systems',
+  'Frontend',
+  'Tooling',
+  'Developer experience',
+  'Data & storage',
+];
+const FOLDER_LAYOUTS: Record<VisibleFolderCount, readonly FolderPosition[]> = {
+  3: [
+    { x: -190, y: 13, rotate: -12, scale: 0.88 },
+    { x: 0, y: 0, rotate: 0, scale: 1 },
+    { x: 190, y: 13, rotate: 12, scale: 0.88 },
+  ],
+  5: [
+    { x: -306, y: 52, rotate: -18, scale: 0.8 },
+    { x: -164, y: 14, rotate: -9, scale: 0.92 },
+    { x: 0, y: 0, rotate: 0, scale: 1 },
+    { x: 164, y: 14, rotate: 9, scale: 0.92 },
+    { x: 306, y: 52, rotate: 18, scale: 0.8 },
+  ],
+  7: [
+    { x: -418, y: 76, rotate: -22, scale: 0.72 },
+    { x: -292, y: 38, rotate: -15, scale: 0.8 },
+    { x: -150, y: 10, rotate: -7, scale: 0.92 },
+    { x: 0, y: 0, rotate: 0, scale: 1 },
+    { x: 150, y: 10, rotate: 7, scale: 0.92 },
+    { x: 292, y: 38, rotate: 15, scale: 0.8 },
+    { x: 418, y: 76, rotate: 22, scale: 0.72 },
+  ],
+};
+
+function getVisibleFolderCount(width: number): VisibleFolderCount {
+  if (width >= 1120) return 7;
+  if (width >= 560) return 5;
+  return 3;
 }
 
-function RepoButton({ repo, onPick }: { repo: Repo; onPick: () => void }) {
+function getVisibleWindowStart(target: number, count: VisibleFolderCount) {
+  const half = Math.floor(count / 2);
+  return Math.min(Math.max(target - half, 0), COLLECTIONS.length - count);
+}
+
+function getFolderPosition(count: VisibleFolderCount, slot: number): FolderPosition {
+  const layout = FOLDER_LAYOUTS[count];
+  const first = layout[0] ?? { x: 0, y: 0, rotate: 0, scale: 1 };
+  const last = layout.at(-1) ?? first;
+  if (slot < 0) {
+    return { x: first.x - 96, y: first.y + 24, rotate: first.rotate - 5, scale: 0.64 };
+  }
+  if (slot >= count) {
+    return { x: last.x + 96, y: last.y + 24, rotate: last.rotate + 5, scale: 0.64 };
+  }
+  return layout[slot] ?? first;
+}
+
+function RepoButton({
+  repo,
+  active,
+  onPick,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
+}: {
+  repo: Repo;
+  active: boolean;
+  onPick: () => void;
+  onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerMove: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerUp: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+  onPointerCancel: (event: ReactPointerEvent<HTMLButtonElement>) => void;
+}) {
   const { t } = useTranslation();
   return (
     <button
       type="button"
-      draggable
+      className="collection-dial-repo"
+      data-active={active || undefined}
       onClick={onPick}
-      onDragStart={onPick}
-      className="group flex w-full items-center gap-3 rounded-lg border bg-card p-3 text-left transition hover:border-primary/60 hover:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
+      aria-pressed={active}
     >
-      <GripVerticalIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold">{repo.name}</span>
-        <span className="block truncate text-caption text-muted-foreground">
-          {repo.description}
-        </span>
+      <span className="collection-dial-repo__grip" aria-hidden="true">
+        <GripVerticalIcon />
       </span>
-      <span className="shrink-0 text-micro text-muted-foreground">{t('collectionDial.pick')}</span>
+      <span className="collection-dial-repo__copy">
+        <span className="collection-dial-repo__name">{repo.name}</span>
+        <span className="collection-dial-repo__description">{repo.description}</span>
+      </span>
+      <span className="collection-dial-repo__action">{t('collectionDial.pick')}</span>
     </button>
+  );
+}
+
+function CollectionFolder({
+  index,
+  slot,
+  visibleCount,
+  visible,
+  name,
+  selected,
+  open,
+  pending,
+  onSelect,
+}: {
+  index: number;
+  slot: number;
+  visibleCount: VisibleFolderCount;
+  visible: boolean;
+  name: string;
+  selected: boolean;
+  open: boolean;
+  pending: boolean;
+  onSelect: () => void;
+}) {
+  const { t } = useTranslation();
+  const position = getFolderPosition(visibleCount, slot);
+  const style = {
+    '--folder-x': position.x,
+    '--folder-y': position.y,
+    '--folder-rotate': `${position.rotate}deg`,
+    '--folder-scale': position.scale,
+  } as CSSProperties;
+
+  return (
+    <div className="collection-folder-position" data-visible={visible || undefined} style={style}>
+      <button
+        type="button"
+        className="collection-folder"
+        data-collection-index={index}
+        data-selected={selected || undefined}
+        data-open={open || undefined}
+        data-pending={pending || undefined}
+        onClick={onSelect}
+        tabIndex={visible ? 0 : -1}
+        aria-hidden={visible ? undefined : true}
+        aria-label={t('collectionDial.selectCollection', { collection: name })}
+        aria-current={selected ? 'true' : undefined}
+      >
+        <span className="collection-folder__shadow" aria-hidden="true" />
+        <span className="collection-folder__back" aria-hidden="true">
+          <span className="collection-folder__tab" />
+          <span className="collection-folder__paper collection-folder__paper--rear" />
+          <span className="collection-folder__paper collection-folder__paper--front" />
+        </span>
+        <span className="collection-folder__mouth" aria-hidden="true" />
+        <span className="collection-folder__front" aria-hidden="true">
+          <span className="collection-folder__shine" />
+        </span>
+        <span className="collection-folder__label">{name}</span>
+      </button>
+    </div>
   );
 }
 
 export function CollectionDialPrototype() {
   const { t } = useTranslation();
-  const [params, setParams] = useSearchParams();
-  const variant = (params.get('variant')?.toUpperCase() as Variant) || 'A';
-  const safeVariant: Variant = variant in VARIANTS ? variant : 'A';
+  const prototypeRef = useRef<HTMLDivElement | null>(null);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [target, setTarget] = useState(0);
-  const [phase, setPhase] = useState<'ready' | 'pending' | 'success' | 'failure'>('ready');
+  const [target, setTarget] = useState(3);
+  const [visibleFolderCount, setVisibleFolderCount] = useState<VisibleFolderCount>(5);
+  const [hoveredTarget, setHoveredTarget] = useState<number | null>(null);
+  const [phase, setPhase] = useState<Phase>('ready');
   const [lastAction, setLastAction] = useState('');
   const [undoAvailable, setUndoAvailable] = useState(false);
+  const [dragging, setDragging] = useState(false);
+  const [dragPoint, setDragPoint] = useState<Point | null>(null);
+  const [dropVector, setDropVector] = useState<Point | null>(null);
   const active = REPOS.find((repo) => repo.id === activeId) ?? FIRST_REPO;
-  const setVariant = useCallback(
-    (next: Variant) => {
-      setParams(
-        (current) => {
-          current.set('prototype', 'collection-dial');
-          current.set('variant', next);
-          return current;
-        },
-        { replace: true },
-      );
-    },
-    [setParams],
-  );
-  const cycle = useCallback(
-    (direction: number) => {
-      const order: Variant[] = ['A', 'B', 'C'];
-      const next = order[(order.indexOf(safeVariant) + direction + order.length) % order.length];
-      setVariant(next ?? safeVariant);
-    },
-    [safeVariant, setVariant],
-  );
-  const rotate = useCallback(
-    (direction: number) =>
-      setTarget((current) => Math.max(0, Math.min(COLLECTIONS.length - 1, current + direction))),
-    [],
-  );
+
+  const pointerSessionRef = useRef<{
+    pointerId: number;
+    repo: Repo;
+    origin: Point;
+    dragging: boolean;
+  } | null>(null);
+  const dragPointRef = useRef<Point | null>(null);
+  const dragOverlayRef = useRef<HTMLDivElement | null>(null);
+  const suppressClickRef = useRef(false);
+  const timersRef = useRef<number[]>([]);
+
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => {
-      const tag = (event.target as HTMLElement)?.tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (event.target as HTMLElement)?.isContentEditable)
-        return;
-      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'q') rotate(-1);
-      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'e') rotate(1);
-      if (event.key === 'Escape') setActiveId(null);
-      if (event.key === 'Enter' && activeId && phase === 'ready') {
-        setPhase('pending');
-        window.setTimeout(() => {
-          if (activeId === '4') {
-            setPhase('failure');
-          } else {
-            setPhase('success');
-            setLastAction(t('collectionDial.success', { collection: COLLECTIONS[target] }));
-            setUndoAvailable(true);
-          }
-        }, 500);
-      }
+    const element = prototypeRef.current;
+    if (!element) return;
+
+    const update = (width: number) => {
+      const next = getVisibleFolderCount(width);
+      setVisibleFolderCount((current) => (current === next ? current : next));
     };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [activeId, phase, rotate, t, target]);
-  const pick = (repo: Repo) => {
+    update(element.clientWidth);
+    const observer = new ResizeObserver(([entry]) => {
+      update(entry?.contentRect.width ?? element.clientWidth);
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+
+  const clearTimers = useCallback(() => {
+    for (const timer of timersRef.current) window.clearTimeout(timer);
+    timersRef.current = [];
+  }, []);
+
+  useEffect(() => clearTimers, [clearTimers]);
+
+  const rotate = useCallback((direction: number) => {
+    setTarget((current) => Math.max(0, Math.min(COLLECTIONS.length - 1, current + direction)));
+    setHoveredTarget(null);
+  }, []);
+
+  const reset = useCallback(() => {
+    clearTimers();
+    pointerSessionRef.current = null;
+    dragPointRef.current = null;
+    setActiveId(null);
+    setHoveredTarget(null);
+    setPhase('ready');
+    setDragging(false);
+    setDragPoint(null);
+    setDropVector(null);
+    setUndoAvailable(false);
+  }, [clearTimers]);
+
+  const pick = useCallback((repo: Repo) => {
+    if (suppressClickRef.current) return;
     setActiveId(repo.id);
     setPhase('ready');
     setUndoAvailable(false);
-  };
-  const drop = () => {
-    setPhase('pending');
-    window.setTimeout(() => {
-      if (active.id === '4') setPhase('failure');
-      else {
-        setPhase('success');
-        setLastAction(t('collectionDial.success', { collection: COLLECTIONS[target] }));
-        setUndoAvailable(true);
+    setDropVector(null);
+  }, []);
+
+  const updateDragOverlay = useCallback((point: Point) => {
+    dragPointRef.current = point;
+    dragOverlayRef.current?.style.setProperty('--drag-x', `${point.x}px`);
+    dragOverlayRef.current?.style.setProperty('--drag-y', `${point.y}px`);
+  }, []);
+
+  const resolveHoveredFolder = useCallback((point: Point) => {
+    const element = document.elementFromPoint(point.x, point.y);
+    const folder = element?.closest<HTMLElement>('[data-collection-index]');
+    const index = folder ? Number(folder.dataset.collectionIndex) : Number.NaN;
+    setHoveredTarget(Number.isInteger(index) ? index : null);
+  }, []);
+
+  const finishDrop = useCallback(
+    (collectionIndex: number, point?: Point | null) => {
+      if (phase === 'pending') return;
+
+      const folder = document.querySelector<HTMLElement>(
+        `[data-collection-index="${collectionIndex}"]`,
+      );
+      const folderRect = folder?.getBoundingClientRect();
+      const currentPoint = point ?? dragPointRef.current;
+      if (folderRect && currentPoint) {
+        setDropVector({
+          x: folderRect.left + folderRect.width / 2 - currentPoint.x,
+          y: folderRect.top + folderRect.height * 0.52 - currentPoint.y,
+        });
       }
-    }, 500);
-  };
-  const reset = () => {
-    setActiveId(null);
-    setPhase('ready');
-    setUndoAvailable(false);
-  };
-  const dial = activeId ? (
-    <DialState
-      active={active}
-      target={target}
-      phase={phase}
-      lastAction={lastAction}
-      onPrev={() => rotate(-1)}
-      onNext={() => rotate(1)}
-      onDrop={drop}
-      onCancel={reset}
-      onRetry={drop}
-      onUndo={() => {
-        setUndoAvailable(false);
-        setLastAction(t('collectionDial.undone'));
-      }}
-    />
-  ) : null;
-  const repoList = (
-    <div className="grid gap-2 sm:grid-cols-2">
-      {REPOS.map((repo) => (
-        <RepoButton key={repo.id} repo={repo} onPick={() => pick(repo)} />
-      ))}
-    </div>
+
+      setTarget(collectionIndex);
+      setHoveredTarget(collectionIndex);
+      setPhase('pending');
+      setDragging(false);
+
+      const timer = window.setTimeout(() => {
+        setDragPoint(null);
+        setDropVector(null);
+        setHoveredTarget(null);
+        if (active.id === '4') {
+          setPhase('failure');
+          return;
+        }
+        setPhase('success');
+        setLastAction(t('collectionDial.success', { collection: COLLECTIONS[collectionIndex] }));
+        setUndoAvailable(true);
+      }, 460);
+      timersRef.current.push(timer);
+    },
+    [active.id, phase, t],
   );
+
+  const startPointerSession = useCallback(
+    (repo: Repo, event: ReactPointerEvent<HTMLButtonElement>) => {
+      if (event.button !== 0 || phase === 'pending') return;
+      event.currentTarget.setPointerCapture(event.pointerId);
+      pointerSessionRef.current = {
+        pointerId: event.pointerId,
+        repo,
+        origin: { x: event.clientX, y: event.clientY },
+        dragging: false,
+      };
+    },
+    [phase],
+  );
+
+  const movePointerSession = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      const session = pointerSessionRef.current;
+      if (!session || session.pointerId !== event.pointerId) return;
+      const point = { x: event.clientX, y: event.clientY };
+
+      if (!session.dragging) {
+        const distance = Math.hypot(point.x - session.origin.x, point.y - session.origin.y);
+        if (distance < 7) return;
+        session.dragging = true;
+        suppressClickRef.current = true;
+        setActiveId(session.repo.id);
+        setPhase('ready');
+        setUndoAvailable(false);
+        setDragging(true);
+        setDragPoint(point);
+      }
+
+      event.preventDefault();
+      updateDragOverlay(point);
+      resolveHoveredFolder(point);
+    },
+    [resolveHoveredFolder, updateDragOverlay],
+  );
+
+  const finishPointerSession = useCallback(
+    (pointerId: number, point: Point) => {
+      const session = pointerSessionRef.current;
+      if (!session || session.pointerId !== pointerId) return;
+      pointerSessionRef.current = null;
+
+      if (session.dragging) {
+        const element = document.elementFromPoint(point.x, point.y);
+        const folder = element?.closest<HTMLElement>('[data-collection-index]');
+        const index = folder ? Number(folder.dataset.collectionIndex) : Number.NaN;
+        if (Number.isInteger(index)) {
+          finishDrop(index, point);
+        } else {
+          setDragging(false);
+          setDragPoint(null);
+          setHoveredTarget(null);
+        }
+        const timer = window.setTimeout(() => {
+          suppressClickRef.current = false;
+        }, 0);
+        timersRef.current.push(timer);
+      }
+    },
+    [finishDrop],
+  );
+
+  const endPointerSession = useCallback(
+    (event: ReactPointerEvent<HTMLButtonElement>) => {
+      finishPointerSession(event.pointerId, { x: event.clientX, y: event.clientY });
+    },
+    [finishPointerSession],
+  );
+
+  useEffect(() => {
+    const onPointerUp = (event: PointerEvent) => {
+      finishPointerSession(event.pointerId, { x: event.clientX, y: event.clientY });
+    };
+    window.addEventListener('pointerup', onPointerUp);
+    return () => window.removeEventListener('pointerup', onPointerUp);
+  }, [finishPointerSession]);
+
+  const cancelPointerSession = useCallback(() => {
+    pointerSessionRef.current = null;
+    setDragging(false);
+    setDragPoint(null);
+    setHoveredTarget(null);
+    suppressClickRef.current = false;
+  }, []);
+
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      const targetElement = event.target as HTMLElement | null;
+      const tag = targetElement?.tagName;
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || targetElement?.isContentEditable) return;
+
+      if (event.key === 'ArrowLeft' || event.key.toLowerCase() === 'q') {
+        event.preventDefault();
+        rotate(-1);
+      }
+      if (event.key === 'ArrowRight' || event.key.toLowerCase() === 'e') {
+        event.preventDefault();
+        rotate(1);
+      }
+      if (
+        event.key === 'Enter' &&
+        activeId &&
+        phase !== 'pending' &&
+        targetElement?.closest('.collection-dial-repo, .collection-folder')
+      ) {
+        event.preventDefault();
+        finishDrop(target);
+      }
+      if (event.key === 'Escape') reset();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [activeId, finishDrop, phase, reset, rotate, target]);
+
+  const overlayStyle = dragPoint
+    ? ({
+        '--drag-x': `${dragPoint.x}px`,
+        '--drag-y': `${dragPoint.y}px`,
+        '--drop-x': `${dropVector?.x ?? 0}px`,
+        '--drop-y': `${dropVector?.y ?? 0}px`,
+      } as CSSProperties)
+    : undefined;
+  const visibleWindowStart = getVisibleWindowStart(target, visibleFolderCount);
+
   return (
-    <div className="-m-6 min-h-full overflow-y-auto bg-background px-6 py-6 pb-28">
-      <div className="mx-auto w-full max-w-5xl">
-        <div className="mb-6 flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className="text-caption font-medium text-primary">PROTOTYPE · collection dial</p>
-            <h1 className="mt-1 text-xl font-semibold">{t('collectionDial.title')}</h1>
-            <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-              {t('collectionDial.description')}
-            </p>
+    <div
+      ref={prototypeRef}
+      className="collection-dial-prototype"
+      data-dial-visible={activeId ? true : undefined}
+      data-visible-folders={visibleFolderCount}
+    >
+      <header className="collection-dial-prototype__header">
+        <div>
+          <h1>{t('collectionDial.title')}</h1>
+          <p>{t('collectionDial.description')}</p>
+        </div>
+        <Button variant="outline" size="sm" onClick={reset}>
+          {t('collectionDial.reset')}
+        </Button>
+      </header>
+
+      <section
+        className="collection-dial-prototype__browse"
+        aria-label={t('collectionDial.browseSurface')}
+      >
+        <div className="collection-dial-prototype__section-heading">
+          <h2>{t('collectionDial.browseSurface')}</h2>
+          <span>{t('collectionDial.continuousHint')}</span>
+        </div>
+        <div className="collection-dial-prototype__repos">
+          {REPOS.map((repo) => (
+            <RepoButton
+              key={repo.id}
+              repo={repo}
+              active={repo.id === activeId}
+              onPick={() => pick(repo)}
+              onPointerDown={(event) => startPointerSession(repo, event)}
+              onPointerMove={movePointerSession}
+              onPointerUp={endPointerSession}
+              onPointerCancel={cancelPointerSession}
+            />
+          ))}
+        </div>
+      </section>
+
+      {activeId ? (
+        <section
+          className="collection-dial-tray"
+          aria-label={t('collectionDial.dialLabel')}
+          onWheel={(event) => {
+            if (Math.abs(event.deltaY) < 4) return;
+            rotate(event.deltaY > 0 ? 1 : -1);
+          }}
+        >
+          <div className="collection-dial-tray__scrim" />
+          <div className="collection-dial-tray__shell">
+            <div className="collection-dial-tray__arc" aria-hidden="true" />
+            <div className="sr-only" role="status" aria-live="polite">
+              <span>{phase === 'failure' ? t('collectionDial.failureShort') : active.name}</span>
+              <strong>
+                {phase === 'pending' ? t('collectionDial.pending') : t('collectionDial.hoverHint')}
+              </strong>
+            </div>
+
+            <button
+              type="button"
+              className="collection-dial-tray__step collection-dial-tray__step--previous"
+              onClick={() => rotate(-1)}
+              disabled={target === 0}
+              aria-label={t('collectionDial.previous')}
+            >
+              <ChevronLeftIcon />
+              <kbd>Q</kbd>
+            </button>
+            <button
+              type="button"
+              className="collection-dial-tray__step collection-dial-tray__step--next"
+              onClick={() => rotate(1)}
+              disabled={target === COLLECTIONS.length - 1}
+              aria-label={t('collectionDial.next')}
+            >
+              <kbd>E</kbd>
+              <ChevronRightIcon />
+            </button>
+
+            <div className="collection-dial-tray__folders">
+              {COLLECTIONS.map((collection, index) => {
+                const slot = index - visibleWindowStart;
+                const visible = slot >= 0 && slot < visibleFolderCount;
+                return (
+                  <CollectionFolder
+                    key={collection}
+                    index={index}
+                    slot={slot}
+                    visibleCount={visibleFolderCount}
+                    visible={visible}
+                    name={collection}
+                    selected={target === index}
+                    open={hoveredTarget === index || (!dragging && target === index)}
+                    pending={phase === 'pending' && target === index}
+                    onSelect={() => {
+                      setTarget(index);
+                      setHoveredTarget(null);
+                      finishDrop(index);
+                    }}
+                  />
+                );
+              })}
+            </div>
+
+            {phase === 'failure' ? (
+              <div className="collection-dial-tray__actions">
+                <Button size="sm" variant="outline" onClick={() => finishDrop(target)}>
+                  <RotateCcwIcon className="size-3.5" />
+                  {t('collectionDial.retry')}
+                </Button>
+              </div>
+            ) : null}
           </div>
-          <Button
-            variant="outline"
-            size="sm"
+        </section>
+      ) : null}
+
+      {dragPoint ? (
+        <div
+          ref={dragOverlayRef}
+          className="collection-drag-object"
+          data-committing={phase === 'pending' || undefined}
+          style={overlayStyle}
+          aria-hidden="true"
+        >
+          <GripVerticalIcon />
+          <span>{active.name}</span>
+        </div>
+      ) : null}
+
+      {undoAvailable ? (
+        <div className="collection-dial-toast" role="status">
+          <CheckIcon aria-hidden="true" />
+          <span>{lastAction}</span>
+          <button
+            type="button"
             onClick={() => {
-              setActiveId(null);
-              setPhase('ready');
               setUndoAvailable(false);
+              setLastAction(t('collectionDial.undone'));
+              setPhase('ready');
             }}
           >
-            {t('collectionDial.reset')}
-          </Button>
-        </div>
-        {safeVariant === 'A' ? (
-          <div className="rounded-xl border bg-muted/35 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold">{t('collectionDial.browseSurface')}</h2>
-              <span className="text-caption text-muted-foreground">
-                {t('collectionDial.continuousHint')}
-              </span>
-            </div>
-            {repoList}
-            {dial}
-          </div>
-        ) : null}
-        {safeVariant === 'B' ? (
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_280px]">
-            <section>
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-semibold">{t('collectionDial.browseSurface')}</h2>
-                <span className="text-caption text-muted-foreground">
-                  {t('collectionDial.continuousHint')}
-                </span>
-              </div>
-              {repoList}
-            </section>
-            <aside className="rounded-xl border bg-card p-4 lg:sticky lg:top-4 lg:h-fit">
-              <p className="text-caption font-medium text-muted-foreground">
-                {t('collectionDial.dockTitle')}
-              </p>
-              <p className="mt-1 text-sm">{t('collectionDial.dockDescription')}</p>
-              {dial ?? (
-                <p className="mt-8 text-center text-caption text-muted-foreground">
-                  {t('collectionDial.emptyDial')}
-                </p>
-              )}
-            </aside>
-          </div>
-        ) : null}
-        {safeVariant === 'C' ? (
-          <div className="rounded-xl border bg-card p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="font-semibold">{t('collectionDial.browseSurface')}</h2>
-              <span className="text-caption text-muted-foreground">
-                {t('collectionDial.continuousHint')}
-              </span>
-            </div>
-            <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {REPOS.map((repo) => (
-                  <RepoButton key={repo.id} repo={repo} onPick={() => pick(repo)} />
-                ))}
-              </div>
-              <div className="flex min-h-[360px] items-center justify-center rounded-full border-2 border-dashed border-primary/40 bg-primary/5 p-8">
-                <div className="w-full max-w-[280px] text-center">
-                  <div className="mx-auto mb-4 flex size-20 items-center justify-center rounded-full border-2 border-primary bg-card text-primary shadow-sm">
-                    <span className="text-2xl font-semibold">{activeId ? '1' : '—'}</span>
-                  </div>
-                  {activeId ? (
-                    dial
-                  ) : (
-                    <p className="text-caption text-muted-foreground">
-                      {t('collectionDial.emptyDial')}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        ) : null}
-      </div>
-      <nav
-        aria-label={t('collectionDial.variantNav')}
-        className="fixed inset-x-0 bottom-4 z-40 mx-auto flex w-fit items-center gap-2 rounded-full border bg-card/95 p-2 shadow-sm backdrop-blur"
-      >
-        <button
-          type="button"
-          onClick={() => cycle(-1)}
-          className="rounded-full p-2 hover:bg-accent"
-          aria-label={t('collectionDial.previousVariant')}
-        >
-          <ChevronLeftIcon className="size-4" />
-        </button>
-        <div className="min-w-[150px] text-center text-caption">
-          <span className="font-semibold text-primary">{safeVariant}</span>
-          <span className="mx-1 text-muted-foreground">—</span>
-          {VARIANTS[safeVariant]}
-        </div>
-        <button
-          type="button"
-          onClick={() => cycle(1)}
-          className="rounded-full p-2 hover:bg-accent"
-          aria-label={t('collectionDial.nextVariant')}
-        >
-          <ChevronRightIcon className="size-4" />
-        </button>
-      </nav>
-      {undoAvailable ? (
-        <div className="fixed right-4 bottom-20 rounded-lg border bg-card p-3 text-caption shadow-sm">
-          <CheckIcon className="mr-1 inline size-3.5 text-success" />
-          {lastAction}
+            {t('collectionDial.undo')}
+          </button>
         </div>
       ) : null}
     </div>

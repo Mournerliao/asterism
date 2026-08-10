@@ -6,7 +6,7 @@
 
 ## 待确认 / 开放问题
 
-- [ ] **Collection Dial throwaway prototype（2026-08-06）**：已完成产品 grilling，下一步在独立 prototype 阶段复用同一状态机，比较浅弧卡槽、Dock 纵深和明显轮盘三种空间表现；以真实桌面 / 移动连续操作验证拖拽发现性、Q/E 效率、滚动误触、更多 / 新建承接、pending / failure / Undo 可理解性。原型使用内存状态与假推荐，不接真实写入、embedding 或生产路由；形成明确 verdict 后再决定是否立 ADR、更新契约并进入规格。见 `logs/2026-08-06-collection-dial-alignment.md`。
+- [ ] **Collection Dial 拟真实体原型 verdict（更新于 2026-08-10）**：空间方向已由 A/B/C 抽象变体收敛为半圆轨道上的实体文件夹；拖拽悬停会抬升并张开目标，投放时仓库缩小吸入。下一步仍需以真实桌面连续 10 个与移动连续 5 个仓库验证拖拽发现性、Q/E 效率、滚动误触、更多 / 新建承接、pending / failure / Undo 可理解性。原型继续使用内存状态与假写入，不接数据库、embedding 或生产 mutation；形成明确 verdict 后再决定是否立 ADR、更新契约并进入规格。见 `logs/2026-08-10-collection-dial-skeuomorphic-prototype.md`。
 
 - [x] **#25 真实 Generation smoke 阻断已解除（2026-08-01）**：页面容量收敛为 5，Provider 输出改用稀疏紧凑 tuple schema v3，并为会把 reasoning 计入 completion budget 的模型将 output tokens 提升至 8,192；跨 Provider 截断信号、稳定错误码、attempt / max、显式 retry 与 retry exhausted UI 均已落地。真实任务 `29b4c964-6aba-429c-aa4b-27707b499a37` 完成 27 / 27 pages 并到达 `plan_ready`（242 actions / 1 conflict / 0 uncertainties），canonical 未变化。见 `logs/2026-08-01-issue-25-real-environment-smoke.md`。
 - [x] **Organization Plan 风险审阅与可靠执行（2026-08-04，GitHub #26）**：三档 risk review、semantic fingerprint 授权、逐仓库排除、准确 exact confirmation、幂等 execution operation link、权威 ledger 恢复与双语稳定 Task UI 已实现；远端部署 / smoke 未在本会话执行。下一实现 ticket 为 #27 安全 Task Undo，不得把 undo 提前混入 #26 operation link。见 `logs/2026-08-04-issue-26-organization-plan-review-execution.md`。

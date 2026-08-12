@@ -9,8 +9,8 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
-import folderClosedSource from '../../assets/prototypes/collection-dial/folder-closed.png';
-import folderOpenSource from '../../assets/prototypes/collection-dial/folder-open.png';
+import folderClosedSource from '../../assets/prototypes/collection-dial/folder-closed.svg';
+import folderOpenSource from '../../assets/prototypes/collection-dial/folder-open.svg';
 import './collection-dial-prototype.css';
 
 type Repo = { id: string; name: string; description: string; collection?: string };

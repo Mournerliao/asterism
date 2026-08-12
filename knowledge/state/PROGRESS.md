@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> **Collection Dial 文件夹图标已精修（2026-08-12）**：原型已换成用户下载的 Vecteezy 闭合 / 打开文件夹原素材，不再使用自绘、3D 或 Lucide 替代。素材经过去白底、裁切和透明 PNG 转换，黄色层级按原明暗关系映射为 Asterism 浅蓝色阶；当前目标完整显色，其他集合克制降饱和。图标下方额外绘制的椭圆落地阴影节点和样式已删除，只保留素材自身的平面高光。既有选择、拖放、键盘及响应式状态机不变。真实 Chrome 已核验闭合与打开接收态，DOM 中阴影节点为 0，资源均成功加载且控制台无新增错误。见 `logs/2026-08-12-collection-dial-folder-icons.md`。
+
 > **Collection Dial 半圆托盘原型完成 P1 交互收敛（2026-08-11）**：开发态 Browse 原型仍位于 `/?prototype=collection-dial`，空间已从漂浮 Cover Flow 收敛为由文件夹弧形排布建立半圆感、由渐变透明背景模糊承接页面内容的底部操作层；不绘制实体 basin / rim。点击文件夹或 Q/E 只选择目标，Enter 或明确的 `Add to …` 按钮才提交；直接拖拽到文件夹并松手仍可一步投放。选中项始终转入弧线中央，其他文件夹按相对距离同步平移、旋转、缩放并在边缘淡出，序列仍不循环。盘面补充 `仓库 → 集合`、当前位置、集中 pending / success / failure、Cancel、Retry 与 Undo，标签保持水平可读，明暗主题、1536px 与 390px 响应式均已在真实浏览器验收；Q/E + Enter 与真实拖拽松手路径通过。Lint、typecheck、build 通过；全量测试仅保留与本原型无依赖的既有 `embedding-consent.test.tsx` 断言失败。原型仍使用内存假数据与模拟写入，用户连续操作 verdict 未完成，因此不更新正式产品 / UI 契约，也不创建 ADR。见 `logs/2026-08-11-collection-dial-tray-refinement.md`。
 
 > **AI 整理已完整退役（2026-08-05，ADR 0032）**：Web 已删除 AI Organization 导航、功能路由、页面、旧草稿与自然任务原型，旧 `/organization/*` 地址仅兼容重定向到 Browse；Settings 删除 BYOK Generation Connection；Core / DB 删除 Provider Registry、AI 草稿及 Organization Task / Plan 领域；Supabase 删除四个 AI Edge Function 源码并新增反向 migration，清理 Provider credential、AI 设置、草稿、Task / Plan / Generation 表、RPC 与 AI 来源执行账本。历史 AI 执行已形成的普通标签、集合和 canonical 关系不回滚。手动批量整理、导入导出、浏览器内 embedding、隐形混合搜索与 Related Stars 保留。Phase 2.1 #27–#28 取消，下一 frontier 回到 Phase 3 浏览器扩展。

@@ -9,6 +9,8 @@ import {
   useState,
 } from 'react';
 import { useTranslation } from 'react-i18next';
+import folderClosedSource from '../../assets/prototypes/collection-dial/folder-closed.png';
+import folderOpenSource from '../../assets/prototypes/collection-dial/folder-open.png';
 import './collection-dial-prototype.css';
 
 type Repo = { id: string; name: string; description: string; collection?: string };
@@ -227,15 +229,23 @@ function CollectionFolder({
         aria-label={t('collectionDial.selectCollection', { collection: name })}
         aria-pressed={selected}
       >
-        <span className="collection-folder__shadow" aria-hidden="true" />
-        <span className="collection-folder__back" aria-hidden="true">
-          <span className="collection-folder__tab" />
-          <span className="collection-folder__paper collection-folder__paper--rear" />
-          <span className="collection-folder__paper collection-folder__paper--front" />
-        </span>
-        <span className="collection-folder__mouth" aria-hidden="true" />
-        <span className="collection-folder__front" aria-hidden="true">
-          <span className="collection-folder__shine" />
+        <span className="collection-folder__asset" aria-hidden="true">
+          <span className="collection-folder__source collection-folder__source--closed">
+            <img
+              className="collection-folder__source-image"
+              src={folderClosedSource}
+              alt=""
+              draggable={false}
+            />
+          </span>
+          <span className="collection-folder__source collection-folder__source--open">
+            <img
+              className="collection-folder__source-image"
+              src={folderOpenSource}
+              alt=""
+              draggable={false}
+            />
+          </span>
         </span>
       </button>
       <span className="collection-folder__label" aria-hidden="true">

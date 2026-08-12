@@ -7,13 +7,14 @@
 - **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
 - **Phase 1 已完成**：Web MVP 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁已于 2026-07-18 全部验收。
 - **Phase 2 已完成并收敛**：可靠手动批量整理、选中导出、浏览器内 embedding、隐形混合搜索与 Related Stars 已交付；服务端 AI 整理及 BYOK Generation 于 2026-08-05 按 ADR 0032 退役。
-- **当前 frontier 为 Phase 3**：浏览器扩展可开始，AI 整理不再阻塞跨端路线。
+- **当前产品 frontier 为 Phase 2.2**：ADR 0033 已接受 Collection Dial 原型方向，下一步先形成 buildable spec，再拆端到端实现 tickets。Phase 3 浏览器扩展仍可独立开始，不受该 Web 增强阻塞。
 
 | 阶段 | 名称 | 状态 |
 | --- | --- | --- |
 | Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
 | Phase 1 | Web MVP | Done（2026-07-18） |
 | Phase 2 | 批量整理 + 浏览器内语义检索 | Done（2026-08-05，AI 整理已退役） |
+| Phase 2.2 | Collection Dial | 方向已接受，待规格（2026-08-12，ADR 0033） |
 | Phase 3 | 浏览器扩展 Extension | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |
 
@@ -60,6 +61,20 @@
 - 不提供服务端 Generation、BYOK Connection、AI 草稿或 Organization Task；历史 AI 执行形成的普通标签、集合及关系继续保留。
 
 完成判据：重度用户可完成可访问、可恢复的手动批量整理，并在 embedding 不可用时无损降级到关键词搜索；全过程不扩大 GitHub OAuth 写权限，不保存 AI Provider credential。
+
+## Phase 2.2 · Collection Dial
+
+目标：把 ADR 0033 接受的 Browse 直接整理体验重建为真实、可恢复、可访问的生产能力，不把 throwaway prototype 直接接入数据层。
+
+里程碑：
+
+- 单仓库与稳定多选范围都可从 Browse 拿起，并使用同一集合盘状态模型选择或投放到已有集合。
+- 候选在手势开始时冻结；本地语义信号不可用时静默降级为最近使用与稳定顺序。
+- 「更多集合」与「新建集合」承接当前冻结范围，创建成功后自动加入；焦点、取消和失败恢复完整。
+- 单项写入等待 Postgres 权威结果，多选复用持久逐关系执行边界；已有关系幂等处理，失败可恢复，每次成功提供独立短期 Undo。
+- pointer、touch、keyboard、虚拟列表、Quick Look 与选择模式协调；en / zh-CN、ARIA live、reduced motion、宽屏和窄屏验收齐备。
+
+完成判据：在真实数据链路上完成桌面连续 10 项与移动连续 5 项操作，覆盖误开 Quick Look、误投放、Q/E、滚动 / 拖动冲突、More / New、pending、failure、retry 和单次 Undo；四道工程门禁全绿，开发态原型在生产实现完整覆盖后退役。
 
 ## Phase 3 · 浏览器扩展（Extension）
 

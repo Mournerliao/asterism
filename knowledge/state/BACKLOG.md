@@ -6,7 +6,8 @@
 
 ## 待确认 / 开放问题
 
-- [ ] **Collection Dial 半圆托盘原型 verdict（更新于 2026-08-11）**：P1 已完成——点击文件夹 / Q/E 只选择，Enter / 明确按钮才提交；直接拖拽松手仍一步投放；选中项始终转入中央；透明渐变背景模糊、任务状态行、位置反馈、Cancel、Retry、Undo、明暗主题和最多 7 / 3 项响应式已验收。下一步仍需由用户以真实桌面连续 10 个与移动连续 5 个仓库验证拖拽发现性、Q/E 效率、滚动误触、更多 / 新建承接及 pending / failure / Undo 可理解性。原型继续使用内存状态与假写入，不接数据库、embedding 或生产 mutation；形成明确 verdict 后再决定是否立 ADR、更新契约并进入规格。见 `logs/2026-08-11-collection-dial-tray-refinement.md`。
+- [x] **Collection Dial 半圆托盘原型 verdict（2026-08-12，ADR 0033）**：用户接受底部临时半圆集合盘、文件夹打开接收态、active 居中、透明渐变模糊、选择 / 确认分离、直接拖放、集中异步反馈与 7 / 3 项响应式方向，原型阶段结束并进入规格。没有伪记未完成证据：桌面连续 10 项 / 移动连续 5 项没有独立测量记录，原型也未实现「更多集合」与「新建集合」；这些项目保留为 buildable spec 与生产验收条件。下一步在独立上下文运行 `/to-spec`，不得把 throwaway prototype 直接接入真实数据。见 `decisions/0033-adopt-collection-dial-for-direct-organization.md` 与 `logs/2026-08-12-collection-dial-prototype-verdict.md`。
+- [ ] **Collection Dial buildable spec（Phase 2.2）**：从 ADR 0033、正式产品 / UI 契约和原型 primary source 形成可实施规格，裁决候选冻结与降级、单项 / 多选写入 seam、More / New 承接、独立 Undo 身份、虚拟列表 / Quick Look / 移动误触协调、原型退役和真实连续任务验收；规格批准前不拆实现 tickets，不把原型接入真实数据。
 
 - [x] **#25 真实 Generation smoke 阻断已解除（2026-08-01）**：页面容量收敛为 5，Provider 输出改用稀疏紧凑 tuple schema v3，并为会把 reasoning 计入 completion budget 的模型将 output tokens 提升至 8,192；跨 Provider 截断信号、稳定错误码、attempt / max、显式 retry 与 retry exhausted UI 均已落地。真实任务 `29b4c964-6aba-429c-aa4b-27707b499a37` 完成 27 / 27 pages 并到达 `plan_ready`（242 actions / 1 conflict / 0 uncertainties），canonical 未变化。见 `logs/2026-08-01-issue-25-real-environment-smoke.md`。
 - [x] **Organization Plan 风险审阅与可靠执行（2026-08-04，GitHub #26）**：三档 risk review、semantic fingerprint 授权、逐仓库排除、准确 exact confirmation、幂等 execution operation link、权威 ledger 恢复与双语稳定 Task UI 已实现；远端部署 / smoke 未在本会话执行。下一实现 ticket 为 #27 安全 Task Undo，不得把 undo 提前混入 #26 operation link。见 `logs/2026-08-04-issue-26-organization-plan-review-execution.md`。

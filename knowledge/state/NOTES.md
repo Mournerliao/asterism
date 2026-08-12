@@ -1,5 +1,9 @@
 # NOTES · 工作便签
 
+- **Collection Dial ticket chain（2026-08-12，GitHub #30–#34）**：最终粒度为 5 张而非最初 proposal 的 8 张；原生线性依赖已核验为 #30 trusted relation mutations → #31 production single-repo Dial → #32 frozen multi-select + semantic ordering → #33 More / New / Undo / recovery → #34 measured acceptance + prototype retirement。全部 `ready-for-agent`、未分配，当前只能领取 #30；开始实现时应在 fresh context 对 #30 运行 `/implement`，不得越过 blocker。
+
+- **Collection Dial buildable spec（2026-08-12，GitHub #29 / ADR 0034）**：单项和多选都走持久 `bulk-organize` lifecycle；candidate snapshot 最多提供 7 个 quick targets，范围 >50、embedding 不可用或多选无简单多数共识时静默使用 session MRU + stable order。More 只从冻结 catalog 选目标，New 创建成功后立即对原 scope 发起 add，关系失败不得重复创建集合。Undo 服务端窗口为 30 秒，只反转成功 item 中 `effective_changed=true` 且当前 collection relation head 仍匹配 receipt 的关系。下一步 `/to-tickets` 必须先向用户确认 ticket 粒度和 blocking edges，获批前不发布 tickets。
+
 - **Collection Dial verdict（2026-08-12，ADR 0033）**：用户接受当前底部半圆集合盘方向并批准进入真实实现规格。接受项包括文件夹容器 / 打开接收态、active 居中、透明渐变模糊、选择与确认分离、直接拖放、集中异步反馈和宽屏 / 窄屏奇数窗口。桌面连续 10 项、移动连续 5 项没有独立测量记录，「更多集合」与「新建集合」也尚未在原型实现；不得把它们写成已验证，须在 `/to-spec` 中转为明确的生产验收。原型继续保持 dev-only、内存假数据和模拟写入，不直接升级为生产组件。
 
 - **Collection Dial 文件夹图标替换（2026-08-12）**：用户明确要求使用其下载的 Vecteezy 简约文件夹原素材，不采用 3D / 拟物或重新绘制方案。闭合 / 打开状态现直接使用从 EPS 原件提取并等比映射的 SVG Bézier 路径，JPG→PNG 的临时栅格方案因界面缩放发虚已删除；原轮廓与高光分层保持不变，黄色阶映射到 Asterism 浅蓝色阶。闭合状态没有纸张或内衬色带；背板作为底层延伸到前片后方，再由前片覆盖，因而与原版一样直接相接且在暗色主题不透底。当前目标完整显色，其他集合降低饱和度和不透明度。独立绘制在图标下方的椭圆落地阴影已完全移除，素材自身的弧形明暗层保留。选择、拖放、键盘及响应式状态机不变。

@@ -98,6 +98,10 @@
 
 - `user_id` — 操作所属用户
 - `source` — `manual` / `promotion`；当前产品只创建 `manual`，保留 `promotion` 仅为历史兼容
+- `interaction` — `bulk_dialog` / `collection_dial` / `collection_dial_undo`；区分并发门禁与恢复入口，不改变 `source` 的历史兼容语义
+- `client_request_id` — 客户端请求幂等键；`(user_id, client_request_id)` 唯一
+- `undo_of_operation_id` — Undo operation 指向原 Collection Dial operation（可选；每个原 operation 最多一个）
+- `undo_expires_at` — 原 operation 的短期 Undo 服务端截止时间（可选）
 - `source_repo_ids` — 确认时固化的 repository ID 范围
 - `status` — `pending` / `running` / `needs_attention` / `completed`
 - `completed_at` — 完成时间（可选）
@@ -113,8 +117,22 @@
 - `action` — `add` / `remove`
 - `status` — `pending` / `running` / `succeeded` / `retryable_failed` / `terminal_failed` / `dismissed`
 - `attempt_count`、`last_error_code`、`last_error_message`
+- `effective_changed` — 本 item 是否真实改变 canonical 关系；幂等 no-op 为 false
+- `effective_mutation_id` — 真实变更产生的受信 receipt；no-op 为空
 
 约束：`(operation_id, repo_id, relation_type, target_id, action)` 唯一。实际关系写入只由受信 `bulk-organize` 执行器完成。
+
+### `collection_relation_heads` — 集合关系最后有效变更
+
+为 ADR 0034 的独立短期 Undo 保存集合关系的当前存在状态和最后一次有效变更身份；删除关系后 head 仍保留。
+
+- `user_id`、`collection_id`、`repo_id`
+- `present` — 当前 canonical `collection_repos` 是否存在
+- `version` — 每次真实 INSERT / DELETE 单调递增；幂等 no-op 不变
+- `effective_mutation_id` — 最后一次真实关系变更的 UUID
+- `last_operation_item_id` — 该变更由 bulk item 产生时记录其身份；普通用户写入为空
+
+约束：`(user_id, collection_id, repo_id)` 唯一。所有 collection relation 写路径必须经 `packages/db` 的 typed command / 受信 RPC；迁移为既有关系生成不归属于任何新 operation 的基线 head。Collection Dial Undo 仅在当前 head 仍精确匹配原成功 item receipt 时创建反向 operation，不能覆盖后续用户改动。
 
 ### `user_repo_embeddings` — 仓库语义向量（derived 平面，ADR 0026）
 
@@ -138,9 +156,13 @@
   - SELECT：全局可读（所有已认证用户均可读）。
   - INSERT / UPDATE：仅由受信路径写入（同步逻辑 / Edge Functions / service role），普通用户不可直接写。
 
-- **`user_stars` / `tags` / `repo_tags` / `collections` / `collection_repos` / `notes` / `user_repo_embeddings`**
+- **`user_stars` / `tags` / `repo_tags` / `collections` / `notes` / `user_repo_embeddings`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
+
+- **`collection_repos` / `collection_relation_heads`**
+  - SELECT：要求 `user_id = auth.uid()`。
+  - 普通客户端不直接 INSERT / UPDATE / DELETE；集合关系只经校验 `auth.uid()`、仓库成员关系与集合归属的受信 typed command / RPC 改变，确保每次有效变更都有 ADR 0034 mutation identity。
 
 - **`bulk_operations` / `bulk_operation_items`**
   - SELECT：要求 `user_id = auth.uid()`，客户端可读取本人的操作进度与结果。

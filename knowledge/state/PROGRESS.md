@@ -6,6 +6,10 @@
 
 ## 当前状态
 
+> **Collection Dial tickets 已发布（2026-08-12，GitHub #30–#34）**：用户认为最初 8 张 proposal 过细，最终批准压缩为 5 张单上下文可完成的 blockers-first tickets：#30 受信集合关系 mutation seam → #31 单项生产 Collection Dial → #32 冻结多选范围与 semantic ordering → #33 More / New / Undo / durable recovery → #34 真实连续任务验收与原型退役。5 张均标记 `ready-for-agent`、无人领取，并已核验 GitHub 原生线性 blocking edges；当前唯一 frontier 是 #30。本轮未修改生产代码、未部署、未领取 ticket，也未进入实现。见 `logs/2026-08-12-collection-dial-tickets.md`。
+
+> **Collection Dial buildable spec 已发布（2026-08-12，GitHub #29）**：Phase 2.2 规格把 ADR 0033 的原型 verdict 收敛为可实施边界：拿起时冻结 repository ID scope 与集合目录；最多 7 个 quick targets，embedding 不可用、范围超过 50 或多选无共识时静默退化到会话 MRU 与稳定顺序；More / New 承接冻结范围；单项与多选统一走带 client request 幂等键的持久 `bulk-organize` 生命周期。独立短期 Undo 由 ADR 0034 的 collection relation head / effective mutation receipt 保护，只反转本次真正新增且之后未被改动的关系。规格同时定义虚拟列表、Quick Look、触控滚动、a11y / i18n、真实桌面连续 10 项 / 移动 5 项和原型退役门槛。本轮未修改生产代码、未部署、未创建实现 tickets；当前 frontier 是按 `/to-tickets` 先向用户提议 blockers-first tracer-bullet 粒度，获批后再发布原生 blocking edges。见 `logs/2026-08-12-collection-dial-spec.md`。
+
 > **Collection Dial 原型 verdict 已接受（2026-08-12，ADR 0033）**：用户确认当前原型可以推荐到真实实现。正式方向为 Browse 内临时出现的底部半圆集合盘，以文件夹闭合 / 打开表达集合与接收，active 目标居中，背景使用透明渐变模糊；点击文件夹 / Q/E 只选择，Enter / 明确按钮确认，直接拖放可一步提交；pending、failure、retry、cancel、success 与独立 Undo 集中反馈。此前桌面连续 10 项 / 移动连续 5 项没有独立测量记录，原型也未覆盖「更多集合」与「新建集合」，因此两项转为规格和生产验收条件而非伪记通过。产品与 UI 契约已同步；下一 frontier 是在独立上下文运行 `/to-spec`，不得把 throwaway prototype 直接接入真实数据。见 `decisions/0033-adopt-collection-dial-for-direct-organization.md` 与 `logs/2026-08-12-collection-dial-prototype-verdict.md`。
 
 > **Collection Dial 文件夹图标已精修（2026-08-12）**：原型已换成用户下载的 Vecteezy 闭合 / 打开文件夹原素材，不再使用自绘、3D 或 Lucide 替代。最终实现直接从 EPS 提取原始 Bézier 路径并保存为透明 SVG，淘汰曾由 JPG 缩放得到、在界面尺寸下发虚的 PNG；黄色层级按原明暗关系映射为 Asterism 浅蓝色阶。闭合状态保持原版背板与前片直接相接的三层结构：背板路径延伸到前片后方，由前片覆盖，不添加纸张 / 内衬色带，也不会在暗色主题透底。当前目标完整显色，其他集合克制降饱和。图标下方额外绘制的椭圆落地阴影节点和样式已删除，只保留素材自身的平面高光。既有选择、拖放、键盘及响应式状态机不变。真实 Chromium 已核验闭合与打开接收态，DOM 中阴影节点为 0，SVG 成功加载且控制台无新增错误。见 `logs/2026-08-12-collection-dial-folder-icons.md`。

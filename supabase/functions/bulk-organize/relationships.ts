@@ -11,13 +11,23 @@ export interface RelationshipStore {
   relationshipExists: (userId: string, item: BulkOperationItem) => Promise<boolean>;
   addRelationship: (userId: string, item: BulkOperationItem) => Promise<void>;
   removeRelationship: (userId: string, item: BulkOperationItem) => Promise<void>;
+  mutateCollectionRelationship: (
+    userId: string,
+    item: BulkOperationItem,
+  ) => Promise<RelationshipMutationResult>;
+}
+
+export interface RelationshipMutationResult {
+  effectiveChanged: boolean;
+  effectiveMutationId: string | null;
+  effectiveRelationVersion: number | null;
 }
 
 export async function applyRelationship(
   store: RelationshipStore,
   userId: string,
   item: BulkOperationItem,
-): Promise<void> {
+): Promise<RelationshipMutationResult> {
   if (!(await store.ownsRepository(userId, item.repoId))) {
     throw new BulkExecutionError(
       'terminal',
@@ -33,10 +43,21 @@ export async function applyRelationship(
     );
   }
 
+  if (item.relationType === 'collection') {
+    return store.mutateCollectionRelationship(userId, item);
+  }
+
   const exists = await store.relationshipExists(userId, item);
   if (item.action === 'add') {
-    if (!exists) await store.addRelationship(userId, item);
-    return;
+    if (!exists) {
+      await store.addRelationship(userId, item);
+      return { effectiveChanged: true, effectiveMutationId: null, effectiveRelationVersion: null };
+    }
+    return { effectiveChanged: false, effectiveMutationId: null, effectiveRelationVersion: null };
   }
-  if (exists) await store.removeRelationship(userId, item);
+  if (exists) {
+    await store.removeRelationship(userId, item);
+    return { effectiveChanged: true, effectiveMutationId: null, effectiveRelationVersion: null };
+  }
+  return { effectiveChanged: false, effectiveMutationId: null, effectiveRelationVersion: null };
 }

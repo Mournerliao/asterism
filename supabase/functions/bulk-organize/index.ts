@@ -26,6 +26,11 @@ function mapItem(row: Record<string, unknown>): BulkOperationItem {
     attemptCount: Number(row.attempt_count),
     lastErrorCode: typeof row.last_error_code === 'string' ? row.last_error_code : null,
     lastErrorMessage: typeof row.last_error_message === 'string' ? row.last_error_message : null,
+    effectiveChanged: row.effective_changed === true,
+    effectiveMutationId:
+      typeof row.effective_mutation_id === 'string' ? row.effective_mutation_id : null,
+    effectiveRelationVersion:
+      typeof row.effective_relation_version === 'number' ? row.effective_relation_version : null,
   };
 }
 
@@ -37,14 +42,16 @@ async function getOperation(
   const [operationResult, itemsResult] = await Promise.all([
     admin
       .from('bulk_operations')
-      .select('id, source, source_repo_ids, status, completed_at, created_at, updated_at')
+      .select(
+        'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, source_repo_ids, status, completed_at, created_at, updated_at',
+      )
       .eq('id', operationId)
       .eq('user_id', userId)
       .maybeSingle(),
     admin
       .from('bulk_operation_items')
       .select(
-        'id, repo_id, relation_type, target_id, action, status, attempt_count, last_error_code, last_error_message',
+        'id, repo_id, relation_type, target_id, action, status, attempt_count, last_error_code, last_error_message, effective_changed, effective_mutation_id, effective_relation_version',
       )
       .eq('operation_id', operationId)
       .eq('user_id', userId)
@@ -60,6 +67,11 @@ async function getOperation(
   return {
     id: String(row.id),
     source: row.source as BulkOperation['source'],
+    interaction: row.interaction as BulkOperation['interaction'],
+    clientRequestId: String(row.client_request_id),
+    undoOfOperationId:
+      typeof row.undo_of_operation_id === 'string' ? row.undo_of_operation_id : null,
+    undoExpiresAt: typeof row.undo_expires_at === 'string' ? row.undo_expires_at : null,
     sourceRepoIds: (row.source_repo_ids as string[]) ?? [],
     status: row.status as BulkOperation['status'],
     completedAt: typeof row.completed_at === 'string' ? row.completed_at : null,
@@ -100,58 +112,58 @@ function createExecutionStore(admin: AdminClient): BulkExecutionStore {
       return Boolean(result.data);
     },
     relationshipExists: async (userId, item) => {
-      const result =
-        item.relationType === 'tag'
-          ? await admin
-              .from('repo_tags')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('repo_id', item.repoId)
-              .eq('tag_id', item.targetId)
-              .maybeSingle()
-          : await admin
-              .from('collection_repos')
-              .select('id')
-              .eq('user_id', userId)
-              .eq('repo_id', item.repoId)
-              .eq('collection_id', item.targetId)
-              .maybeSingle();
+      const result = await admin
+        .from('repo_tags')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('repo_id', item.repoId)
+        .eq('tag_id', item.targetId)
+        .maybeSingle();
       if (result.error) throw new Error('relationship_check_failed');
       return Boolean(result.data);
     },
     addRelationship: async (userId, item) => {
-      const { error } =
-        item.relationType === 'tag'
-          ? await admin
-              .from('repo_tags')
-              .upsert(
-                { user_id: userId, repo_id: item.repoId, tag_id: item.targetId },
-                { onConflict: 'user_id,repo_id,tag_id', ignoreDuplicates: true },
-              )
-          : await admin
-              .from('collection_repos')
-              .upsert(
-                { user_id: userId, repo_id: item.repoId, collection_id: item.targetId },
-                { onConflict: 'collection_id,repo_id', ignoreDuplicates: true },
-              );
+      const { error } = await admin
+        .from('repo_tags')
+        .upsert(
+          { user_id: userId, repo_id: item.repoId, tag_id: item.targetId },
+          { onConflict: 'user_id,repo_id,tag_id', ignoreDuplicates: true },
+        );
       if (error) throw new Error('relationship_write_failed');
     },
     removeRelationship: async (userId, item) => {
-      const { error } =
-        item.relationType === 'tag'
-          ? await admin
-              .from('repo_tags')
-              .delete()
-              .eq('user_id', userId)
-              .eq('repo_id', item.repoId)
-              .eq('tag_id', item.targetId)
-          : await admin
-              .from('collection_repos')
-              .delete()
-              .eq('user_id', userId)
-              .eq('repo_id', item.repoId)
-              .eq('collection_id', item.targetId);
+      const { error } = await admin
+        .from('repo_tags')
+        .delete()
+        .eq('user_id', userId)
+        .eq('repo_id', item.repoId)
+        .eq('tag_id', item.targetId);
       if (error) throw new Error('relationship_write_failed');
+    },
+    mutateCollectionRelationship: async (userId, item) => {
+      const { data, error } = await admin.rpc('apply_collection_relation_mutation', {
+        p_user_id: userId,
+        p_collection_id: item.targetId,
+        p_repo_id: item.repoId,
+        p_action: item.action,
+        p_operation_item_id: item.id,
+      });
+      if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('relationship_write_failed');
+      }
+      const result = data as Record<string, unknown>;
+      if (
+        typeof result.effectiveChanged !== 'boolean' ||
+        (typeof result.effectiveMutationId !== 'string' && result.effectiveMutationId !== null) ||
+        typeof result.relationVersion !== 'number'
+      ) {
+        throw new Error('relationship_write_failed');
+      }
+      return {
+        effectiveChanged: result.effectiveChanged,
+        effectiveMutationId: result.effectiveMutationId,
+        effectiveRelationVersion: result.relationVersion,
+      };
     },
   };
 
@@ -173,6 +185,9 @@ function createExecutionStore(admin: AdminClient): BulkExecutionStore {
         p_status: result.status,
         p_error_code: result.errorCode,
         p_error_message: result.errorMessage,
+        p_effective_changed: result.effectiveChanged,
+        p_effective_mutation_id: result.effectiveMutationId,
+        p_effective_relation_version: result.effectiveRelationVersion,
       });
       if (error) throw new Error('bulk_operation_result_write_failed');
     },
@@ -203,6 +218,8 @@ Deno.serve(async (request: Request) => {
       const { data, error } = await admin.rpc('create_bulk_operation', {
         p_user_id: userId,
         p_source: input.source,
+        p_interaction: input.interaction,
+        p_client_request_id: input.clientRequestId,
         p_repo_ids: input.repoIds,
         p_changes: input.changes.map(
           (change): Json => ({

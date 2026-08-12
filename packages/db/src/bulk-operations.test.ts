@@ -10,6 +10,10 @@ function clientReturning(data: unknown) {
 const operation = {
   id: 'operation-1',
   source: 'manual',
+  interaction: 'bulk_dialog',
+  clientRequestId: '11111111-1111-4111-8111-111111111111',
+  undoOfOperationId: null,
+  undoExpiresAt: null,
   sourceRepoIds: ['repo-1'],
   status: 'pending',
   completedAt: null,
@@ -26,6 +30,9 @@ const operation = {
       attemptCount: 0,
       lastErrorCode: null,
       lastErrorMessage: null,
+      effectiveChanged: false,
+      effectiveMutationId: null,
+      effectiveRelationVersion: null,
     },
   ],
 };
@@ -36,6 +43,8 @@ describe('invokeBulkOperation', () => {
     const input = {
       action: 'create' as const,
       source: 'manual' as const,
+      interaction: 'bulk_dialog' as const,
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-1'],
       changes: [{ relationType: 'tag' as const, targetId: 'tag-1', action: 'add' as const }],
     };
@@ -59,6 +68,33 @@ describe('invokeBulkOperation', () => {
 
   it('rejects malformed outcomes at the trust boundary', async () => {
     const { client } = clientReturning({ operation: { ...operation, status: 'mystery' } });
+
+    await expect(
+      invokeBulkOperation(client, { action: 'get', operationId: 'operation-1' }),
+    ).rejects.toThrow('invalid response');
+  });
+
+  it('rejects a no-op item carrying a forged effective mutation receipt', async () => {
+    const malformed = {
+      ...operation,
+      items: [
+        {
+          ...operation.items[0],
+          effectiveChanged: false,
+          effectiveMutationId: 'mutation-1',
+          effectiveRelationVersion: 2,
+        },
+      ],
+    };
+    const { client } = clientReturning({ operation: malformed });
+
+    await expect(
+      invokeBulkOperation(client, { action: 'get', operationId: 'operation-1' }),
+    ).rejects.toThrow('invalid response');
+  });
+
+  it('rejects unknown projection fields instead of silently widening the trust boundary', async () => {
+    const { client } = clientReturning({ operation: { ...operation, secret: 'unexpected' } });
 
     await expect(
       invokeBulkOperation(client, { action: 'get', operationId: 'operation-1' }),

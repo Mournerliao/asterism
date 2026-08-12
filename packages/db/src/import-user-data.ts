@@ -1,6 +1,6 @@
 import type { NormalizedImportData } from '@asterism/core';
 import type { SupabaseClient } from './client';
-import { addRepoToCollection } from './queries/collection-repos';
+import { mutateCollectionRelation } from './queries/collection-repos';
 import { createCollection, listCollections } from './queries/collections';
 import { saveNote } from './queries/notes';
 import { addRepoTag } from './queries/repo-tags';
@@ -41,6 +41,7 @@ export async function importUserData(
   client: SupabaseClient,
   userId: string,
   data: NormalizedImportData,
+  collectionRequestId: (collectionId: string, repoId: string) => string,
 ): Promise<ImportUserDataResult> {
   const skipped: string[] = [];
   const errors: string[] = [];
@@ -146,8 +147,14 @@ export async function importUserData(
       continue;
     }
     try {
-      await addRepoToCollection(client, { userId, collectionId, repoId });
-      imported.collectionRepos += 1;
+      const mutation = await mutateCollectionRelation(client, {
+        collectionId,
+        repoId,
+        action: 'add',
+        clientRequestId: collectionRequestId(collectionId, repoId),
+      });
+      if (mutation.effectiveChanged) imported.collectionRepos += 1;
+      else skipped.push(`Collection member exists: ${link.collectionName} / ${link.fullName}`);
     } catch (error) {
       if (isUniqueViolation(error)) {
         skipped.push(`Collection member exists: ${link.collectionName} / ${link.fullName}`);

@@ -13,6 +13,9 @@ function item(id: string, status: BulkItemStatus = 'pending'): BulkOperationItem
     attemptCount: 0,
     lastErrorCode: null,
     lastErrorMessage: null,
+    effectiveChanged: false,
+    effectiveMutationId: null,
+    effectiveRelationVersion: null,
   };
 }
 
@@ -24,6 +27,7 @@ function store(items: BulkOperationItem[]): BulkExecutionStore & { applied: stri
       items.filter((candidate) => statuses.includes(candidate.status)),
     applyItem: async (_userId, candidate) => {
       applied.push(candidate.id);
+      return { effectiveChanged: true, effectiveMutationId: null, effectiveRelationVersion: null };
     },
     recordItemResult: async (_userId, itemId, result) => {
       const candidate = items.find((current) => current.id === itemId);
@@ -32,11 +36,18 @@ function store(items: BulkOperationItem[]): BulkExecutionStore & { applied: stri
         candidate.attemptCount += 1;
         candidate.lastErrorCode = result.errorCode;
         candidate.lastErrorMessage = result.errorMessage;
+        candidate.effectiveChanged = result.effectiveChanged;
+        candidate.effectiveMutationId = result.effectiveMutationId;
+        candidate.effectiveRelationVersion = result.effectiveRelationVersion;
       }
     },
     refreshOperation: async (_userId, operationId) => ({
       id: operationId,
       source: 'manual',
+      interaction: 'bulk_dialog',
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
+      undoOfOperationId: null,
+      undoExpiresAt: null,
       sourceRepoIds: items.map((candidate) => candidate.repoId),
       status: items.every((candidate) => candidate.status === 'succeeded')
         ? 'completed'
@@ -61,6 +72,7 @@ describe('bulk relationship executor', () => {
       if (candidate.id === 'terminal') {
         throw new BulkExecutionError('terminal', 'target_not_owned', 'Target is unavailable');
       }
+      return { effectiveChanged: true, effectiveMutationId: null, effectiveRelationVersion: null };
     };
 
     const result = await executeBulkOperation(memory, 'user-1', 'operation-1', 'pending');

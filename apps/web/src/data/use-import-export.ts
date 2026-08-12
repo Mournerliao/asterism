@@ -9,6 +9,7 @@ import {
 } from '@asterism/core';
 import { importUserData } from '@asterism/db';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { useSession } from '../auth/use-session';
 import { supabase } from '../lib/supabase';
 import {
@@ -27,6 +28,7 @@ export function useImportUserData() {
   const { session } = useSession();
   const queryClient = useQueryClient();
   const userId = session?.user.id;
+  const collectionRequestIds = useRef(new Map<string, string>());
 
   return useMutation({
     mutationFn: async (raw: string) => {
@@ -35,9 +37,15 @@ export function useImportUserData() {
       }
       const { payload } = parseImportJson(raw);
       const normalized = normalizeImportData(payload);
-      return importUserData(supabase, userId, normalized);
+      return importUserData(supabase, userId, normalized, (collectionId, repoId) => {
+        const key = `${collectionId}:${repoId}`;
+        const requestId = collectionRequestIds.current.get(key) ?? crypto.randomUUID();
+        collectionRequestIds.current.set(key, requestId);
+        return requestId;
+      });
     },
     onSuccess: () => {
+      collectionRequestIds.current.clear();
       if (!userId) {
         return;
       }

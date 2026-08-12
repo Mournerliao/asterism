@@ -39,5 +39,15 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Start local Supabase
+        run: pnpm exec supabase start
+
+      - name: Database integration tests
+        run: pnpm test:db
+
+      - name: Stop local Supabase
+        if: always()
+        run: pnpm exec supabase stop
+
       - name: Build
         run: pnpm build

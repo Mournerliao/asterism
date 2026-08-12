@@ -4,7 +4,9 @@ export type {
   BulkChange,
   BulkItemStatus,
   BulkOperation,
+  BulkOperationCreateInteraction,
   BulkOperationCreateSource,
+  BulkOperationInteraction,
   BulkOperationItem,
   BulkOperationRequest,
   BulkOperationSource,
@@ -18,12 +20,12 @@ export { createSupabaseClient } from './client';
 export type { Database, Json, Tables, TablesInsert, TablesUpdate } from './database.types';
 export type { ImportUserDataResult } from './import-user-data';
 export { importUserData } from './import-user-data';
-export type { CollectionRepoLink } from './queries/collection-repos';
-export {
-  addRepoToCollection,
-  listCollectionRepos,
-  removeRepoFromCollection,
+export type {
+  CollectionRelationAction,
+  CollectionRelationMutation,
+  CollectionRepoLink,
 } from './queries/collection-repos';
+export { listCollectionRepos, mutateCollectionRelation } from './queries/collection-repos';
 export type { CollectionWithMeta } from './queries/collections';
 export {
   createCollection,

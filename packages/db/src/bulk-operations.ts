@@ -25,14 +25,26 @@ export interface BulkOperationItem extends BulkChange {
   attemptCount: number;
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
+  effectiveChanged: boolean;
+  effectiveMutationId: string | null;
+  effectiveRelationVersion: number | null;
 }
 
 export type BulkOperationSource = 'manual' | 'promotion';
 export type BulkOperationCreateSource = 'manual';
+export type BulkOperationInteraction = 'bulk_dialog' | 'collection_dial' | 'collection_dial_undo';
+export type BulkOperationCreateInteraction = Exclude<
+  BulkOperationInteraction,
+  'collection_dial_undo'
+>;
 
 export interface BulkOperation {
   id: string;
   source: BulkOperationSource;
+  interaction: BulkOperationInteraction;
+  clientRequestId: string;
+  undoOfOperationId: string | null;
+  undoExpiresAt: string | null;
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
@@ -45,6 +57,8 @@ export type BulkOperationRequest =
   | {
       action: 'create';
       source: BulkOperationCreateSource;
+      interaction: BulkOperationCreateInteraction;
+      clientRequestId: string;
       repoIds: string[];
       changes: BulkChange[];
     }
@@ -69,10 +83,40 @@ function isStringOrNull(value: unknown): value is string | null {
   return typeof value === 'string' || value === null;
 }
 
+function isUuid(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
+}
+
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return (
+    actual.length === sortedExpected.length &&
+    actual.every((key, index) => key === sortedExpected[index])
+  );
+}
+
 function isBulkItem(value: unknown): value is BulkOperationItem {
   if (!value || typeof value !== 'object') return false;
   const item = value as Record<string, unknown>;
   return (
+    hasExactKeys(item, [
+      'id',
+      'repoId',
+      'relationType',
+      'targetId',
+      'action',
+      'status',
+      'attemptCount',
+      'lastErrorCode',
+      'lastErrorMessage',
+      'effectiveChanged',
+      'effectiveMutationId',
+      'effectiveRelationVersion',
+    ]) &&
     typeof item.id === 'string' &&
     typeof item.repoId === 'string' &&
     (item.relationType === 'tag' || item.relationType === 'collection') &&
@@ -81,18 +125,45 @@ function isBulkItem(value: unknown): value is BulkOperationItem {
     itemStatuses.has(item.status as BulkItemStatus) &&
     typeof item.attemptCount === 'number' &&
     isStringOrNull(item.lastErrorCode) &&
-    isStringOrNull(item.lastErrorMessage)
+    isStringOrNull(item.lastErrorMessage) &&
+    typeof item.effectiveChanged === 'boolean' &&
+    isStringOrNull(item.effectiveMutationId) &&
+    (typeof item.effectiveRelationVersion === 'number' || item.effectiveRelationVersion === null) &&
+    (item.effectiveChanged || item.effectiveMutationId === null)
   );
 }
 
 const validSources = new Set<BulkOperationSource>(['manual', 'promotion']);
+const validInteractions = new Set<BulkOperationInteraction>([
+  'bulk_dialog',
+  'collection_dial',
+  'collection_dial_undo',
+]);
 
 function isBulkOperation(value: unknown): value is BulkOperation {
   if (!value || typeof value !== 'object') return false;
   const operation = value as Record<string, unknown>;
   return (
+    hasExactKeys(operation, [
+      'id',
+      'source',
+      'interaction',
+      'clientRequestId',
+      'undoOfOperationId',
+      'undoExpiresAt',
+      'sourceRepoIds',
+      'status',
+      'completedAt',
+      'createdAt',
+      'updatedAt',
+      'items',
+    ]) &&
     typeof operation.id === 'string' &&
     validSources.has(operation.source as BulkOperationSource) &&
+    validInteractions.has(operation.interaction as BulkOperationInteraction) &&
+    isUuid(operation.clientRequestId) &&
+    isStringOrNull(operation.undoOfOperationId) &&
+    isStringOrNull(operation.undoExpiresAt) &&
     Array.isArray(operation.sourceRepoIds) &&
     operation.sourceRepoIds.every((id) => typeof id === 'string') &&
     operationStatuses.has(operation.status as BulkOperationStatus) &&
@@ -104,7 +175,23 @@ function isBulkOperation(value: unknown): value is BulkOperation {
   );
 }
 
-function mapItem(row: Tables<'bulk_operation_items'>): BulkOperationItem {
+type BulkOperationItemRow = Pick<
+  Tables<'bulk_operation_items'>,
+  | 'id'
+  | 'repo_id'
+  | 'relation_type'
+  | 'target_id'
+  | 'action'
+  | 'status'
+  | 'attempt_count'
+  | 'last_error_code'
+  | 'last_error_message'
+  | 'effective_changed'
+  | 'effective_mutation_id'
+  | 'effective_relation_version'
+>;
+
+function mapItem(row: BulkOperationItemRow): BulkOperationItem {
   return {
     id: row.id,
     repoId: row.repo_id,
@@ -115,6 +202,9 @@ function mapItem(row: Tables<'bulk_operation_items'>): BulkOperationItem {
     attemptCount: row.attempt_count,
     lastErrorCode: row.last_error_code,
     lastErrorMessage: row.last_error_message,
+    effectiveChanged: row.effective_changed,
+    effectiveMutationId: row.effective_mutation_id,
+    effectiveRelationVersion: row.effective_relation_version,
   };
 }
 
@@ -126,8 +216,9 @@ export async function invokeBulkOperation(
     body: request,
   });
   if (error) throw error;
-  const operation = (data as { operation?: unknown } | null)?.operation;
-  if (!isBulkOperation(operation)) {
+  const response = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
+  const operation = response?.operation;
+  if (!response || !hasExactKeys(response, ['operation']) || !isBulkOperation(operation)) {
     throw new Error('bulk-organize returned an invalid response');
   }
   return operation;
@@ -139,7 +230,9 @@ export async function listBulkOperations(
 ): Promise<BulkOperation[]> {
   const { data: operations, error: operationsError } = await client
     .from('bulk_operations')
-    .select('*')
+    .select(
+      'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, source_repo_ids, status, completed_at, created_at, updated_at',
+    )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
     .limit(20);
@@ -149,7 +242,9 @@ export async function listBulkOperations(
 
   const { data: items, error: itemsError } = await client
     .from('bulk_operation_items')
-    .select('*')
+    .select(
+      'id, operation_id, repo_id, relation_type, target_id, action, status, attempt_count, last_error_code, last_error_message, effective_changed, effective_mutation_id, effective_relation_version, created_at',
+    )
     .eq('user_id', userId)
     .in('operation_id', operationIds)
     .order('created_at');
@@ -165,6 +260,10 @@ export async function listBulkOperations(
   return (operations ?? []).map((row) => ({
     id: row.id,
     source: row.source,
+    interaction: row.interaction,
+    clientRequestId: row.client_request_id,
+    undoOfOperationId: row.undo_of_operation_id,
+    undoExpiresAt: row.undo_expires_at,
     sourceRepoIds: row.source_repo_ids,
     status: row.status,
     completedAt: row.completed_at,

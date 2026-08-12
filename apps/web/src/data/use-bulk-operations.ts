@@ -7,6 +7,7 @@ import {
 } from '@asterism/db';
 import { toast } from '@asterism/ui';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
 import { runBulkOperationUntilSettled } from '../lib/bulk-operation-runner';
@@ -40,6 +41,7 @@ export function useBulkOperationActions() {
   const { session } = useSession();
   const userId = session?.user.id;
   const queryClient = useQueryClient();
+  const createRequestIds = useRef(new Map<string, string>());
 
   const refreshOrganizationData = async () => {
     if (!userId) return;
@@ -69,15 +71,21 @@ export function useBulkOperationActions() {
       source?: BulkOperationCreateSource;
     }) => {
       if (!userId) throw new Error(NO_USER);
+      const requestKey = JSON.stringify(input);
+      const clientRequestId = createRequestIds.current.get(requestKey) ?? crypto.randomUUID();
+      createRequestIds.current.set(requestKey, clientRequestId);
       return invokeBulkOperation(supabase, {
         action: 'create',
         source: input.source ?? 'manual',
+        interaction: 'bulk_dialog',
+        clientRequestId,
         repoIds: input.repoIds,
         changes: input.changes,
       });
     },
     onSettled: refreshOrganizationData,
-    onSuccess: (operation) => {
+    onSuccess: (operation, input) => {
+      createRequestIds.current.delete(JSON.stringify(input));
       if (operation.status === 'completed') toast.success(t('bulk.status.completed'));
     },
     onError: () => toast.error(t('bulk.createError')),

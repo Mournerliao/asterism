@@ -8,6 +8,10 @@ import {
 const operation: BulkOperation = {
   id: 'operation-1',
   source: 'manual',
+  interaction: 'bulk_dialog',
+  clientRequestId: '11111111-1111-4111-8111-111111111111',
+  undoOfOperationId: null,
+  undoExpiresAt: null,
   sourceRepoIds: ['repo-1', 'repo-2'],
   status: 'pending',
   completedAt: null,
@@ -24,6 +28,9 @@ const operation: BulkOperation = {
       attemptCount: 0,
       lastErrorCode: null,
       lastErrorMessage: null,
+      effectiveChanged: false,
+      effectiveMutationId: null,
+      effectiveRelationVersion: null,
     },
   ],
 };
@@ -62,6 +69,8 @@ describe('bulk-organize trusted HTTP interface', () => {
       request({
         action: 'create',
         source: 'manual',
+        interaction: 'bulk_dialog',
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
         repoIds: ['repo-2', 'repo-1', 'repo-2'],
         changes: [
           { relationType: 'tag', targetId: 'tag-1', action: 'add' },
@@ -74,6 +83,8 @@ describe('bulk-organize trusted HTTP interface', () => {
     expect(response.status).toBe(200);
     expect(deps.createOperation).toHaveBeenCalledWith('user-1', {
       source: 'manual',
+      interaction: 'bulk_dialog',
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-2', 'repo-1'],
       changes: [
         { relationType: 'tag', targetId: 'tag-1', action: 'add' },
@@ -96,6 +107,8 @@ describe('bulk-organize trusted HTTP interface', () => {
           request({
             action: 'create',
             source: 'manual',
+            interaction: 'bulk_dialog',
+            clientRequestId: '11111111-1111-4111-8111-111111111111',
             repoIds: [],
             changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add' }],
           }),
@@ -104,6 +117,33 @@ describe('bulk-organize trusted HTTP interface', () => {
     ).toBe(400);
     expect(deps.createOperation).not.toHaveBeenCalled();
     expect(deps.getOperation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      action: 'create',
+      source: 'manual',
+      interaction: 'bulk_dialog',
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
+      repoIds: ['repo-1'],
+      changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add' }],
+      unexpected: true,
+    },
+    {
+      action: 'create',
+      source: 'manual',
+      interaction: 'bulk_dialog',
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
+      repoIds: ['repo-1'],
+      changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add', unexpected: true }],
+    },
+  ])('rejects unknown create request fields', async (body) => {
+    const deps = dependencies();
+
+    const response = await createBulkOrganizeHandler(deps)(request(body));
+
+    expect(response.status).toBe(400);
+    expect(deps.createOperation).not.toHaveBeenCalled();
   });
 
   it.each([

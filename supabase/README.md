@@ -23,6 +23,7 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260730090000_organization_generation_runs.sql` | 已批准 workload 的可恢复分页 Generation、调用账本、暂停 / 恢复 / 重试和 immutable revisioned Organization Plan |
 | `20260804120000_organization_plan_review_execution.sql` | Plan 三档风险审阅、逐 action 排除、服务端 group fingerprint 授权、精确幂等确认与唯一 Organization Task → bulk operation 执行链接 |
 | `20260805120000_remove_ai_organization.sql` | 按 ADR 0032 退役 AI 整理：删除 Provider credential、草稿、Task / Plan / Generation 表与 RPC，移除 AI 来源批量账本，同时保留 canonical 标签、集合、关系与 embedding |
+| `20260812120000_trusted_collection_relation_mutations.sql` | 按 ADR 0034 建立受信集合关系 mutation seam：基线 relation head、单调 version / effective mutation receipt、bulk interaction / client request 幂等字段，并撤销普通客户端对 `collection_repos` 的直接写权限 |
 
 > 2026-08-05 之前的 AI / Organization migration 是已部署环境必须重放的历史；
 > 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛到当前 schema。
@@ -56,8 +57,9 @@ supabase db push
 select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename;
 ```
 
-`repos / user_stars / tags / repo_tags / collections / collection_repos / notes /
-bulk_operations / bulk_operation_items / user_repo_embeddings` 的
+`repos / user_stars / tags / repo_tags / collections / collection_repos /
+collection_relation_heads / notes / bulk_operations / bulk_operation_items /
+user_repo_embeddings` 的
 `rowsecurity` 应均为 `true`。
 
 > 检索优先向量表 `user_repo_embeddings` 的 owner-only 隔离与 `notes` 同构
@@ -65,6 +67,25 @@ bulk_operations / bulk_operation_items / user_repo_embeddings` 的
 > 真实环境冒烟：以用户 A 的会话写入一行向量，再以用户 B 的会话对该行 `select` /
 > `update` / `delete` 应命中 0 行（跨用户读写被拒）；客户端读写始终按 `user_id` 收窄
 > 的回归由 `packages/db` 单测守护。
+
+### 受信集合关系 mutation 冒烟
+
+数据库验收已固化为 pgTAP 集成回归：`pnpm exec supabase start` 后运行 `pnpm test:db`。CI 会自动启动本地 Supabase，覆盖 baseline/no-op、真实并发 add、响应丢失重放、跨用户、非法 target 与客户端直写拒绝。
+
+应用 `20260812120000_trusted_collection_relation_mutations.sql` 并部署最新
+`bulk-organize` 后，以两个真实用户会话验证：
+
+1. 用户 A 通过 `mutate_collection_relation` 添加本人 Star 到本人集合；单项 operation / item、
+   关系、head 与返回 receipt 同时出现。以同一 client request UUID 重放完全相同命令，应返回
+   同一 operation / item 与 receipt；同一 UUID 携带不同范围或 action 应报 `client_request_conflict`。
+2. 并发提交两个相同 add；只产生一次有效变更，两个调用最终看到同一 canonical membership，
+   head 只推进一个 version。
+3. 用户 B 使用 A 的 collection / repository ID 调用 RPC 应被拒绝；A 对已删除 target 调用也应
+   被拒绝。authenticated 会话直接对 `collection_repos` 执行 insert / update / delete 应无权限。
+4. 对同一 `clientRequestId` 重复创建完全相同的 bulk operation，应返回同一 operation ID；模拟 item 已写入
+   collection 但 HTTP 响应丢失后重领，item 应保留原 `effectiveChanged` 与 mutation receipt。
+5. 迁移前已有的每条 `collection_repos` membership 都应有 `present = true`、`version = 1`、
+   `last_operation_item_id is null` 的基线 head，canonical 行数保持不变。
 
 ## GitHub OAuth 配置（后台手动一次）
 

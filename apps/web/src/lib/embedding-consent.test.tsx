@@ -47,7 +47,7 @@ describe('embedding consent state', () => {
 
   it('caches the storage lookup across renders', async () => {
     localStorage.setItem(embeddingOptInStorageKey('user-a'), 'enabled');
-    const getItem = vi.spyOn(Storage.prototype, 'getItem');
+    const getItem = vi.spyOn(localStorage, 'getItem');
 
     await act(async () => root.render(<Harness userId="user-a" />));
     await act(async () => root.render(<Harness userId="user-a" />));

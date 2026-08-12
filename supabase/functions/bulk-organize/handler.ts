@@ -28,11 +28,24 @@ export interface BulkOperationItem extends BulkChange {
   attemptCount: number;
   lastErrorCode: string | null;
   lastErrorMessage: string | null;
+  effectiveChanged: boolean;
+  effectiveMutationId: string | null;
+  effectiveRelationVersion: number | null;
 }
+
+export type BulkOperationInteraction = 'bulk_dialog' | 'collection_dial' | 'collection_dial_undo';
+export type BulkOperationCreateInteraction = Exclude<
+  BulkOperationInteraction,
+  'collection_dial_undo'
+>;
 
 export interface BulkOperation {
   id: string;
-  source: 'manual';
+  source: 'manual' | 'promotion';
+  interaction: BulkOperationInteraction;
+  clientRequestId: string;
+  undoOfOperationId: string | null;
+  undoExpiresAt: string | null;
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
@@ -43,6 +56,8 @@ export interface BulkOperation {
 
 export interface CreateBulkOperationInput {
   source: 'manual';
+  interaction: BulkOperationCreateInteraction;
+  clientRequestId: string;
   repoIds: string[];
   changes: BulkChange[];
 }
@@ -69,12 +84,47 @@ function isId(value: unknown): value is string {
   return typeof value === 'string' && value.length > 0 && value.length <= 128;
 }
 
+function isUuid(value: unknown): value is string {
+  return (
+    typeof value === 'string' &&
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+  );
+}
+
+function hasExactKeys(value: Record<string, unknown>, expected: readonly string[]): boolean {
+  const actual = Object.keys(value).sort();
+  const sortedExpected = [...expected].sort();
+  return (
+    actual.length === sortedExpected.length &&
+    actual.every((key, index) => key === sortedExpected[index])
+  );
+}
+
+function isCreateInteraction(value: unknown): value is BulkOperationCreateInteraction {
+  return value === 'bulk_dialog' || value === 'collection_dial';
+}
+
 function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   if (!value || typeof value !== 'object') {
     return null;
   }
   const input = value as Record<string, unknown>;
-  if (input.source !== 'manual' || !Array.isArray(input.repoIds) || !Array.isArray(input.changes)) {
+  if (
+    !hasExactKeys(input, [
+      'action',
+      'source',
+      'interaction',
+      'clientRequestId',
+      'repoIds',
+      'changes',
+    ]) ||
+    input.action !== 'create' ||
+    input.source !== 'manual' ||
+    !isCreateInteraction(input.interaction) ||
+    !isUuid(input.clientRequestId) ||
+    !Array.isArray(input.repoIds) ||
+    !Array.isArray(input.changes)
+  ) {
     return null;
   }
   const repoIds = [...new Set(input.repoIds.filter(isId))];
@@ -90,6 +140,7 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
     }
     const change = candidate as Record<string, unknown>;
     if (
+      !hasExactKeys(change, ['relationType', 'targetId', 'action']) ||
       (change.relationType !== 'tag' && change.relationType !== 'collection') ||
       (change.action !== 'add' && change.action !== 'remove') ||
       !isId(change.targetId)
@@ -109,7 +160,13 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   if (changes.length === 0 || repoIds.length * changes.length > 10_000) {
     return null;
   }
-  return { source: input.source, repoIds, changes };
+  return {
+    source: input.source,
+    interaction: input.interaction,
+    clientRequestId: input.clientRequestId,
+    repoIds,
+    changes,
+  };
 }
 
 function operationRequest(value: unknown): { action: OperationAction; operationId: string } | null {
@@ -118,6 +175,7 @@ function operationRequest(value: unknown): { action: OperationAction; operationI
   }
   const input = value as Record<string, unknown>;
   if (
+    !hasExactKeys(input, ['action', 'operationId']) ||
     !['get', 'execute', 'retry', 'complete'].includes(String(input.action)) ||
     !isId(input.operationId)
   ) {

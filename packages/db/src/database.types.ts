@@ -197,6 +197,10 @@ export interface Database {
           id: string;
           user_id: string;
           source: 'manual' | 'promotion';
+          interaction: 'bulk_dialog' | 'collection_dial' | 'collection_dial_undo';
+          client_request_id: string;
+          undo_of_operation_id: string | null;
+          undo_expires_at: string | null;
           source_repo_ids: string[];
           status: 'pending' | 'running' | 'needs_attention' | 'completed';
           completed_at: string | null;
@@ -207,6 +211,10 @@ export interface Database {
           id?: string;
           user_id: string;
           source: 'manual' | 'promotion';
+          interaction?: 'bulk_dialog' | 'collection_dial' | 'collection_dial_undo';
+          client_request_id?: string;
+          undo_of_operation_id?: string | null;
+          undo_expires_at?: string | null;
           source_repo_ids: string[];
           status?: 'pending' | 'running' | 'needs_attention' | 'completed';
           completed_at?: string | null;
@@ -235,6 +243,9 @@ export interface Database {
           attempt_count: number;
           last_error_code: string | null;
           last_error_message: string | null;
+          effective_changed: boolean;
+          effective_mutation_id: string | null;
+          effective_relation_version: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -256,6 +267,9 @@ export interface Database {
           attempt_count?: number;
           last_error_code?: string | null;
           last_error_message?: string | null;
+          effective_changed?: boolean;
+          effective_mutation_id?: string | null;
+          effective_relation_version?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -276,6 +290,34 @@ export interface Database {
             referencedColumns: ['id'];
           },
         ];
+      };
+      collection_relation_heads: {
+        Row: {
+          id: string;
+          user_id: string;
+          collection_id: string;
+          repo_id: string;
+          present: boolean;
+          version: number;
+          effective_mutation_id: string | null;
+          last_operation_item_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          collection_id: string;
+          repo_id: string;
+          present?: boolean;
+          version?: number;
+          effective_mutation_id?: string | null;
+          last_operation_item_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database['public']['Tables']['collection_relation_heads']['Insert']>;
+        Relationships: [];
       };
       notes: {
         Row: {
@@ -345,6 +387,8 @@ export interface Database {
         Args: {
           p_user_id: string;
           p_source: string;
+          p_interaction: string;
+          p_client_request_id: string;
           p_repo_ids: string[];
           p_changes: Json;
         };
@@ -361,8 +405,30 @@ export interface Database {
           p_status: string;
           p_error_code?: string | null;
           p_error_message?: string | null;
+          p_effective_changed?: boolean;
+          p_effective_mutation_id?: string | null;
+          p_effective_relation_version?: number | null;
         };
         Returns: undefined;
+      };
+      mutate_collection_relation: {
+        Args: {
+          p_collection_id: string;
+          p_repo_id: string;
+          p_action: string;
+          p_client_request_id: string;
+        };
+        Returns: Json;
+      };
+      apply_collection_relation_mutation: {
+        Args: {
+          p_user_id: string;
+          p_collection_id: string;
+          p_repo_id: string;
+          p_action: string;
+          p_operation_item_id?: string | null;
+        };
+        Returns: Json;
       };
       complete_bulk_operation: {
         Args: { p_user_id: string; p_operation_id: string };

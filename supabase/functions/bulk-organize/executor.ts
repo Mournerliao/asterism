@@ -4,6 +4,9 @@ export type BulkExecutionResult = {
   status: Extract<BulkItemStatus, 'succeeded' | 'retryable_failed' | 'terminal_failed'>;
   errorCode: string | null;
   errorMessage: string | null;
+  effectiveChanged: boolean;
+  effectiveMutationId: string | null;
+  effectiveRelationVersion: number | null;
 };
 
 export interface BulkExecutionStore {
@@ -12,7 +15,14 @@ export interface BulkExecutionStore {
     operationId: string,
     statuses: BulkItemStatus[],
   ) => Promise<BulkOperationItem[]>;
-  applyItem: (userId: string, item: BulkOperationItem) => Promise<void>;
+  applyItem: (
+    userId: string,
+    item: BulkOperationItem,
+  ) => Promise<{
+    effectiveChanged: boolean;
+    effectiveMutationId: string | null;
+    effectiveRelationVersion: number | null;
+  }>;
   recordItemResult: (userId: string, itemId: string, result: BulkExecutionResult) => Promise<void>;
   refreshOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
 }
@@ -34,12 +44,18 @@ function failureResult(error: unknown): BulkExecutionResult {
       status: error.kind === 'terminal' ? 'terminal_failed' : 'retryable_failed',
       errorCode: error.code,
       errorMessage: error.message,
+      effectiveChanged: false,
+      effectiveMutationId: null,
+      effectiveRelationVersion: null,
     };
   }
   return {
     status: 'retryable_failed',
     errorCode: 'temporary_failure',
     errorMessage: 'The relationship could not be updated. Try again.',
+    effectiveChanged: false,
+    effectiveMutationId: null,
+    effectiveRelationVersion: null,
   };
 }
 
@@ -57,9 +73,12 @@ export async function executeBulkOperation(
       status: 'succeeded',
       errorCode: null,
       errorMessage: null,
+      effectiveChanged: false,
+      effectiveMutationId: null,
+      effectiveRelationVersion: null,
     };
     try {
-      await store.applyItem(userId, item);
+      result = { ...result, ...(await store.applyItem(userId, item)) };
     } catch (error) {
       result = failureResult(error);
     }

@@ -52,9 +52,15 @@ select extensions.ok(
 );
 
 do $concurrent_setup$
+declare
+  local_connection_string text := format(
+    'host=127.0.0.1 port=%s dbname=%s user=postgres password=postgres',
+    current_setting('port'),
+    current_database()
+  );
 begin
-  perform extensions.dblink_connect('relation_add_a', 'dbname=' || current_database());
-  perform extensions.dblink_connect('relation_add_b', 'dbname=' || current_database());
+  perform extensions.dblink_connect('relation_add_a', local_connection_string);
+  perform extensions.dblink_connect('relation_add_b', local_connection_string);
   perform extensions.dblink_send_query(
     'relation_add_a',
     $$select public.apply_collection_relation_mutation(

@@ -28,7 +28,7 @@ Grip 隔离、幂等 operation 与 query 收敛门槛。
 
 - `pnpm lint`：通过，293 files。
 - `pnpm --filter @asterism/core typecheck`、UI / Web typecheck：通过。
-- `pnpm test`：通过，core 68、db 37、supabase functions 27、web 182 tests。
+- `pnpm test`：通过，core 68、db 37、supabase functions 27、web 183 tests。
 - `pnpm build`：通过；保留既有 Web chunk-size warning。
 - 真实浏览器：1536 / 1024 / 390 / 320、grid / list、light / dark、Q/E、Enter、Escape、指针取消、焦点恢复
   与 reduced motion 均验证；200% 有效宽度另有 ResizeObserver 自动化回归。
@@ -38,6 +38,9 @@ Grip 隔离、幂等 operation 与 query 收敛门槛。
 
 双轴 code review 发现并修复四个边缘条件：指针拿起后将键盘焦点交给 Dial；焦点恢复只选择当前可见
 grid / list 的 Grip；操作按钮保留原生 Enter 语义；success 成为不可再次选择或提交的终态。对应回归测试已加入。
+
+后续文案 review 将“没有创建任何集合”和“仓库已加入全部集合”拆为不同反馈：前者明确引导先到集合页面
+创建，后者只确认当前归属事实；英文同步去除生硬且容易误解的 `every available collection` 表达。
 
 ## 后续
 

@@ -215,7 +215,8 @@
     "submittingStatus": "正在加入仓库…",
     "successStatus": "已将仓库加入集合。",
     "done": "完成",
-    "unavailable": "该仓库已在所有可用集合中。",
+    "noCollections": "还没有集合，请先到「集合」页面创建。",
+    "alreadyInAllCollections": "该仓库已加入你的所有集合。",
     "retryableError": "暂时无法加入仓库，已为你保留仓库和目标集合。",
     "terminalError": "该集合已不再适用于当前仓库。",
     "convergenceError": "写入已完成，但暂时无法获取最新集合状态，请重试刷新。"

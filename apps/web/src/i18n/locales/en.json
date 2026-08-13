@@ -215,7 +215,8 @@
     "submittingStatus": "Adding repository…",
     "successStatus": "Repository added to the collection.",
     "done": "Done",
-    "unavailable": "This repository is already in every available collection.",
+    "noCollections": "No collections yet. Create one on the Collections page first.",
+    "alreadyInAllCollections": "This repository is already in all your collections.",
     "retryableError": "The repository could not be added. Your repository and collection are still held.",
     "terminalError": "This collection is no longer available for the repository.",
     "convergenceError": "The write completed, but the latest collection state is not available yet. Retry to refresh it."

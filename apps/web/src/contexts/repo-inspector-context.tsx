@@ -54,7 +54,7 @@ type RepoInspectorController = {
   ) => void;
   registerContext: (context: SelectionContext) => void;
   requestNavigate: (direction: -1 | 1) => void;
-  requestClose: () => void;
+  requestClose: () => boolean;
   requestRoute: (to: string, state: ReadmeRouteState) => void;
   syncNote: (repoId: string, serverBody: string) => void;
   noteDraft: NoteDraft | null;
@@ -135,9 +135,10 @@ export function RepoInspectorProvider({ children }: { children: ReactNode }) {
       if (dirty) {
         setConfirmError(false);
         setDeferred(intent);
-        return;
+        return false;
       }
       perform(intent);
+      return true;
     },
     [dirty, perform],
   );

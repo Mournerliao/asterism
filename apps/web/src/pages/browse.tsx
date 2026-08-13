@@ -1,5 +1,5 @@
 import { deriveRepoFacets, hasActiveFilter, rankHybridRepos, type Tag } from '@asterism/core';
-import { Button, cn, GlassControlRow } from '@asterism/ui';
+import { Button, CollectionDial, cn, GlassControlRow, toast } from '@asterism/ui';
 import {
   AlertTriangleIcon,
   ListChecksIcon,
@@ -37,6 +37,7 @@ import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
 import { useTags } from '../data/use-tags';
 import { useBrowseView } from '../hooks/use-browse-view';
+import { useCollectionDial } from '../hooks/use-collection-dial';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
 import {
   addSelection,
@@ -96,6 +97,49 @@ function BrowseDataPage() {
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExportOpen, setBulkExportOpen] = useState(false);
   const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
+  const prepareDialPickup = useCallback(() => {
+    return requestClose();
+  }, [requestClose]);
+  const collectionDial = useCollectionDial({
+    collections: collections ?? [],
+    collectionRepos: collectionRepos ?? [],
+    preparePickup: prepareDialPickup,
+    onUnavailable: () => toast.info(t('collectionDial.unavailable')),
+    retryableMessage: t('collectionDial.retryableError'),
+    terminalMessage: t('collectionDial.terminalError'),
+    convergenceMessage: t('collectionDial.convergenceError'),
+  });
+  const dialGripController = useMemo(
+    () => ({
+      activeRepoId:
+        collectionDial.state.phase === 'active'
+          ? collectionDial.state.pickup.repoIds[0]
+          : undefined,
+      onPickup: collectionDial.onGripPickup,
+      onPointerDown: collectionDial.onGripPointerDown,
+    }),
+    [collectionDial.onGripPickup, collectionDial.onGripPointerDown, collectionDial.state],
+  );
+  const dialCopy = useMemo(
+    () => ({
+      label: t('collectionDial.dialLabel'),
+      placement: (repo: string, collection: string) =>
+        t('collectionDial.placement', { repo, collection }),
+      position: (current: number, positionTotal: number) =>
+        t('collectionDial.position', { current, total: positionTotal }),
+      selectCollection: (collection: string) =>
+        t('collectionDial.selectCollection', { collection }),
+      confirm: (collection: string) => t('collectionDial.addToCollection', { collection }),
+      cancel: t('collectionDial.cancel'),
+      retry: t('collectionDial.retry'),
+      done: t('collectionDial.done'),
+      readyStatus: t('collectionDial.readyStatus'),
+      submittingStatus: t('collectionDial.submittingStatus'),
+      successStatus: t('collectionDial.successStatus'),
+      keyboardHint: t('collectionDial.keyboardHint'),
+    }),
+    [t],
+  );
 
   useEffect(() => {
     const el = repoScrollElement;
@@ -332,6 +376,7 @@ function BrowseDataPage() {
       onSelect={openInspector}
       scrollElement={repoScrollElement}
       bulkSelection={selectionController}
+      collectionDial={bulkSelectionMode ? undefined : dialGripController}
     />
   );
 
@@ -462,6 +507,24 @@ function BrowseDataPage() {
           repoTags={repoTags ?? []}
           collectionRepos={collectionRepos ?? []}
         />
+        {collectionDial.state.phase === 'active' ? (
+          <CollectionDial
+            repoLabel={collectionDial.state.pickup.repoLabel}
+            targets={collectionDial.state.pickup.targets}
+            activeIndex={collectionDial.state.activeIndex}
+            status={collectionDial.state.status}
+            message={collectionDial.state.message}
+            dropTargetId={collectionDial.dropTargetId}
+            dragPoint={collectionDial.dragPoint}
+            focusOnOpen={collectionDial.focusOnOpen}
+            copy={dialCopy}
+            onSelect={collectionDial.select}
+            onStep={collectionDial.step}
+            onConfirm={collectionDial.confirm}
+            onRetry={collectionDial.retry}
+            onCancel={collectionDial.cancel}
+          />
+        ) : null}
       </div>
     );
   }

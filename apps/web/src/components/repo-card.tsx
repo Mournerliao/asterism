@@ -1,6 +1,14 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { Badge, Card, cn, Tooltip, TooltipContent, TooltipTrigger } from '@asterism/ui';
+import {
+  Badge,
+  Card,
+  CollectionDialGrip,
+  cn,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@asterism/ui';
 import {
   ArchiveIcon,
   CheckIcon,
@@ -13,6 +21,7 @@ import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BulkSelectionController } from '../lib/bulk-selection';
+import type { CollectionDialGripController } from '../lib/collection-dial-grip';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import type { RepoOpenModality } from '../stores/repo-inspector';
@@ -75,6 +84,7 @@ export const RepoCard = memo(function RepoCard({
   selected = false,
   onSelect,
   bulkSelection,
+  collectionDial,
   className,
 }: {
   record: StarredRepoRecord;
@@ -84,6 +94,7 @@ export const RepoCard = memo(function RepoCard({
   selected?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   bulkSelection?: BulkSelectionController;
+  collectionDial?: CollectionDialGripController;
   className?: string;
 }) {
   const { repo, starredAt } = record;
@@ -146,6 +157,17 @@ export const RepoCard = memo(function RepoCard({
         </span>
       ) : null}
 
+      {collectionDial && !bulkSelection ? (
+        <CollectionDialGrip
+          sourceId={record.repoId}
+          label={t('collectionDial.pickup', { repo: repo.fullName })}
+          expanded={collectionDial.activeRepoId === record.repoId}
+          onPickup={(event) => collectionDial.onPickup(record, event)}
+          onPointerDown={(event) => collectionDial.onPointerDown(record, event)}
+          className="absolute top-1 right-1 z-20"
+        />
+      ) : null}
+
       <div
         className={cn(
           'relative z-10 flex min-h-0 flex-1 flex-col gap-3',
@@ -153,7 +175,12 @@ export const RepoCard = memo(function RepoCard({
           bulkSelection && 'pl-7',
         )}
       >
-        <div className="flex h-5 min-w-0 items-start justify-between gap-2">
+        <div
+          className={cn(
+            'flex h-5 min-w-0 items-start justify-between gap-2',
+            collectionDial && !bulkSelection && 'pr-9',
+          )}
+        >
           {bulkSelection ? (
             <span className="flex min-w-0 items-center gap-2 text-[13px]">
               <span

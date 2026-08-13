@@ -1,11 +1,12 @@
 import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
-import { Badge, cn } from '@asterism/ui';
+import { Badge, CollectionDialGrip, cn } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { ArchiveIcon, CheckIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
 import { type KeyboardEvent, type MouseEvent, memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BulkSelectionController } from '../lib/bulk-selection';
+import type { CollectionDialGripController } from '../lib/collection-dial-grip';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
@@ -144,6 +145,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   rowIndex,
   measureElement,
   bulkSelection,
+  collectionDial,
   className,
 }: {
   record: StarredRepoRecord;
@@ -156,6 +158,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   rowIndex: number;
   measureElement: (element: HTMLTableRowElement | null) => void;
   bulkSelection?: BulkSelectionController;
+  collectionDial?: CollectionDialGripController;
   className?: string;
 }) {
   const { repo, starredAt } = record;
@@ -249,9 +252,19 @@ export const RepoTableRow = memo(function RepoTableRow({
         className={cn(
           'flex min-w-0 flex-col justify-center gap-1',
           layout === 'mobile' ? 'col-span-3' : 'col-span-1 px-3',
-          bulkSelection && 'pl-11',
+          bulkSelection ? 'pl-11' : collectionDial ? 'pl-12' : undefined,
         )}
       >
+        {collectionDial && !bulkSelection ? (
+          <CollectionDialGrip
+            sourceId={record.repoId}
+            label={t('collectionDial.pickup', { repo: repo.fullName })}
+            expanded={collectionDial.activeRepoId === record.repoId}
+            onPickup={(event) => collectionDial.onPickup(record, event)}
+            onPointerDown={(event) => collectionDial.onPointerDown(record, event)}
+            className="absolute top-1/2 left-1 z-20 -translate-y-1/2"
+          />
+        ) : null}
         <div className="flex min-w-0 items-center gap-1.5">
           {bulkSelection ? (
             <span className="min-w-0 truncate text-caption">
@@ -402,6 +415,7 @@ export const RepoTable = memo(function RepoTable({
   onSelect,
   scrollElement,
   bulkSelection,
+  collectionDial,
 }: {
   records: StarredRepoRecord[];
   semanticStartIndex?: number | null;
@@ -412,6 +426,7 @@ export const RepoTable = memo(function RepoTable({
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
   bulkSelection?: BulkSelectionController;
+  collectionDial?: CollectionDialGripController;
 }) {
   const { t } = useTranslation();
   const tableRef = useRef<HTMLTableElement>(null);
@@ -499,6 +514,7 @@ export const RepoTable = memo(function RepoTable({
               rowIndex={virtualRow.index + 2}
               measureElement={virtualizer.measureElement}
               bulkSelection={bulkSelection}
+              collectionDial={collectionDial}
             />
           );
         })}
@@ -533,6 +549,7 @@ export const RepoTable = memo(function RepoTable({
                 rowIndex={primaryCount + offset + 2}
                 measureElement={NOOP_MEASURE_ELEMENT}
                 bulkSelection={bulkSelection}
+                collectionDial={collectionDial}
               />
             ))}
           </>

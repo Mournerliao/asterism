@@ -395,7 +395,7 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
-  operation_id uuid;
+  created_operation_id uuid;
   operation_item public.bulk_operation_items%rowtype;
   mutation_result jsonb;
 begin
@@ -403,7 +403,7 @@ begin
     raise exception 'authentication_required';
   end if;
 
-  operation_id := public.create_bulk_operation(
+  created_operation_id := public.create_bulk_operation(
     current_user_id,
     'manual',
     'bulk_dialog',
@@ -418,7 +418,7 @@ begin
 
   select * into operation_item
   from public.bulk_operation_items item
-  where item.operation_id = operation_id
+  where item.operation_id = created_operation_id
     and item.user_id = current_user_id
     and item.repo_id = p_repo_id
     and item.relation_type = 'collection'
@@ -431,7 +431,7 @@ begin
       'effectiveChanged', operation_item.effective_changed,
       'effectiveMutationId', operation_item.effective_mutation_id,
       'relationVersion', operation_item.effective_relation_version,
-      'operationId', operation_id,
+      'operationId', created_operation_id,
       'operationItemId', operation_item.id
     ) into mutation_result
     ;
@@ -462,7 +462,7 @@ begin
   );
 
   return mutation_result || jsonb_build_object(
-    'operationId', operation_id,
+    'operationId', created_operation_id,
     'operationItemId', operation_item.id
   );
 end;

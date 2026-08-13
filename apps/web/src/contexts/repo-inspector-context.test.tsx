@@ -1,7 +1,7 @@
 // @vitest-environment happy-dom
 
 import type { StarredRepoRecord } from '@asterism/db';
-import { act } from 'react';
+import { act, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { createMemoryRouter, RouterProvider, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -55,11 +55,13 @@ const record = {
 function Harness() {
   const controller = useRepoInspector();
   const location = useLocation();
+  const [closeAllowed, setCloseAllowed] = useState<string>('');
 
   return (
     <div>
       <span data-testid="path">{location.pathname}</span>
       <span data-testid="error">{String(controller.confirmError)}</span>
+      <span data-testid="close-allowed">{closeAllowed}</span>
       <button
         type="button"
         data-testid="prepare"
@@ -68,6 +70,11 @@ function Harness() {
           controller.syncNote(record.repoId, 'saved note');
           controller.setNoteBody('draft note');
         }}
+      />
+      <button
+        type="button"
+        data-testid="attempt-close"
+        onClick={() => setCloseAllowed(String(controller.requestClose()))}
       />
       <RepoInspector />
     </div>
@@ -147,6 +154,16 @@ afterEach(async () => {
 });
 
 describe('README navigation with an unsaved note', () => {
+  it('refuses pickup-style close requests while retaining the draft and inspector', async () => {
+    await setLocale('en');
+    await clickTestButton('prepare');
+    await clickTestButton('attempt-close');
+
+    expect(text('close-allowed')).toBe('false');
+    expect(useRepoInspectorStore.getState().record?.repoId).toBe('repo-1');
+    expect(document.body.textContent).toContain('Save changes');
+  });
+
   it.each(
     localeCases,
   )('starts navigation only after save succeeds in %s', async (locale, read, save) => {

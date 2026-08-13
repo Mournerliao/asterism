@@ -3,6 +3,7 @@ import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useEffect, useRef, useState } from 'react';
 import type { BulkSelectionController } from '../lib/bulk-selection';
+import type { CollectionDialGripController } from '../lib/collection-dial-grip';
 import { useScrollMargin } from '../lib/scroll-margin';
 import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
@@ -25,6 +26,7 @@ type RepoCollectionProps = {
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   scrollElement?: HTMLElement | null;
   bulkSelection?: BulkSelectionController;
+  collectionDial?: CollectionDialGripController;
 };
 
 function useColumns(ref: React.RefObject<HTMLElement | null>): number {
@@ -64,6 +66,7 @@ const RepoGridView = memo(function RepoGridView({
   onSelect,
   scrollElement,
   bulkSelection,
+  collectionDial,
 }: RepoCollectionProps) {
   const collectionRef = useRef<HTMLDivElement>(null);
   const scrollMargin = useScrollMargin(collectionRef, scrollElement);
@@ -124,6 +127,7 @@ const RepoGridView = memo(function RepoGridView({
                     selected={record.repoId === selectedRepoId}
                     onSelect={onSelect}
                     bulkSelection={bulkSelection}
+                    collectionDial={collectionDial}
                   />
                 ))}
               </div>
@@ -149,6 +153,7 @@ const RepoGridView = memo(function RepoGridView({
                 selected={record.repoId === selectedRepoId}
                 onSelect={onSelect}
                 bulkSelection={bulkSelection}
+                collectionDial={collectionDial}
               />
             ))}
           </div>
@@ -168,6 +173,7 @@ const RepoListView = memo(function RepoListView({
   onSelect,
   scrollElement,
   bulkSelection,
+  collectionDial,
 }: RepoCollectionProps) {
   return (
     <RepoTable
@@ -180,6 +186,7 @@ const RepoListView = memo(function RepoListView({
       onSelect={onSelect}
       scrollElement={scrollElement}
       bulkSelection={bulkSelection}
+      collectionDial={collectionDial}
     />
   );
 });
@@ -197,6 +204,7 @@ export const RepoCollection = memo(function RepoCollection({
   onSelect,
   scrollElement,
   bulkSelection,
+  collectionDial,
 }: RepoCollectionProps & { view: RepoViewMode }) {
   if (view === 'list') {
     return (
@@ -210,6 +218,7 @@ export const RepoCollection = memo(function RepoCollection({
         onSelect={onSelect}
         scrollElement={scrollElement}
         bulkSelection={bulkSelection}
+        collectionDial={collectionDial}
       />
     );
   }
@@ -225,6 +234,7 @@ export const RepoCollection = memo(function RepoCollection({
       onSelect={onSelect}
       scrollElement={scrollElement}
       bulkSelection={bulkSelection}
+      collectionDial={collectionDial}
     />
   );
 });

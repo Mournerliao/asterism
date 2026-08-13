@@ -79,3 +79,29 @@ describe('RepoCard bulk selection', () => {
     expect(onSelect).not.toHaveBeenCalled();
   });
 });
+
+describe('RepoCard Collection Dial grip', () => {
+  it('picks up from an independent grip without opening Quick Look', async () => {
+    vi.stubGlobal('ResizeObserver', ResizeObserverMock);
+    const onPickup = vi.fn();
+    const onSelect = vi.fn();
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () =>
+      root.render(
+        <RepoCard
+          record={record}
+          onSelect={onSelect}
+          collectionDial={{ activeRepoId: undefined, onPickup, onPointerDown: vi.fn() }}
+        />,
+      ),
+    );
+
+    container.querySelector<HTMLButtonElement>('[data-collection-dial-grip]')?.click();
+
+    expect(onPickup).toHaveBeenCalledWith(record, expect.anything());
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});

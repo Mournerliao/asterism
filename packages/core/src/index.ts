@@ -1,5 +1,16 @@
 export const CORE_VERSION = '0.0.0';
 
+export type {
+  CollectionDialEvent,
+  CollectionDialPickup,
+  CollectionDialState,
+  CollectionDialTarget,
+} from './collections/collection-dial';
+export {
+  collectionDialReducer,
+  createCollectionDialPickup,
+  rankCollectionDialTargets,
+} from './collections/collection-dial';
 export {
   buildExportPayload,
   scopeExportSnapshot,

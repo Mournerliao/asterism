@@ -122,3 +122,35 @@ describe('RepoTableRow bulk selection', () => {
     );
   });
 });
+
+describe('RepoTableRow Collection Dial grip', () => {
+  it('keeps grip activation separate from row Quick Look activation', async () => {
+    const onPickup = vi.fn();
+    const onSelect = vi.fn();
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+
+    await act(async () =>
+      root.render(
+        <table>
+          <tbody>
+            <RepoTableRow
+              record={record}
+              layout="wide"
+              rowIndex={2}
+              measureElement={vi.fn()}
+              onSelect={onSelect}
+              collectionDial={{ activeRepoId: undefined, onPickup, onPointerDown: vi.fn() }}
+            />
+          </tbody>
+        </table>,
+      ),
+    );
+
+    container.querySelector<HTMLButtonElement>('[data-collection-dial-grip]')?.click();
+
+    expect(onPickup).toHaveBeenCalledWith(record, expect.anything());
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+});

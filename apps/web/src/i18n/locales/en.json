@@ -207,7 +207,18 @@
     "emptyDial": "Pick up a repository to open the dial.",
     "variantNav": "Prototype variants",
     "previousVariant": "Previous prototype variant",
-    "nextVariant": "Next prototype variant"
+    "nextVariant": "Next prototype variant",
+    "pickup": "Organize {{repo}} with Collection Dial",
+    "placement": "{{repo}} → {{collection}}",
+    "keyboardHint": "Q / E to choose · Enter to add",
+    "readyStatus": "Choose a collection, then confirm.",
+    "submittingStatus": "Adding repository…",
+    "successStatus": "Repository added to the collection.",
+    "done": "Done",
+    "unavailable": "This repository is already in every available collection.",
+    "retryableError": "The repository could not be added. Your repository and collection are still held.",
+    "terminalError": "This collection is no longer available for the repository.",
+    "convergenceError": "The write completed, but the latest collection state is not available yet. Retry to refresh it."
   },
   "drawer": {
     "title": "Repository Details",

@@ -104,7 +104,12 @@ function BrowseDataPage() {
     collections: collections ?? [],
     collectionRepos: collectionRepos ?? [],
     preparePickup: prepareDialPickup,
-    onUnavailable: () => toast.info(t('collectionDial.unavailable')),
+    onUnavailable: (reason) =>
+      toast.info(
+        reason === 'no_collections'
+          ? t('collectionDial.noCollections')
+          : t('collectionDial.alreadyInAllCollections'),
+      ),
     retryableMessage: t('collectionDial.retryableError'),
     terminalMessage: t('collectionDial.terminalError'),
     convergenceMessage: t('collectionDial.convergenceError'),

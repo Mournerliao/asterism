@@ -24,6 +24,10 @@ import {
 } from 'react';
 import { useSession } from '../auth/use-session';
 import { collectionKeys, collectionRepoKeys } from '../data/keys';
+import {
+  type CollectionDialUnavailableReason,
+  getCollectionDialUnavailableReason,
+} from '../lib/collection-dial-availability';
 import { runCollectionDialOperation } from '../lib/collection-dial-operation';
 import {
   exceedsCollectionDialDragThreshold,
@@ -67,7 +71,7 @@ export function useCollectionDial({
   collections: readonly CollectionWithMeta[];
   collectionRepos: readonly CollectionRepoLink[];
   preparePickup: () => boolean;
-  onUnavailable: () => void;
+  onUnavailable: (reason: CollectionDialUnavailableReason) => void;
   retryableMessage: string;
   terminalMessage: string;
   convergenceMessage: string;
@@ -132,7 +136,7 @@ export function useCollectionDial({
         sessionMru,
       });
       if (targets.length === 0) {
-        onUnavailable();
+        onUnavailable(getCollectionDialUnavailableReason(collections.length));
         return false;
       }
       sourceFocusRef.current = source;

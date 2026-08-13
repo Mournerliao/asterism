@@ -6,6 +6,8 @@
 
 ## 当前状态
 
+> **#30 数据库 CI 已修复（2026-08-13，draft PR #35）**：`supabase test db` 的 pgTAP 并发门禁此前在 GitHub runner 上因 dblink 走容器 loopback trust 认证而被 PostgreSQL 17 拒绝；改为使用数据库容器网络地址并强制 SCRAM 后，真实双连接并发断言可执行。门禁随即暴露并修复 `mutate_collection_relation` 中局部 `operation_id` 与表列同名的 PL/pgSQL 歧义，该缺陷会阻断单项集合 mutation / 响应丢失重放。GitHub Actions 已确认 migration 全量应用、pgTAP 17/17、lint / typecheck / test / build 全绿；未部署远端 Supabase。下一产品 frontier 仍为 #31 单项生产 Collection Dial。见 `logs/2026-08-13-fix-trusted-collection-mutation-ci.md`。
+
 > **Collection Dial tracer bullet #30 已实现（2026-08-12，GitHub #30）**：新增 `collection_relation_heads` 基线 / 单调 version / effective mutation receipt 与统一受信 collection mutation RPC；Quick Look、导入和 `bulk-organize` executor 均已迁移，单项写入也在同一事务创建 / 恢复 operation + item，authenticated / anon 对 `collection_repos` 的直接写权限已撤销。Bulk operation 现带 interaction、绑定规范化 payload 的 client request idempotency、可空 Undo linkage / expiry，item 严格投影 `effectiveChanged` / mutation receipt；同一请求 ID 可在响应丢失后恢复同一 operation，换 payload 则 fail closed，collection item 的原子 receipt/version 也可在 worker 重领时保留。新增 pgTAP 数据库集成门禁，以两个独立连接自动覆盖并发 add，并覆盖 baseline/no-op、响应丢失重放、跨用户、非法 target 与直写拒绝；CI 自动启动本地 Supabase 后运行。本机无 Docker，故未本地执行该数据库门禁；未推送 migration、未部署 Edge Function。其余四道门禁全绿；下一 frontier 为 #31 单项生产 Collection Dial。见 `logs/2026-08-12-issue-30-trusted-collection-relation-mutations.md`。
 
 > **Collection Dial tickets 已发布（2026-08-12，GitHub #30–#34）**：用户认为最初 8 张 proposal 过细，最终批准压缩为 5 张单上下文可完成的 blockers-first tickets：#30 受信集合关系 mutation seam → #31 单项生产 Collection Dial → #32 冻结多选范围与 semantic ordering → #33 More / New / Undo / durable recovery → #34 真实连续任务验收与原型退役。5 张均标记 `ready-for-agent`、无人领取，并已核验 GitHub 原生线性 blocking edges；当前唯一 frontier 是 #30。本轮未修改生产代码、未部署、未领取 ticket，也未进入实现。见 `logs/2026-08-12-collection-dial-tickets.md`。

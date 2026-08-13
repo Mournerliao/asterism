@@ -105,20 +105,24 @@ export function collectionDialReducer(
   if (event.type === 'cancel') return { phase: 'idle' };
   if (state.phase === 'idle') return state;
 
-  if (event.type === 'select' && state.status !== 'submitting') {
+  if (event.type === 'select' && state.status !== 'submitting' && state.status !== 'success') {
     const activeIndex = state.pickup.targets.findIndex((target) => target.id === event.targetId);
     return activeIndex < 0
       ? state
       : { ...state, activeIndex, status: 'ready', operationId: undefined, message: undefined };
   }
-  if (event.type === 'step' && state.status !== 'submitting') {
+  if (event.type === 'step' && state.status !== 'submitting' && state.status !== 'success') {
     const activeIndex = Math.max(
       0,
       Math.min(state.pickup.targets.length - 1, state.activeIndex + event.direction),
     );
     return { ...state, activeIndex, status: 'ready', operationId: undefined, message: undefined };
   }
-  if ((event.type === 'submit' || event.type === 'retry') && state.status !== 'submitting') {
+  if (
+    (event.type === 'submit' || event.type === 'retry') &&
+    state.status !== 'submitting' &&
+    state.status !== 'success'
+  ) {
     return { ...state, status: 'submitting', message: undefined };
   }
   if (event.type === 'success') {

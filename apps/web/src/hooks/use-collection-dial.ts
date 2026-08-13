@@ -27,6 +27,7 @@ import { collectionKeys, collectionRepoKeys } from '../data/keys';
 import { runCollectionDialOperation } from '../lib/collection-dial-operation';
 import {
   exceedsCollectionDialDragThreshold,
+  findCollectionDialFocusTarget,
   shouldSuppressCollectionDialClick,
 } from '../lib/collection-dial-pointer';
 import { supabase } from '../lib/supabase';
@@ -100,14 +101,8 @@ export function useCollectionDial({
   const restoreFocus = useCallback((repoId?: string) => {
     const source = sourceFocusRef.current;
     queueMicrotask(() => {
-      if (source?.isConnected) {
-        source.focus();
-        return;
-      }
       if (!repoId) return;
-      document
-        .querySelector<HTMLButtonElement>(`[data-collection-dial-grip="${CSS.escape(repoId)}"]`)
-        ?.focus();
+      findCollectionDialFocusTarget(document, repoId, source)?.focus();
     });
   }, []);
 

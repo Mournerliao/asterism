@@ -28,13 +28,16 @@ Grip 隔离、幂等 operation 与 query 收敛门槛。
 
 - `pnpm lint`：通过，293 files。
 - `pnpm --filter @asterism/core typecheck`、UI / Web typecheck：通过。
-- `pnpm test`：通过，core 67、db 37、supabase functions 27、web 178 tests。
+- `pnpm test`：通过，core 68、db 37、supabase functions 27、web 181 tests。
 - `pnpm build`：通过；保留既有 Web chunk-size warning。
 - 真实浏览器：1536 / 1024 / 390 / 320、grid / list、light / dark、Q/E、Enter、Escape、指针取消、焦点恢复
   与 reduced motion 均验证；200% 有效宽度另有 ResizeObserver 自动化回归。
 
 维护者账号当时没有集合，因此没有为了 smoke 创建或修改真实集合数据；真实写入边界以持久 operation 集成测试
 覆盖，浏览器验收刻意只走无写入的选择 / 取消路径。
+
+双轴 code review 发现并修复四个边缘条件：指针拿起后将键盘焦点交给 Dial；焦点恢复只选择当前可见
+grid / list 的 Grip；操作按钮保留原生 Enter 语义；success 成为不可再次选择或提交的终态。对应回归测试已加入。
 
 ## 后续
 

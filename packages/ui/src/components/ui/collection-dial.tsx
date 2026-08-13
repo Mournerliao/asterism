@@ -175,11 +175,13 @@ export function CollectionDial({
   // biome-ignore lint/correctness/useExhaustiveDependencies: the controlled index changes which button owns the ref
   useEffect(() => {
     if (focusOnOpen) activeButtonRef.current?.focus();
+    else shellRef.current?.focus();
   }, [activeIndex, focusOnOpen]);
 
   if (!activeTarget) return null;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
+    if ((event.target as HTMLElement).closest('[data-collection-dial-action]')) return;
     if (event.key.toLocaleLowerCase('en-US') === 'q') {
       event.preventDefault();
       onStep(-1);
@@ -207,6 +209,7 @@ export function CollectionDial({
       ref={shellRef}
       data-collection-dial
       aria-label={copy.label}
+      tabIndex={-1}
       onKeyDown={handleKeyDown}
       className="absolute inset-x-0 bottom-0 z-40 h-[22rem] overflow-hidden outline-none motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-4 motion-safe:duration-200"
     >
@@ -284,12 +287,14 @@ export function CollectionDial({
                   aria-hidden={!visible || undefined}
                   tabIndex={visible ? 0 : -1}
                   disabled={status === 'submitting'}
+                  aria-disabled={status === 'success' || undefined}
                   onClick={() => onSelect(target.id)}
                   className={cn(
                     'group relative block size-full origin-bottom -translate-x-1/2 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transition-none',
                     'transition-transform duration-200 [transform:rotate(var(--dial-rotate))_scale(var(--dial-scale))]',
                     selected && '-translate-y-1',
                     open && '-translate-y-3',
+                    status === 'success' && 'pointer-events-none',
                   )}
                 >
                   <span
@@ -311,16 +316,16 @@ export function CollectionDial({
 
         <div className="absolute inset-x-0 bottom-4 z-20 flex items-center justify-center gap-2 px-4">
           {status === 'retryable_failure' ? (
-            <Button type="button" onClick={onRetry}>
+            <Button type="button" data-collection-dial-action onClick={onRetry}>
               <RotateCcwIcon className="size-4" aria-hidden="true" />
               {copy.retry}
             </Button>
           ) : status === 'ready' ? (
-            <Button type="button" onClick={onConfirm}>
+            <Button type="button" data-collection-dial-action onClick={onConfirm}>
               {copy.confirm(activeTarget.name)}
             </Button>
           ) : status === 'submitting' ? (
-            <Button type="button" disabled>
+            <Button type="button" data-collection-dial-action disabled>
               <LoaderCircleIcon
                 className="size-4 animate-spin motion-reduce:animate-none"
                 aria-hidden="true"
@@ -328,7 +333,7 @@ export function CollectionDial({
               {copy.submittingStatus}
             </Button>
           ) : null}
-          <Button type="button" variant="outline" onClick={onCancel}>
+          <Button type="button" variant="outline" data-collection-dial-action onClick={onCancel}>
             {status === 'success' ? (copy.done ?? copy.cancel) : copy.cancel}
           </Button>
         </div>

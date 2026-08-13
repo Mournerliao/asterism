@@ -28,7 +28,7 @@ Grip 隔离、幂等 operation 与 query 收敛门槛。
 
 - `pnpm lint`：通过，293 files。
 - `pnpm --filter @asterism/core typecheck`、UI / Web typecheck：通过。
-- `pnpm test`：通过，core 68、db 37、supabase functions 27、web 181 tests。
+- `pnpm test`：通过，core 68、db 37、supabase functions 27、web 182 tests。
 - `pnpm build`：通过；保留既有 Web chunk-size warning。
 - 真实浏览器：1536 / 1024 / 390 / 320、grid / list、light / dark、Q/E、Enter、Escape、指针取消、焦点恢复
   与 reduced motion 均验证；200% 有效宽度另有 ResizeObserver 自动化回归。

@@ -133,6 +133,19 @@ describe('controlled Collection Dial', () => {
     expect(props.onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps Q/E and Escape active while an action button owns focus', () => {
+    const props = renderDial();
+    const cancel = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === 'Cancel',
+    );
+    cancel?.focus();
+    cancel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'e', bubbles: true }));
+    cancel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+
+    expect(props.onStep).toHaveBeenCalledWith(1);
+    expect(props.onCancel).toHaveBeenCalledTimes(1);
+  });
+
   it('announces retained retryable failures in the shared status region', () => {
     renderDial({ status: 'retryable_failure', message: 'Network unavailable' });
 

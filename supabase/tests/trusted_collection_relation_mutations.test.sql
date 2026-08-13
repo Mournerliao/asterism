@@ -54,7 +54,8 @@ select extensions.ok(
 do $concurrent_setup$
 declare
   local_connection_string text := format(
-    'host=127.0.0.1 port=%s dbname=%s user=postgres password=postgres',
+    'hostaddr=%s port=%s dbname=%s user=postgres password=postgres require_auth=scram-sha-256',
+    inet_server_addr(),
     current_setting('port'),
     current_database()
   );

@@ -181,7 +181,8 @@ export function CollectionDial({
   if (!activeTarget) return null;
 
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
-    if ((event.target as HTMLElement).closest('[data-collection-dial-action]')) return;
+    const onAction = (event.target as HTMLElement).closest('[data-collection-dial-action]');
+    if (onAction && (event.key === 'Enter' || event.key === ' ')) return;
     if (event.key.toLocaleLowerCase('en-US') === 'q') {
       event.preventDefault();
       onStep(-1);

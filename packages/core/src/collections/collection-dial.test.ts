@@ -97,4 +97,21 @@ describe('Collection Dial reducer', () => {
     });
     expect(state.phase === 'active' && state.pickup).toEqual(pickup);
   });
+
+  it('keeps success terminal until the dial is dismissed', () => {
+    const pickup = createCollectionDialPickup({
+      repoIds: ['repo-1'],
+      repoLabel: 'owner/repo',
+      targets: [
+        { id: 'one', name: 'One', updatedAt: '2026-08-13' },
+        { id: 'two', name: 'Two', updatedAt: '2026-08-12' },
+      ],
+    });
+    let state = collectionDialReducer({ phase: 'idle' }, { type: 'pickup', pickup });
+    state = collectionDialReducer(state, { type: 'success', operationId: 'operation-1' });
+
+    expect(collectionDialReducer(state, { type: 'step', direction: 1 })).toBe(state);
+    expect(collectionDialReducer(state, { type: 'select', targetId: 'two' })).toBe(state);
+    expect(collectionDialReducer(state, { type: 'submit' })).toBe(state);
+  });
 });

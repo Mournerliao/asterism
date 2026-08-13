@@ -14,3 +14,14 @@ export function shouldSuppressCollectionDialClick(
 ): boolean {
   return sameSource && now <= suppressUntil;
 }
+
+export function findCollectionDialFocusTarget(
+  root: ParentNode,
+  repoId: string,
+  source: HTMLButtonElement | null,
+): HTMLButtonElement | null {
+  if (source?.isConnected && !source.closest('[data-repo-view-active="false"]')) return source;
+  return root.querySelector<HTMLButtonElement>(
+    `[data-repo-view-active="true"] [data-collection-dial-grip="${CSS.escape(repoId)}"]`,
+  );
+}

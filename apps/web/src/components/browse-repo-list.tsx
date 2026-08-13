@@ -47,7 +47,11 @@ export const BrowseRepoList = memo(function BrowseRepoList({
     <div className="relative min-h-[280px] w-full">
       {VIEW_MODES.map((mode) =>
         mountedViews.has(mode) ? (
-          <div key={mode} className={mode === view ? undefined : 'hidden'}>
+          <div
+            key={mode}
+            data-repo-view-active={mode === view}
+            className={mode === view ? undefined : 'hidden'}
+          >
             <RepoCollection
               records={records}
               semanticStartIndex={semanticStartIndex}

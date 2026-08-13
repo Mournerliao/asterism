@@ -110,6 +110,29 @@ describe('controlled Collection Dial', () => {
     expect(props.onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('focuses the dial for pointer pickup keyboard control', () => {
+    const props = renderDial({ focusOnOpen: false });
+    const dial = container.querySelector<HTMLElement>('[data-collection-dial]');
+
+    expect(document.activeElement).toBe(dial);
+    dial?.dispatchEvent(new KeyboardEvent('keydown', { key: 'q', bubbles: true }));
+
+    expect(props.onStep).toHaveBeenCalledWith(-1);
+  });
+
+  it('preserves native Enter semantics on the cancel action', () => {
+    const props = renderDial();
+    const cancel = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === 'Cancel',
+    );
+    cancel?.focus();
+    cancel?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+
+    expect(props.onConfirm).not.toHaveBeenCalled();
+    cancel?.click();
+    expect(props.onCancel).toHaveBeenCalledTimes(1);
+  });
+
   it('announces retained retryable failures in the shared status region', () => {
     renderDial({ status: 'retryable_failure', message: 'Network unavailable' });
 

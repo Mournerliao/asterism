@@ -57,9 +57,18 @@ export type BulkOperationRequest =
   | {
       action: 'create';
       source: BulkOperationCreateSource;
-      interaction: BulkOperationCreateInteraction;
+      interaction: 'bulk_dialog';
       clientRequestId: string;
       repoIds: string[];
+      changes: BulkChange[];
+    }
+  | {
+      action: 'create';
+      source: BulkOperationCreateSource;
+      interaction: 'collection_dial';
+      clientRequestId: string;
+      repoIds: string[];
+      itemRepoIds: string[];
       changes: BulkChange[];
     }
   | { action: 'get' | 'execute' | 'retry' | 'complete'; operationId: string };
@@ -271,4 +280,15 @@ export async function listBulkOperations(
     updatedAt: row.updated_at,
     items: itemsByOperation.get(row.id) ?? [],
   }));
+}
+
+export async function hasUnfinishedMultiCollectionDialOperation(
+  client: SupabaseClient,
+  userId: string,
+): Promise<boolean> {
+  const { data, error } = await client.rpc('has_unfinished_multi_collection_dial_operation', {
+    p_user_id: userId,
+  });
+  if (error) throw error;
+  return data === true;
 }

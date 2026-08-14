@@ -383,6 +383,10 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      has_unfinished_multi_collection_dial_operation: {
+        Args: { p_user_id: string };
+        Returns: boolean;
+      };
       create_bulk_operation: {
         Args: {
           p_user_id: string;
@@ -390,6 +394,7 @@ export interface Database {
           p_interaction: string;
           p_client_request_id: string;
           p_repo_ids: string[];
+          p_item_repo_ids: string[];
           p_changes: Json;
         };
         Returns: string;

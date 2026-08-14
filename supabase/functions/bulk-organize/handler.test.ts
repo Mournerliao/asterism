@@ -94,6 +94,52 @@ describe('bulk-organize trusted HTTP interface', () => {
     expect(await outcome(response)).toEqual({ operation });
   });
 
+  it('keeps a full Collection Dial scope while binding items to the missing subset', async () => {
+    const deps = dependencies();
+    const response = await createBulkOrganizeHandler(deps)(
+      request({
+        action: 'create',
+        source: 'manual',
+        interaction: 'collection_dial',
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
+        repoIds: ['repo-1', 'repo-2', 'repo-3'],
+        itemRepoIds: ['repo-2', 'repo-3'],
+        changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.createOperation).toHaveBeenCalledWith('user-1', {
+      source: 'manual',
+      interaction: 'collection_dial',
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
+      repoIds: ['repo-1', 'repo-2', 'repo-3'],
+      itemRepoIds: ['repo-2', 'repo-3'],
+      changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
+    });
+  });
+
+  it('rejects a Collection Dial item scope outside its frozen scope', async () => {
+    const deps = dependencies();
+    const handler = createBulkOrganizeHandler(deps);
+
+    for (const itemRepoIds of [[], ['repo-outside']]) {
+      const response = await handler(
+        request({
+          action: 'create',
+          source: 'manual',
+          interaction: 'collection_dial',
+          clientRequestId: '11111111-1111-4111-8111-111111111111',
+          repoIds: ['repo-1', 'repo-2'],
+          itemRepoIds,
+          changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
+        }),
+      );
+      expect(response.status).toBe(400);
+    }
+    expect(deps.createOperation).not.toHaveBeenCalled();
+  });
+
   it('rejects unauthenticated and malformed requests before touching organization data', async () => {
     const deps = dependencies();
     const handler = createBulkOrganizeHandler(deps);

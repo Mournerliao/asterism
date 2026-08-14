@@ -27,11 +27,16 @@ import { RepoViewToggle } from '../components/repo-view-toggle';
 import { SyncProgressBanner } from '../components/sync-progress-banner';
 import { useEmbeddingBootstrapContext } from '../contexts/embedding-bootstrap-context';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
-import { useBulkOperationActions, useBulkOperations } from '../data/use-bulk-operations';
+import {
+  useBulkOperationActions,
+  useBulkOperations,
+  useHasUnfinishedMultiCollectionDialOperation,
+} from '../data/use-bulk-operations';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
 import { useRepoTags } from '../data/use-repo-tags';
+import { useFreshRepoEmbeddings } from '../data/use-semantic-neighborhood';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
@@ -45,6 +50,7 @@ import {
   removeSelection,
   toggleSelection,
 } from '../lib/bulk-selection';
+import { getMultiCollectionDialBlockReason } from '../lib/collection-dial-availability';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
 import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
@@ -79,6 +85,11 @@ function BrowseDataPage() {
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: bulkOperations } = useBulkOperations();
+  const {
+    data: hasUnfinishedMultiDialOperation,
+    isPending: unfinishedMultiDialPending,
+    isError: unfinishedMultiDialError,
+  } = useHasUnfinishedMultiCollectionDialOperation();
   const bulkActions = useBulkOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
   const isLoading =
@@ -97,22 +108,49 @@ function BrowseDataPage() {
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
   const [bulkExportOpen, setBulkExportOpen] = useState(false);
   const skipViewScrollResetRef = useRef(peekPendingReadmeReturn()?.sourceKey === 'browse');
+  const freshRepoEmbeddings = useFreshRepoEmbeddings(true);
+  const activeBulkDialogOperation = bulkOperations?.find(
+    (operation) => operation.status !== 'completed' && operation.interaction === 'bulk_dialog',
+  );
   const prepareDialPickup = useCallback(() => {
     return requestClose();
   }, [requestClose]);
   const collectionDial = useCollectionDial({
     collections: collections ?? [],
     collectionRepos: collectionRepos ?? [],
+    repositoryEmbeddings: freshRepoEmbeddings,
+    selectionMode: bulkSelectionMode,
+    selectedRepoIds,
+    multiPickupBlockReason:
+      getMultiCollectionDialBlockReason({
+        hasUnfinishedOperation: hasUnfinishedMultiDialOperation,
+        isPending: unfinishedMultiDialPending,
+        isError: unfinishedMultiDialError,
+      }) ?? undefined,
+    scopeLabel: (count) => t('collectionDial.selectedScope', { count }),
     preparePickup: prepareDialPickup,
     onUnavailable: (reason) =>
       toast.info(
         reason === 'no_collections'
           ? t('collectionDial.noCollections')
-          : t('collectionDial.alreadyInAllCollections'),
+          : reason === 'active_multi_operation'
+            ? t('collectionDial.activeMultiOperation')
+            : reason === 'operation_state_unavailable'
+              ? t('collectionDial.operationStateUnavailable')
+              : t('collectionDial.alreadyInAllCollections'),
       ),
     retryableMessage: t('collectionDial.retryableError'),
     terminalMessage: t('collectionDial.terminalError'),
     convergenceMessage: t('collectionDial.convergenceError'),
+    successMessage: (addedCount, alreadyMemberCount) =>
+      t('collectionDial.successCounts', { addedCount, alreadyMemberCount }),
+    failureCountsMessage: ({ addedCount, alreadyMemberCount, retryableCount, terminalCount }) =>
+      t('collectionDial.failureCounts', {
+        addedCount,
+        alreadyMemberCount,
+        retryableCount,
+        terminalCount,
+      }),
   });
   const dialGripController = useMemo(
     () => ({
@@ -142,6 +180,8 @@ function BrowseDataPage() {
       submittingStatus: t('collectionDial.submittingStatus'),
       successStatus: t('collectionDial.successStatus'),
       keyboardHint: t('collectionDial.keyboardHint'),
+      membership: (missingCount: number, alreadyMemberCount: number) =>
+        t('collectionDial.membership', { missingCount, alreadyMemberCount }),
     }),
     [t],
   );
@@ -275,7 +315,6 @@ function BrowseDataPage() {
   const noteRepoIdSet = useMemo(() => toRepoIdSet(noteRepoIds ?? []), [noteRepoIds]);
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
-  const activeBulkOperation = bulkOperations?.find((operation) => operation.status !== 'completed');
   const activeFilter = hasActiveFilter(toRepoFilter(filters));
   const selectedVisibleCount = useMemo(() => {
     let count = 0;
@@ -307,15 +346,15 @@ function BrowseDataPage() {
           setSelectedRepoIds((current) => toggleSelection(current, repoId)),
       }
     : undefined;
-  const bulkOperationContent = activeBulkOperation ? (
+  const bulkOperationContent = activeBulkDialogOperation ? (
     <BulkOperationBanner
-      operation={activeBulkOperation}
+      operation={activeBulkDialogOperation}
       resuming={bulkActions.resume.isPending}
       retrying={bulkActions.retry.isPending}
       completing={bulkActions.complete.isPending}
-      onResume={() => bulkActions.resume.mutate(activeBulkOperation)}
-      onRetry={() => bulkActions.retry.mutate(activeBulkOperation)}
-      onComplete={() => bulkActions.complete.mutate(activeBulkOperation)}
+      onResume={() => bulkActions.resume.mutate(activeBulkDialogOperation)}
+      onRetry={() => bulkActions.retry.mutate(activeBulkDialogOperation)}
+      onComplete={() => bulkActions.complete.mutate(activeBulkDialogOperation)}
     />
   ) : null;
   const repoContent = isError ? (
@@ -381,7 +420,7 @@ function BrowseDataPage() {
       onSelect={openInspector}
       scrollElement={repoScrollElement}
       bulkSelection={selectionController}
-      collectionDial={bulkSelectionMode ? undefined : dialGripController}
+      collectionDial={dialGripController}
     />
   );
 
@@ -427,7 +466,7 @@ function BrowseDataPage() {
                     variant="outline"
                     size="sm"
                     className="rounded-lg text-caption shadow-none"
-                    disabled={Boolean(activeBulkOperation)}
+                    disabled={Boolean(activeBulkDialogOperation)}
                     onClick={() => {
                       requestClose();
                       setBulkSelectionMode(true);
@@ -462,7 +501,7 @@ function BrowseDataPage() {
             scopeCount={total}
             scopeActionDisabled={visibleRepoIds.length === 0}
             hasSelection={selectedRepoIds.size > 0}
-            hasActiveBulkOperation={Boolean(activeBulkOperation)}
+            hasActiveBulkOperation={Boolean(activeBulkDialogOperation)}
             onScopeAction={() =>
               setSelectedRepoIds((current) => {
                 const includesAllVisible = visibleRepoIds.every((repoId) => current.has(repoId));

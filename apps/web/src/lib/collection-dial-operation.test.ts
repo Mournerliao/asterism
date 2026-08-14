@@ -1,6 +1,9 @@
 import type { BulkOperation, BulkOperationRequest } from '@asterism/db';
 import { describe, expect, it, vi } from 'vitest';
-import { runCollectionDialOperation } from './collection-dial-operation';
+import {
+  runCollectionDialOperation,
+  summarizeCollectionDialCounts,
+} from './collection-dial-operation';
 
 function operation(
   status: BulkOperation['items'][number]['status'],
@@ -38,6 +41,17 @@ function operation(
 }
 
 describe('Collection Dial persistent operation', () => {
+  it('keeps frozen membership counts when transport returns no operation', () => {
+    expect(
+      summarizeCollectionDialCounts({ alreadyMemberCount: 1, missingCount: 2, items: [] }),
+    ).toEqual({
+      addedCount: 0,
+      alreadyMemberCount: 1,
+      retryableCount: 2,
+      terminalCount: 0,
+    });
+  });
+
   it('creates and executes a collection_dial operation before waiting for authoritative convergence', async () => {
     const pending = operation('pending', 'pending');
     const succeeded = operation('succeeded', 'completed');
@@ -50,7 +64,8 @@ describe('Collection Dial persistent operation', () => {
 
     await expect(
       runCollectionDialOperation({
-        repoId: 'repo-1',
+        repoIds: ['repo-1'],
+        itemRepoIds: ['repo-1'],
         targetId: 'collection-1',
         clientRequestId: '11111111-1111-4111-8111-111111111111',
         invoke,
@@ -63,9 +78,10 @@ describe('Collection Dial persistent operation', () => {
       interaction: 'collection_dial',
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-1'],
+      itemRepoIds: ['repo-1'],
       changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
     });
-    expect(converge).toHaveBeenCalledWith('repo-1', 'collection-1');
+    expect(converge).toHaveBeenCalledWith(['repo-1'], 'collection-1');
   });
 
   it('does not report success until the collection query contains the relation', async () => {
@@ -74,7 +90,8 @@ describe('Collection Dial persistent operation', () => {
 
     await expect(
       runCollectionDialOperation({
-        repoId: 'repo-1',
+        repoIds: ['repo-1'],
+        itemRepoIds: ['repo-1'],
         targetId: 'collection-1',
         clientRequestId: '11111111-1111-4111-8111-111111111111',
         existingOperation: succeeded,
@@ -91,7 +108,8 @@ describe('Collection Dial persistent operation', () => {
 
     await expect(
       runCollectionDialOperation({
-        repoId: 'repo-1',
+        repoIds: ['repo-1'],
+        itemRepoIds: ['repo-1'],
         targetId: 'collection-1',
         clientRequestId: '11111111-1111-4111-8111-111111111111',
         existingOperation: retryable,
@@ -102,7 +120,8 @@ describe('Collection Dial persistent operation', () => {
 
     await expect(
       runCollectionDialOperation({
-        repoId: 'repo-1',
+        repoIds: ['repo-1'],
+        itemRepoIds: ['repo-1'],
         targetId: 'collection-1',
         clientRequestId: '11111111-1111-4111-8111-111111111111',
         existingOperation: terminal,
@@ -110,5 +129,46 @@ describe('Collection Dial persistent operation', () => {
         converge: vi.fn(),
       }),
     ).resolves.toMatchObject({ kind: 'terminal_failure', operation: terminal });
+  });
+
+  it('keeps the complete frozen multi-repository scope in one persistent operation', async () => {
+    const firstItem = operation('succeeded', 'completed').items[0];
+    if (!firstItem) throw new Error('Expected the operation fixture to contain an item');
+    const completed: BulkOperation = {
+      ...operation('succeeded', 'completed'),
+      sourceRepoIds: ['repo-1', 'repo-2'],
+      items: [
+        firstItem,
+        {
+          ...firstItem,
+          id: 'item-2',
+          repoId: 'repo-2',
+          effectiveMutationId: 'mutation-2',
+        },
+      ],
+    };
+    const invoke = vi.fn().mockResolvedValue(completed);
+    const converge = vi.fn().mockResolvedValue(true);
+
+    await expect(
+      runCollectionDialOperation({
+        repoIds: ['repo-1', 'repo-2'],
+        itemRepoIds: ['repo-1', 'repo-2'],
+        targetId: 'collection-1',
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
+        invoke,
+        converge,
+      }),
+    ).resolves.toMatchObject({ kind: 'success', operation: completed });
+    expect(invoke).toHaveBeenCalledWith({
+      action: 'create',
+      source: 'manual',
+      interaction: 'collection_dial',
+      clientRequestId: '11111111-1111-4111-8111-111111111111',
+      repoIds: ['repo-1', 'repo-2'],
+      itemRepoIds: ['repo-1', 'repo-2'],
+      changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
+    });
+    expect(converge).toHaveBeenCalledWith(['repo-1', 'repo-2'], 'collection-1');
   });
 });

@@ -221,6 +221,7 @@ Deno.serve(async (request: Request) => {
         p_interaction: input.interaction,
         p_client_request_id: input.clientRequestId,
         p_repo_ids: input.repoIds,
+        p_item_repo_ids: input.itemRepoIds ?? input.repoIds,
         p_changes: input.changes.map(
           (change): Json => ({
             relationType: change.relationType,

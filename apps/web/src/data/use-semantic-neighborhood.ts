@@ -1,4 +1,5 @@
 import {
+  type CollectionDialRepositoryEmbedding,
   DEFAULT_EMBEDDING_MODEL,
   findMutualSemanticNeighbors,
   repoContentHash,
@@ -17,18 +18,50 @@ export function selectSemanticNeighborhood(
   starredRepos: readonly StarredRepoRecord[],
   embeddings: readonly RepoEmbeddingRecord[],
 ): StarredRepoRecord[] {
+  const freshVectors = selectFreshRepoEmbeddingVectors(starredRepos, embeddings);
   const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
-  const freshVectors = embeddings.filter((record) => {
-    const starred = repoById.get(record.repoId);
-    return (
-      starred &&
-      record.embeddingModel === DEFAULT_EMBEDDING_MODEL &&
-      record.contentHash === repoContentHash(starred.repo)
-    );
-  });
-  return findMutualSemanticNeighbors(freshVectors, anchorRepoId)
+  return findMutualSemanticNeighbors(
+    freshVectors.map((record) => ({ repoId: record.repoId, embedding: record.vector })),
+    anchorRepoId,
+  )
     .map((neighbor) => repoById.get(neighbor.repoId))
     .filter((record): record is StarredRepoRecord => Boolean(record));
+}
+
+export function selectFreshRepoEmbeddingVectors(
+  starredRepos: readonly StarredRepoRecord[],
+  embeddings: readonly RepoEmbeddingRecord[],
+): CollectionDialRepositoryEmbedding[] {
+  const repoById = new Map(starredRepos.map((record) => [record.repoId, record]));
+  return embeddings.flatMap((record) => {
+    const starred = repoById.get(record.repoId);
+    const fresh =
+      starred &&
+      record.embeddingModel === DEFAULT_EMBEDDING_MODEL &&
+      record.contentHash === repoContentHash(starred.repo);
+    return fresh ? [{ repoId: record.repoId, vector: [...record.embedding] }] : [];
+  });
+}
+
+export function useFreshRepoEmbeddings(enabled: boolean): CollectionDialRepositoryEmbedding[] {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  const availability = useEmbeddingAvailability(userId);
+  const { data: starredRepos } = useStarredRepos();
+  const { data: embeddings } = useQuery({
+    queryKey: embeddingKeys.list(userId ?? 'anon'),
+    enabled: Boolean(userId && enabled && availability === 'available'),
+    staleTime: 10 * 60 * 1_000,
+    queryFn: () => (userId ? listRepoEmbeddings(supabase, userId) : Promise.resolve([])),
+  });
+
+  return useMemo(
+    () =>
+      availability === 'available' && embeddings && starredRepos
+        ? selectFreshRepoEmbeddingVectors(starredRepos, embeddings)
+        : [],
+    [availability, embeddings, starredRepos],
+  );
 }
 
 export function useSemanticNeighborhood(anchorRepoId: string | undefined): StarredRepoRecord[] {

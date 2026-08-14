@@ -157,7 +157,7 @@ export const RepoCard = memo(function RepoCard({
         </span>
       ) : null}
 
-      {collectionDial && !bulkSelection ? (
+      {collectionDial && (!bulkSelection || bulkSelected) ? (
         <CollectionDialGrip
           sourceId={record.repoId}
           label={t('collectionDial.pickup', { repo: repo.fullName })}
@@ -178,7 +178,7 @@ export const RepoCard = memo(function RepoCard({
         <div
           className={cn(
             'flex h-5 min-w-0 items-start justify-between gap-2',
-            collectionDial && !bulkSelection && 'pr-9',
+            collectionDial && (!bulkSelection || bulkSelected) && 'pr-9',
           )}
         >
           {bulkSelection ? (

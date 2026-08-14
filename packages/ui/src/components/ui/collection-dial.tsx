@@ -14,6 +14,8 @@ import { Button } from './button';
 export interface CollectionDialViewTarget {
   id: string;
   name: string;
+  missingCount?: number;
+  alreadyMemberCount?: number;
 }
 
 export type CollectionDialViewStatus =
@@ -36,6 +38,7 @@ export interface CollectionDialCopy {
   submittingStatus: string;
   successStatus: string;
   keyboardHint: string;
+  membership?: (missingCount: number, alreadyMemberCount: number) => string;
 }
 
 function visibleTargetCount(width: number): 3 | 5 | 7 {
@@ -192,18 +195,21 @@ export function CollectionDial({
     } else if (event.key === 'Enter' && status === 'ready') {
       event.preventDefault();
       onConfirm();
-    } else if (event.key === 'Escape') {
+    } else if (event.key === 'Escape' && status !== 'submitting') {
       event.preventDefault();
       onCancel();
     }
   };
+  const membershipText = copy.membership
+    ? copy.membership(activeTarget.missingCount ?? 1, activeTarget.alreadyMemberCount ?? 0)
+    : '';
   const statusText =
     message ??
     (status === 'submitting'
-      ? copy.submittingStatus
+      ? `${copy.submittingStatus}${membershipText ? ` ${membershipText}` : ''}`
       : status === 'success'
         ? copy.successStatus
-        : copy.readyStatus);
+        : `${copy.readyStatus}${membershipText ? ` ${membershipText}` : ''}`);
 
   return (
     <section
@@ -239,8 +245,14 @@ export function CollectionDial({
             <span>{copy.keyboardHint}</span>
           </div>
           <p
-            role="status"
-            aria-live="polite"
+            role={
+              status === 'retryable_failure' || status === 'terminal_failure' ? 'alert' : 'status'
+            }
+            aria-live={
+              status === 'retryable_failure' || status === 'terminal_failure'
+                ? 'assertive'
+                : 'polite'
+            }
             data-error={
               status === 'retryable_failure' || status === 'terminal_failure' || undefined
             }
@@ -334,7 +346,13 @@ export function CollectionDial({
               {copy.submittingStatus}
             </Button>
           ) : null}
-          <Button type="button" variant="outline" data-collection-dial-action onClick={onCancel}>
+          <Button
+            type="button"
+            variant="outline"
+            data-collection-dial-action
+            onClick={onCancel}
+            disabled={status === 'submitting'}
+          >
             {status === 'success' ? (copy.done ?? copy.cancel) : copy.cancel}
           </Button>
         </div>

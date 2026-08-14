@@ -106,7 +106,7 @@
 - `status` — `pending` / `running` / `needs_attention` / `completed`
 - `completed_at` — 完成时间（可选）
 
-用户确认后才创建操作。范围不随筛选变化或后续同步改变；状态由逐关系项目汇总。AI 来源的 operation 与草稿幂等字段已随 ADR 0032 删除。
+用户确认后才创建操作。范围不随筛选变化或后续同步改变；状态由逐关系项目汇总。Collection Dial 的 `source_repo_ids` 始终保存拿起时冻结的完整范围，RPC 另接收该目标当时真正缺失的 repository ID 子集，并只为这个子集创建 items；子集必须非空、去重且完全包含于完整范围，幂等冲突同时绑定完整范围与 item 子集。这样已存在关系不会产生 no-op receipt，失败恢复仍能准确播报完整范围。AI 来源的 operation 与草稿幂等字段已随 ADR 0032 删除。
 
 ### `bulk_operation_items` — 批量关系变更
 

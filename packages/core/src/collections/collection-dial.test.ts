@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   collectionDialReducer,
   createCollectionDialPickup,
+  createCollectionDialSnapshot,
   rankCollectionDialTargets,
 } from './collection-dial';
 
@@ -46,6 +47,158 @@ describe('Collection Dial target ranking', () => {
         sessionMru: [],
       }).map((target) => target.id),
     ).toEqual(['1', '2']);
+  });
+});
+
+describe('Collection Dial snapshot', () => {
+  const catalog = [
+    {
+      id: 'frontend',
+      name: 'Frontend',
+      description: 'Web interfaces',
+      updatedAt: '2026-08-10T00:00:00.000Z',
+      repoCount: 2,
+    },
+    {
+      id: 'systems',
+      name: 'Systems',
+      description: 'Low-level tools',
+      updatedAt: '2026-08-09T00:00:00.000Z',
+      repoCount: 2,
+    },
+    {
+      id: 'owned',
+      name: 'Already owned',
+      description: null,
+      updatedAt: '2026-08-11T00:00:00.000Z',
+      repoCount: 2,
+    },
+  ];
+  const memberships = [
+    { collectionId: 'frontend', repoId: 'front-a' },
+    { collectionId: 'frontend', repoId: 'front-b' },
+    { collectionId: 'systems', repoId: 'system-a' },
+    { collectionId: 'systems', repoId: 'system-b' },
+    { collectionId: 'owned', repoId: 'scope-a' },
+    { collectionId: 'owned', repoId: 'scope-b' },
+  ];
+  const embeddings = [
+    { repoId: 'front-a', vector: [1, 0] },
+    { repoId: 'front-b', vector: [0.8, 0.2] },
+    { repoId: 'system-a', vector: [0, 1] },
+    { repoId: 'system-b', vector: [0.2, 0.8] },
+  ];
+
+  it('deduplicates and freezes the full scope while reporting partial membership', () => {
+    const repoIds = ['scope-a', 'scope-a', 'scope-b'];
+    const snapshot = createCollectionDialSnapshot({
+      scopeId: 'scope-1',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      repoIds,
+      collections: catalog,
+      collectionRepos: [...memberships, { collectionId: 'frontend', repoId: 'scope-a' }],
+      sessionMru: [],
+    });
+    repoIds.push('late');
+
+    expect(snapshot.repoIds).toEqual(['scope-a', 'scope-b']);
+    expect(
+      snapshot.entries.map(({ id, alreadyMemberCount, missingCount }) => ({
+        id,
+        alreadyMemberCount,
+        missingCount,
+      })),
+    ).toEqual([
+      { id: 'frontend', alreadyMemberCount: 1, missingCount: 1 },
+      { id: 'systems', alreadyMemberCount: 0, missingCount: 2 },
+    ]);
+    expect(snapshot.quickTargetIds).toEqual(['frontend', 'systems']);
+    expect(snapshot.semanticOrderingApplied).toBe(false);
+  });
+
+  it('orders a single repository by similarity to collection centroids', () => {
+    const snapshot = createCollectionDialSnapshot({
+      scopeId: 'scope-2',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      repoIds: ['source'],
+      collections: catalog,
+      collectionRepos: memberships,
+      sessionMru: ['systems'],
+      repositoryEmbeddings: [...embeddings, { repoId: 'source', vector: [0.95, 0.05] }],
+    });
+
+    expect(snapshot.quickTargetIds).toEqual(['frontend', 'systems', 'owned']);
+    expect(snapshot.semanticOrderingApplied).toBe(true);
+  });
+
+  it('promotes only a multi-repository top-one simple-majority consensus', () => {
+    const common = {
+      scopeId: 'scope-3',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      collections: catalog,
+      collectionRepos: memberships,
+      sessionMru: ['systems'],
+      repositoryEmbeddings: [
+        ...embeddings,
+        { repoId: 'source-a', vector: [1, 0] },
+        { repoId: 'source-b', vector: [0.9, 0.1] },
+        { repoId: 'source-c', vector: [0, 1] },
+      ],
+    } as const;
+
+    const consensus = createCollectionDialSnapshot({
+      ...common,
+      repoIds: ['source-a', 'source-b', 'source-c'],
+    });
+    expect(consensus.quickTargetIds[0]).toBe('frontend');
+    expect(consensus.semanticOrderingApplied).toBe(true);
+
+    const noConsensus = createCollectionDialSnapshot({
+      ...common,
+      repoIds: ['source-a', 'source-c'],
+    });
+    expect(noConsensus.quickTargetIds[0]).toBe('systems');
+    expect(noConsensus.semanticOrderingApplied).toBe(false);
+  });
+
+  it('counts only source vectors that can cast a valid top-one vote', () => {
+    const snapshot = createCollectionDialSnapshot({
+      scopeId: 'scope-valid-votes',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      repoIds: ['source-a', 'source-b', 'invalid-a', 'invalid-b'],
+      collections: catalog,
+      collectionRepos: memberships,
+      sessionMru: ['systems'],
+      repositoryEmbeddings: [
+        ...embeddings,
+        { repoId: 'source-a', vector: [1, 0] },
+        { repoId: 'source-b', vector: [0.9, 0.1] },
+        { repoId: 'invalid-a', vector: [1, 0, 0] },
+        { repoId: 'invalid-b', vector: [Number.NaN, 0] },
+      ],
+    });
+
+    expect(snapshot.quickTargetIds[0]).toBe('frontend');
+    expect(snapshot.semanticOrderingApplied).toBe(true);
+  });
+
+  it('falls back without semantic ordering when the scope exceeds fifty repositories', () => {
+    const repoIds = Array.from({ length: 51 }, (_, index) => `source-${index}`);
+    const snapshot = createCollectionDialSnapshot({
+      scopeId: 'scope-4',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      repoIds,
+      collections: catalog,
+      collectionRepos: memberships,
+      sessionMru: ['systems'],
+      repositoryEmbeddings: [
+        ...embeddings,
+        ...repoIds.map((repoId) => ({ repoId, vector: [1, 0] })),
+      ],
+    });
+
+    expect(snapshot.quickTargetIds[0]).toBe('systems');
+    expect(snapshot.semanticOrderingApplied).toBe(false);
   });
 });
 
@@ -113,5 +266,59 @@ describe('Collection Dial reducer', () => {
     expect(collectionDialReducer(state, { type: 'step', direction: 1 })).toBe(state);
     expect(collectionDialReducer(state, { type: 'select', targetId: 'two' })).toBe(state);
     expect(collectionDialReducer(state, { type: 'submit' })).toBe(state);
+  });
+
+  it('ignores an asynchronous result from an older pickup scope', () => {
+    const pickup = createCollectionDialPickup({
+      scopeId: 'current-scope',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      repoIds: ['repo-1'],
+      repoLabel: 'owner/repo',
+      targets: [{ id: 'one', name: 'One', updatedAt: '2026-08-13' }],
+    });
+    const state = collectionDialReducer({ phase: 'idle' }, { type: 'pickup', pickup });
+
+    expect(
+      collectionDialReducer(state, {
+        type: 'success',
+        scopeId: 'stale-scope',
+        operationId: 'operation-1',
+      }),
+    ).toBe(state);
+  });
+
+  it('blocks a new multi pickup while the current multi scope is unfinished', () => {
+    const currentPickup = createCollectionDialPickup({
+      scopeId: 'current-multi',
+      repoIds: ['repo-1', 'repo-2'],
+      repoLabel: '2 selected',
+      targets: [{ id: 'one', name: 'One', updatedAt: '2026-08-13' }],
+    });
+    const nextPickup = createCollectionDialPickup({
+      scopeId: 'next-multi',
+      repoIds: ['repo-3', 'repo-4'],
+      repoLabel: '2 selected',
+      targets: [{ id: 'two', name: 'Two', updatedAt: '2026-08-13' }],
+    });
+    const state = collectionDialReducer(
+      collectionDialReducer({ phase: 'idle' }, { type: 'pickup', pickup: currentPickup }),
+      { type: 'pickup', pickup: nextPickup },
+    );
+
+    expect(state.phase === 'active' && state.pickup.scopeId).toBe('current-multi');
+  });
+
+  it('keeps a committing scope open until the write settles', () => {
+    const pickup = createCollectionDialPickup({
+      repoIds: ['repo-1', 'repo-2'],
+      repoLabel: '2 selected',
+      targets: [{ id: 'one', name: 'One', updatedAt: '2026-08-13' }],
+    });
+    const submitting = collectionDialReducer(
+      collectionDialReducer({ phase: 'idle' }, { type: 'pickup', pickup }),
+      { type: 'submit' },
+    );
+
+    expect(collectionDialReducer(submitting, { type: 'cancel' })).toBe(submitting);
   });
 });

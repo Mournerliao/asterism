@@ -253,16 +253,20 @@ export const RepoTableRow = memo(function RepoTableRow({
           'flex min-w-0 flex-col justify-center gap-1',
           layout === 'mobile' ? 'col-span-3' : 'col-span-1 px-3',
           bulkSelection ? 'pl-11' : collectionDial ? 'pl-12' : undefined,
+          bulkSelection && bulkSelected && collectionDial ? 'pr-12' : undefined,
         )}
       >
-        {collectionDial && !bulkSelection ? (
+        {collectionDial && (!bulkSelection || bulkSelected) ? (
           <CollectionDialGrip
             sourceId={record.repoId}
             label={t('collectionDial.pickup', { repo: repo.fullName })}
             expanded={collectionDial.activeRepoId === record.repoId}
             onPickup={(event) => collectionDial.onPickup(record, event)}
             onPointerDown={(event) => collectionDial.onPointerDown(record, event)}
-            className="absolute top-1/2 left-1 z-20 -translate-y-1/2"
+            className={cn(
+              'absolute top-1/2 z-20 -translate-y-1/2',
+              bulkSelection ? 'right-1' : 'left-1',
+            )}
           />
         ) : null}
         <div className="flex min-w-0 items-center gap-1.5">

@@ -1,7 +1,7 @@
 create extension if not exists pgtap with schema extensions;
 create extension if not exists dblink with schema extensions;
 
-select extensions.plan(17);
+select extensions.plan(20);
 
 insert into auth.users (id, email)
 values
@@ -10,10 +10,13 @@ values
 
 insert into public.repos (id, github_id, full_name, name, owner)
 values
-  ('20000000-0000-4000-8000-000000000001', 300000001, 'test/relation', 'relation', 'test');
+  ('20000000-0000-4000-8000-000000000001', 300000001, 'test/relation', 'relation', 'test'),
+  ('20000000-0000-4000-8000-000000000002', 300000002, 'test/relation-two', 'relation-two', 'test');
 
 insert into public.user_stars (user_id, repo_id)
-values ('10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001');
+values
+  ('10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001'),
+  ('10000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000002');
 
 insert into public.collections (id, user_id, name)
 values
@@ -214,6 +217,47 @@ select extensions.is(
   1::bigint,
   'baseline bootstrapping preserves the canonical membership'
 );
+
+create temporary table dial_scope_operation as
+select public.create_bulk_operation(
+  '10000000-0000-4000-8000-000000000001',
+  'manual',
+  'collection_dial',
+  '40000000-0000-4000-8000-000000000010',
+  array[
+    '20000000-0000-4000-8000-000000000001'::uuid,
+    '20000000-0000-4000-8000-000000000002'::uuid
+  ],
+  array['20000000-0000-4000-8000-000000000002'::uuid],
+  '[{"relationType":"collection","targetId":"30000000-0000-4000-8000-000000000001","action":"add"}]'::jsonb
+) as id;
+
+select extensions.is(
+  (select source_repo_ids from public.bulk_operations
+   where id = (select id from dial_scope_operation)),
+  array[
+    '20000000-0000-4000-8000-000000000001'::uuid,
+    '20000000-0000-4000-8000-000000000002'::uuid
+  ],
+  'Collection Dial persists the complete frozen source scope'
+);
+select extensions.is(
+  (select array_agg(repo_id order by repo_id) from public.bulk_operation_items
+   where operation_id = (select id from dial_scope_operation)),
+  array['20000000-0000-4000-8000-000000000002'::uuid],
+  'Collection Dial creates items only for the frozen missing subset'
+);
+
+set request.jwt.claim.sub = '10000000-0000-4000-8000-000000000001';
+set role authenticated;
+select extensions.ok(
+  public.has_unfinished_multi_collection_dial_operation(
+    '10000000-0000-4000-8000-000000000001'
+  ),
+  'the owner can detect an unfinished multi Collection Dial without a history window'
+);
+reset role;
+reset request.jwt.claim.sub;
 
 select * from extensions.finish();
 

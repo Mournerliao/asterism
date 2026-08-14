@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { invokeBulkOperation } from './bulk-operations';
+import { hasUnfinishedMultiCollectionDialOperation, invokeBulkOperation } from './bulk-operations';
 import type { SupabaseClient } from './client';
 
 function clientReturning(data: unknown) {
@@ -99,5 +99,18 @@ describe('invokeBulkOperation', () => {
     await expect(
       invokeBulkOperation(client, { action: 'get', operationId: 'operation-1' }),
     ).rejects.toThrow('invalid response');
+  });
+});
+
+describe('hasUnfinishedMultiCollectionDialOperation', () => {
+  it('uses the server-side exists query without a history window', async () => {
+    const rpc = vi.fn().mockResolvedValue({ data: true, error: null });
+
+    await expect(
+      hasUnfinishedMultiCollectionDialOperation({ rpc } as unknown as SupabaseClient, 'user-1'),
+    ).resolves.toBe(true);
+    expect(rpc).toHaveBeenCalledWith('has_unfinished_multi_collection_dial_operation', {
+      p_user_id: 'user-1',
+    });
   });
 });

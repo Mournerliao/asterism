@@ -1,4 +1,4 @@
-import type { BulkOperation, BulkOperationRequest } from '@asterism/db';
+import type { BulkOperation, BulkOperationItem, BulkOperationRequest } from '@asterism/db';
 import { runBulkOperationUntilSettled } from './bulk-operation-runner';
 
 type InvokeBulkOperation = (request: BulkOperationRequest) => Promise<BulkOperation>;
@@ -13,13 +13,41 @@ export type CollectionDialOperationResult =
     }
   | { kind: 'terminal_failure'; operation: BulkOperation; message?: string };
 
+export function summarizeCollectionDialCounts(input: {
+  alreadyMemberCount: number;
+  missingCount: number;
+  items: readonly BulkOperationItem[];
+}) {
+  const addedCount = input.items.filter(
+    (item) => item.status === 'succeeded' && item.effectiveChanged,
+  ).length;
+  const becameAlreadyMemberCount = input.items.filter(
+    (item) => item.status === 'succeeded' && !item.effectiveChanged,
+  ).length;
+  const terminalCount = input.items.filter(
+    (item) => item.status === 'terminal_failed' || item.status === 'dismissed',
+  ).length;
+  const explicitlyRetryableCount = input.items.filter(
+    (item) =>
+      item.status === 'pending' || item.status === 'running' || item.status === 'retryable_failed',
+  ).length;
+  const unreportedMissingCount = Math.max(0, input.missingCount - input.items.length);
+  return {
+    addedCount,
+    alreadyMemberCount: input.alreadyMemberCount + becameAlreadyMemberCount,
+    retryableCount: explicitlyRetryableCount + unreportedMissingCount,
+    terminalCount,
+  };
+}
+
 export async function runCollectionDialOperation(input: {
-  repoId: string;
+  repoIds: readonly string[];
+  itemRepoIds: readonly string[];
   targetId: string;
   clientRequestId: string;
   existingOperation?: BulkOperation;
   invoke: InvokeBulkOperation;
-  converge: (repoId: string, targetId: string) => Promise<boolean>;
+  converge: (repoIds: readonly string[], targetId: string) => Promise<boolean>;
 }): Promise<CollectionDialOperationResult> {
   let operation = input.existingOperation;
   try {
@@ -29,26 +57,30 @@ export async function runCollectionDialOperation(input: {
         source: 'manual',
         interaction: 'collection_dial',
         clientRequestId: input.clientRequestId,
-        repoIds: [input.repoId],
+        repoIds: [...input.repoIds],
+        itemRepoIds: [...input.itemRepoIds],
         changes: [{ relationType: 'collection', targetId: input.targetId, action: 'add' }],
       });
     }
 
-    const initialItem = operation.items.find(
-      (item) =>
-        item.repoId === input.repoId &&
-        item.relationType === 'collection' &&
-        item.targetId === input.targetId &&
-        item.action === 'add',
-    );
-    if (initialItem?.status === 'retryable_failed') {
+    const relevantItems = () =>
+      operation?.items.filter(
+        (item) =>
+          input.repoIds.includes(item.repoId) &&
+          item.relationType === 'collection' &&
+          item.targetId === input.targetId &&
+          item.action === 'add',
+      ) ?? [];
+    if (relevantItems().some((item) => item.status === 'retryable_failed')) {
       operation = await runBulkOperationUntilSettled(
         operation.id,
         'retry',
         'retryable_failed',
         input.invoke,
       );
-    } else if (initialItem?.status === 'pending' || initialItem?.status === 'running') {
+    } else if (
+      relevantItems().some((item) => item.status === 'pending' || item.status === 'running')
+    ) {
       operation = await runBulkOperationUntilSettled(
         operation.id,
         'execute',
@@ -57,29 +89,33 @@ export async function runCollectionDialOperation(input: {
       );
     }
 
-    const item = operation.items.find(
-      (candidate) =>
-        candidate.repoId === input.repoId &&
-        candidate.relationType === 'collection' &&
-        candidate.targetId === input.targetId &&
-        candidate.action === 'add',
+    const items = relevantItems();
+    const terminalItem = items.find(
+      (item) => item.status === 'terminal_failed' || item.status === 'dismissed',
     );
-    if (!item || item.status === 'terminal_failed' || item.status === 'dismissed') {
+    if (items.length === 0) {
+      const converged = await input.converge(input.repoIds, input.targetId);
+      return converged
+        ? { kind: 'success', operation }
+        : { kind: 'retryable_failure', reason: 'convergence', operation };
+    }
+    if (terminalItem) {
       return {
         kind: 'terminal_failure',
         operation,
-        message: item?.lastErrorMessage ?? undefined,
+        message: terminalItem?.lastErrorMessage ?? undefined,
       };
     }
-    if (item.status !== 'succeeded') {
+    const unsettledItem = items.find((item) => item.status !== 'succeeded');
+    if (unsettledItem) {
       return {
         kind: 'retryable_failure',
         reason: 'execution',
         operation,
-        message: item.lastErrorMessage ?? undefined,
+        message: unsettledItem.lastErrorMessage ?? undefined,
       };
     }
-    const converged = await input.converge(input.repoId, input.targetId);
+    const converged = await input.converge(input.repoIds, input.targetId);
     return converged
       ? { kind: 'success', operation }
       : { kind: 'retryable_failure', reason: 'convergence', operation };

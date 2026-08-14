@@ -35,6 +35,8 @@ const copy = {
   submittingStatus: 'Adding repository',
   successStatus: 'Repository added',
   keyboardHint: 'Q/E to choose, Enter to add',
+  membership: (missing: number, existing: number) =>
+    `To add: ${missing}; already there: ${existing}`,
 };
 
 let container: HTMLDivElement;
@@ -146,15 +148,42 @@ describe('controlled Collection Dial', () => {
     expect(props.onCancel).toHaveBeenCalledTimes(1);
   });
 
+  it('does not allow closing while a write is committing', () => {
+    const props = renderDial({ status: 'submitting' });
+    container
+      .querySelector<HTMLElement>('[data-collection-dial]')
+      ?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    const cancel = [...container.querySelectorAll<HTMLButtonElement>('button')].find(
+      (button) => button.textContent === 'Cancel',
+    );
+
+    expect(cancel?.disabled).toBe(true);
+    expect(props.onCancel).not.toHaveBeenCalled();
+  });
+
   it('announces retained retryable failures in the shared status region', () => {
     renderDial({ status: 'retryable_failure', message: 'Network unavailable' });
 
-    const status = container.querySelector('[role="status"]');
-    expect(status?.getAttribute('aria-live')).toBe('polite');
+    const status = [...container.querySelectorAll('[role="alert"]')].find((element) =>
+      element.textContent?.includes('Network unavailable'),
+    );
+    expect(status?.getAttribute('aria-live')).toBe('assertive');
     expect(status?.textContent).toContain('Network unavailable');
     expect(
       [...container.querySelectorAll('button')].some((button) => button.textContent === 'Retry'),
     ).toBe(true);
+  });
+
+  it('announces exact missing and existing counts for a partial multi-selection', () => {
+    renderDial({
+      repoLabel: '3 selected repositories',
+      targets: [{ id: 'partial', name: 'Partial', missingCount: 2, alreadyMemberCount: 1 }],
+      activeIndex: 0,
+    });
+
+    expect(container.querySelector('[role="status"]')?.textContent).toContain(
+      'To add: 2; already there: 1',
+    );
   });
 
   it('reflows to five targets at a 200% effective desktop width', () => {

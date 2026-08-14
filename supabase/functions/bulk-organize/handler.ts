@@ -59,6 +59,7 @@ export interface CreateBulkOperationInput {
   interaction: BulkOperationCreateInteraction;
   clientRequestId: string;
   repoIds: string[];
+  itemRepoIds?: string[];
   changes: BulkChange[];
 }
 
@@ -109,18 +110,14 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
     return null;
   }
   const input = value as Record<string, unknown>;
+  const interaction = input.interaction;
+  const expectedKeys = ['action', 'source', 'interaction', 'clientRequestId', 'repoIds', 'changes'];
+  if (interaction === 'collection_dial') expectedKeys.push('itemRepoIds');
   if (
-    !hasExactKeys(input, [
-      'action',
-      'source',
-      'interaction',
-      'clientRequestId',
-      'repoIds',
-      'changes',
-    ]) ||
+    !hasExactKeys(input, expectedKeys) ||
     input.action !== 'create' ||
     input.source !== 'manual' ||
-    !isCreateInteraction(input.interaction) ||
+    !isCreateInteraction(interaction) ||
     !isUuid(input.clientRequestId) ||
     !Array.isArray(input.repoIds) ||
     !Array.isArray(input.changes)
@@ -130,6 +127,19 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   const repoIds = [...new Set(input.repoIds.filter(isId))];
   if (repoIds.length === 0 || repoIds.length !== new Set(input.repoIds).size) {
     return null;
+  }
+  let itemRepoIds: string[] | undefined;
+  if (interaction === 'collection_dial') {
+    if (!Array.isArray(input.itemRepoIds)) return null;
+    itemRepoIds = [...new Set(input.itemRepoIds.filter(isId))];
+    const repoScope = new Set(repoIds);
+    if (
+      itemRepoIds.length === 0 ||
+      itemRepoIds.length !== new Set(input.itemRepoIds).size ||
+      itemRepoIds.some((repoId) => !repoScope.has(repoId))
+    ) {
+      return null;
+    }
   }
 
   const changes: BulkChange[] = [];
@@ -162,9 +172,10 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   }
   return {
     source: input.source,
-    interaction: input.interaction,
+    interaction,
     clientRequestId: input.clientRequestId,
     repoIds,
+    ...(itemRepoIds ? { itemRepoIds } : {}),
     changes,
   };
 }

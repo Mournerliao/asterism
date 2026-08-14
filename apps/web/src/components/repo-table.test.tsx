@@ -153,4 +153,47 @@ describe('RepoTableRow Collection Dial grip', () => {
     expect(onPickup).toHaveBeenCalledWith(record, expect.anything());
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  it('offers the grip only on selected rows while selection mode is active', async () => {
+    container = document.createElement('div');
+    document.body.append(container);
+    root = createRoot(container);
+    const collectionDial = { activeRepoId: undefined, onPickup: vi.fn(), onPointerDown: vi.fn() };
+
+    await act(async () =>
+      root.render(
+        <table>
+          <tbody>
+            <RepoTableRow
+              record={record}
+              layout="wide"
+              rowIndex={2}
+              measureElement={vi.fn()}
+              bulkSelection={{ repoIds: new Set([record.repoId]), onToggle: vi.fn() }}
+              collectionDial={collectionDial}
+            />
+          </tbody>
+        </table>,
+      ),
+    );
+    expect(container.querySelector('[data-collection-dial-grip]')).not.toBeNull();
+
+    await act(async () =>
+      root.render(
+        <table>
+          <tbody>
+            <RepoTableRow
+              record={record}
+              layout="wide"
+              rowIndex={2}
+              measureElement={vi.fn()}
+              bulkSelection={{ repoIds: new Set(), onToggle: vi.fn() }}
+              collectionDial={collectionDial}
+            />
+          </tbody>
+        </table>,
+      ),
+    );
+    expect(container.querySelector('[data-collection-dial-grip]')).toBeNull();
+  });
 });

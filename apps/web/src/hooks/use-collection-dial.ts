@@ -1,8 +1,9 @@
 import {
+  type CollectionDialRepositoryEmbedding,
   type CollectionDialState,
   collectionDialReducer,
   createCollectionDialPickup,
-  rankCollectionDialTargets,
+  createCollectionDialSnapshot,
 } from '@asterism/core';
 import {
   type BulkOperation,
@@ -23,12 +24,15 @@ import {
   useState,
 } from 'react';
 import { useSession } from '../auth/use-session';
-import { collectionKeys, collectionRepoKeys } from '../data/keys';
+import { bulkOperationKeys, collectionKeys, collectionRepoKeys } from '../data/keys';
 import {
   type CollectionDialUnavailableReason,
   getCollectionDialUnavailableReason,
 } from '../lib/collection-dial-availability';
-import { runCollectionDialOperation } from '../lib/collection-dial-operation';
+import {
+  runCollectionDialOperation,
+  summarizeCollectionDialCounts,
+} from '../lib/collection-dial-operation';
 import {
   exceedsCollectionDialDragThreshold,
   findCollectionDialFocusTarget,
@@ -62,19 +66,41 @@ type PointerSession = {
 export function useCollectionDial({
   collections,
   collectionRepos,
+  repositoryEmbeddings,
+  selectionMode,
+  selectedRepoIds,
+  multiPickupBlockReason,
+  scopeLabel,
   preparePickup,
   onUnavailable,
   retryableMessage,
   terminalMessage,
   convergenceMessage,
+  successMessage,
+  failureCountsMessage,
 }: {
   collections: readonly CollectionWithMeta[];
   collectionRepos: readonly CollectionRepoLink[];
+  repositoryEmbeddings?: readonly CollectionDialRepositoryEmbedding[];
+  selectionMode: boolean;
+  selectedRepoIds: ReadonlySet<string>;
+  multiPickupBlockReason?: Extract<
+    CollectionDialUnavailableReason,
+    'active_multi_operation' | 'operation_state_unavailable'
+  >;
+  scopeLabel: (count: number) => string;
   preparePickup: () => boolean;
   onUnavailable: (reason: CollectionDialUnavailableReason) => void;
   retryableMessage: string;
   terminalMessage: string;
   convergenceMessage: string;
+  successMessage: (addedCount: number, alreadyMemberCount: number) => string;
+  failureCountsMessage: (input: {
+    addedCount: number;
+    alreadyMemberCount: number;
+    retryableCount: number;
+    terminalCount: number;
+  }) => string;
 }) {
   const { session } = useSession();
   const userId = session?.user.id;
@@ -93,6 +119,7 @@ export function useCollectionDial({
   const skipNextProtectionRef = useRef(false);
   const operationRef = useRef<BulkOperation | undefined>(undefined);
   const clientRequestIdRef = useRef<string | undefined>(undefined);
+  const pendingMultiScopeRef = useRef<string | null>(null);
   const mountedRef = useRef(true);
 
   useEffect(() => {
@@ -129,11 +156,36 @@ export function useCollectionDial({
       protectionAlreadyPassed: boolean,
     ) => {
       if (!protectionAlreadyPassed && !preparePickup()) return false;
-      const targets = rankCollectionDialTargets({
+      if (selectionMode && !selectedRepoIds.has(record.repoId)) return false;
+      const repoIds = selectionMode ? [...selectedRepoIds] : [record.repoId];
+      if (repoIds.length === 0) return false;
+      const current = stateRef.current;
+      const visibleMultiPickupUnfinished =
+        current.phase === 'active' &&
+        current.pickup.repoIds.length > 1 &&
+        current.status !== 'success';
+      if (
+        repoIds.length > 1 &&
+        (multiPickupBlockReason || pendingMultiScopeRef.current || visibleMultiPickupUnfinished)
+      ) {
+        onUnavailable(multiPickupBlockReason ?? 'active_multi_operation');
+        return false;
+      }
+      const scopeId = crypto.randomUUID();
+      const createdAt = new Date().toISOString();
+      const snapshot = createCollectionDialSnapshot({
+        scopeId,
+        createdAt,
         collections,
         collectionRepos,
-        repoIds: [record.repoId],
+        repoIds,
         sessionMru,
+        repositoryEmbeddings,
+      });
+      const entryById = new Map(snapshot.entries.map((entry) => [entry.id, entry]));
+      const targets = snapshot.quickTargetIds.flatMap((targetId) => {
+        const target = entryById.get(targetId);
+        return target ? [target] : [];
       });
       if (targets.length === 0) {
         onUnavailable(getCollectionDialUnavailableReason(collections.length));
@@ -146,14 +198,26 @@ export function useCollectionDial({
       dispatch({
         type: 'pickup',
         pickup: createCollectionDialPickup({
-          repoIds: [record.repoId],
-          repoLabel: record.repo.fullName,
+          scopeId,
+          createdAt,
+          repoIds,
+          repoLabel: selectionMode ? scopeLabel(repoIds.length) : record.repo.fullName,
           targets,
         }),
       });
       return true;
     },
-    [collectionRepos, collections, onUnavailable, preparePickup],
+    [
+      collectionRepos,
+      collections,
+      multiPickupBlockReason,
+      onUnavailable,
+      preparePickup,
+      repositoryEmbeddings,
+      scopeLabel,
+      selectedRepoIds,
+      selectionMode,
+    ],
   );
 
   const onGripPickup = useCallback(
@@ -214,7 +278,7 @@ export function useCollectionDial({
   }, []);
 
   const converge = useCallback(
-    async (repoId: string, targetId: string) => {
+    async (repoIds: readonly string[], targetId: string) => {
       if (!userId) return false;
       await queryClient.invalidateQueries({ queryKey: collectionRepoKeys.list(userId) });
       const links = await queryClient.fetchQuery({
@@ -222,7 +286,10 @@ export function useCollectionDial({
         queryFn: () => listCollectionRepos(supabase, userId),
       });
       await queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) });
-      return links.some((link) => link.repoId === repoId && link.collectionId === targetId);
+      const members = new Set(
+        links.filter((link) => link.collectionId === targetId).map((link) => link.repoId),
+      );
+      return repoIds.every((repoId) => members.has(repoId));
     },
     [queryClient, userId],
   );
@@ -234,8 +301,9 @@ export function useCollectionDial({
       const target = explicitTargetId
         ? current.pickup.targets.find((candidate) => candidate.id === explicitTargetId)
         : current.pickup.targets[current.activeIndex];
-      const repoId = current.pickup.repoIds[0];
-      if (!target || !repoId) return;
+      const repoIds = current.pickup.repoIds;
+      const scopeId = current.pickup.scopeId;
+      if (!target || repoIds.length === 0) return;
       if (explicitTargetId && target.id !== current.pickup.targets[current.activeIndex]?.id) {
         dispatch({ type: 'select', targetId: target.id });
         operationRef.current = undefined;
@@ -243,8 +311,10 @@ export function useCollectionDial({
       }
       dispatch({ type: 'submit' });
       setDropTargetId(null);
+      if (repoIds.length > 1) pendingMultiScopeRef.current = scopeId;
       const result = await runCollectionDialOperation({
-        repoId,
+        repoIds,
+        itemRepoIds: target.missingRepoIds ?? repoIds,
         targetId: target.id,
         clientRequestId: clientRequestIdRef.current ?? crypto.randomUUID(),
         existingOperation: operationRef.current,
@@ -252,27 +322,56 @@ export function useCollectionDial({
         converge,
       });
       if (!mountedRef.current) return;
+      if (userId) {
+        await queryClient.invalidateQueries({ queryKey: bulkOperationKeys.list(userId) });
+      }
+      if (pendingMultiScopeRef.current === scopeId) pendingMultiScopeRef.current = null;
+      const latest = stateRef.current;
+      if (latest.phase !== 'active' || latest.pickup.scopeId !== scopeId) return;
       operationRef.current = result.operation;
+      const counts = summarizeCollectionDialCounts({
+        alreadyMemberCount: target.alreadyMemberCount ?? 0,
+        missingCount: target.missingCount ?? repoIds.length,
+        items: result.operation?.items ?? [],
+      });
       if (result.kind === 'success') {
         rememberTarget(target.id);
-        dispatch({ type: 'success', operationId: result.operation.id });
+        dispatch({
+          type: 'success',
+          scopeId,
+          operationId: result.operation.id,
+          message: successMessage(counts.addedCount, counts.alreadyMemberCount),
+        });
       } else if (result.kind === 'terminal_failure') {
         dispatch({
           type: 'failure',
+          scopeId,
           retryable: false,
           operationId: result.operation.id,
-          message: terminalMessage,
+          message: `${terminalMessage} ${failureCountsMessage(counts)}`,
         });
       } else {
         dispatch({
           type: 'failure',
+          scopeId,
           retryable: true,
           operationId: result.operation?.id,
-          message: result.reason === 'convergence' ? convergenceMessage : retryableMessage,
+          message: `${
+            result.reason === 'convergence' ? convergenceMessage : retryableMessage
+          } ${failureCountsMessage(counts)}`,
         });
       }
     },
-    [converge, convergenceMessage, retryableMessage, terminalMessage],
+    [
+      converge,
+      convergenceMessage,
+      failureCountsMessage,
+      queryClient,
+      retryableMessage,
+      successMessage,
+      terminalMessage,
+      userId,
+    ],
   );
 
   useEffect(() => {

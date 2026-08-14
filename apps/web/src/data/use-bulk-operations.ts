@@ -2,6 +2,7 @@ import {
   type BulkChange,
   type BulkOperation,
   type BulkOperationCreateSource,
+  hasUnfinishedMultiCollectionDialOperation,
   invokeBulkOperation,
   listBulkOperations,
 } from '@asterism/db';
@@ -33,6 +34,18 @@ export function useBulkOperations() {
       const operations = query.state.data;
       return operations?.some((operation) => operation.status === 'running') ? 2_000 : false;
     },
+  });
+}
+
+export function useHasUnfinishedMultiCollectionDialOperation() {
+  const { session } = useSession();
+  const userId = session?.user.id;
+  return useQuery({
+    queryKey: userId
+      ? [...bulkOperationKeys.list(userId), 'unfinished-multi-collection-dial']
+      : bulkOperationKeys.all,
+    enabled: Boolean(userId),
+    queryFn: () => hasUnfinishedMultiCollectionDialOperation(supabase, userId as string),
   });
 }
 

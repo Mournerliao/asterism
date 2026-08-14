@@ -32,12 +32,15 @@
   错误计数、Dial 对 bulk dialog 的全局锁、failure live region 礼貌等级，以及有效票分母边界。
 - `pnpm lint`、`pnpm typecheck`、`pnpm test`（333 tests）与 `pnpm build` 通过；保留既有 Web chunk warning。
 - `pnpm test:db` 已尝试，但本机 Docker / OrbStack daemon 未启动，Supabase 本地 Postgres 无法连接；SQL migration
-  与 pgTAP 断言已加入，Edge Function handler / projection tests 通过，数据库门禁仍由 CI 的本地 Supabase 执行。
-- 真实 in-app Chromium 验证 Grid / List、390×844、选中项才显示 Grip、两个选中项在筛选只剩一项可见后仍显示
-  “2 selected / 1 hidden by filters”，移动 List 可见 Grip 为 44×44，控制台无错误。维护者账号没有 collection，
-  未为了 smoke 创建或修改真实数据；完整 scope 提交由 operation / handler 自动化覆盖，单项入口保留并通过回归。
+  与 pgTAP 断言已加入，Edge Function handler / projection tests 通过。用户随后授权远端验收：项目已应用
+  `20260812120000` / `20260814120000` migrations，并部署当前 `bulk-organize`。
+- 真实 in-app Chromium 先验证 Grid / List、390×844、选中项才显示 Grip、两个选中项在筛选只剩一项可见后仍显示
+  “2 selected / 1 hidden by filters”，移动可见 Grip 为 44×44。随后创建 `Codex #32 temporary 2026-08-14`
+  临时集合完成真实写入：List 隐藏项多选新增 2，Grid 隐藏项多选新增 2，部分已有范围准确显示并执行
+  `Added: 1 / Already there: 1`，普通单项新增 1；集合权威计数最终为 6，控制台无错误。验收后删除临时集合，
+  Collections 恢复为 0，未留下临时 canonical 关系。
 
 ## 后续
 
-下一 frontier 为 #33：More / New、每次成功独立 Undo 与 durable recovery。真实连续桌面 10 项 / 移动 5 项任务、
-完整生产写入 journey 和 throwaway prototype 退役仍属于 #34。
+下一 frontier 为 #33：More / New、每次成功独立 Undo 与 durable recovery。真实连续桌面 10 项 / 移动 5 项任务和
+throwaway prototype 退役仍属于 #34。

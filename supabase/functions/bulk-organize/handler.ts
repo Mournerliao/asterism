@@ -46,12 +46,28 @@ export interface BulkOperation {
   clientRequestId: string;
   undoOfOperationId: string | null;
   undoExpiresAt: string | null;
+  undoEligibleCount: number;
+  undoSkippedCount: number;
+  undoConflictCount: number;
+  undoExpired: boolean;
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: BulkOperationItem[];
+}
+
+export interface BulkUndoSummary {
+  eligibleCount: number;
+  skippedCount: number;
+  conflictCount: number;
+  expired: boolean;
+}
+
+export interface BulkUndoOutcome {
+  operation: BulkOperation;
+  undoSummary: BulkUndoSummary;
 }
 
 export interface CreateBulkOperationInput {
@@ -70,6 +86,11 @@ export interface BulkOrganizeDependencies {
   executeOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
   retryOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
   completeOperation: (userId: string, operationId: string) => Promise<BulkOperation | null>;
+  undoOperation: (
+    userId: string,
+    operationId: string,
+    clientRequestId: string,
+  ) => Promise<BulkUndoOutcome | null>;
 }
 
 type OperationAction = 'get' | 'execute' | 'retry' | 'complete';
@@ -170,6 +191,14 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
   if (changes.length === 0 || repoIds.length * changes.length > 10_000) {
     return null;
   }
+  if (
+    interaction === 'collection_dial' &&
+    (changes.length !== 1 ||
+      changes[0]?.relationType !== 'collection' ||
+      changes[0].action !== 'add')
+  ) {
+    return null;
+  }
   return {
     source: input.source,
     interaction,
@@ -193,6 +222,26 @@ function operationRequest(value: unknown): { action: OperationAction; operationI
     return null;
   }
   return { action: input.action as OperationAction, operationId: input.operationId };
+}
+
+function undoRequest(
+  value: unknown,
+): { action: 'undo'; operationId: string; clientRequestId: string } | null {
+  if (!value || typeof value !== 'object') return null;
+  const input = value as Record<string, unknown>;
+  if (
+    !hasExactKeys(input, ['action', 'operationId', 'clientRequestId']) ||
+    input.action !== 'undo' ||
+    !isId(input.operationId) ||
+    !isUuid(input.clientRequestId)
+  ) {
+    return null;
+  }
+  return {
+    action: 'undo',
+    operationId: input.operationId,
+    clientRequestId: input.clientRequestId,
+  };
 }
 
 export function createBulkOrganizeHandler(dependencies: BulkOrganizeDependencies) {
@@ -232,6 +281,17 @@ export function createBulkOrganizeHandler(dependencies: BulkOrganizeDependencies
           return json({ error: 'invalid_request' }, 400);
         }
         return json({ operation: await dependencies.createOperation(userId, input) });
+      }
+
+      if ((body as Record<string, unknown> | null)?.action === 'undo') {
+        const input = undoRequest(body);
+        if (!input) return json({ error: 'invalid_request' }, 400);
+        const outcome = await dependencies.undoOperation(
+          userId,
+          input.operationId,
+          input.clientRequestId,
+        );
+        return outcome ? json(outcome) : json({ error: 'operation_not_found' }, 404);
       }
 
       const input = operationRequest(body);

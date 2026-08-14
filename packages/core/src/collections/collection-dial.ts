@@ -42,6 +42,7 @@ export interface CollectionDialPickup {
   readonly repoIds: readonly string[];
   readonly repoLabel: string;
   readonly targets: readonly CollectionDialTarget[];
+  readonly catalog: readonly CollectionDialSnapshotEntry[];
 }
 
 export type CollectionDialState =
@@ -58,6 +59,7 @@ export type CollectionDialState =
 export type CollectionDialEvent =
   | { type: 'pickup'; pickup: CollectionDialPickup }
   | { type: 'select'; targetId: string }
+  | { type: 'promote'; target: CollectionDialTarget }
   | { type: 'step'; direction: -1 | 1 }
   | { type: 'submit' | 'retry' }
   | { type: 'success'; scopeId?: string; operationId: string; message?: string }
@@ -79,6 +81,17 @@ interface RankCollectionDialTargetsInput {
 
 function normalizedName(name: string): string {
   return name.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
+}
+
+export function searchCollectionDialCatalog(
+  entries: readonly CollectionDialSnapshotEntry[],
+  query: string,
+): CollectionDialSnapshotEntry[] {
+  const normalizedQuery = normalizedName(query);
+  if (!normalizedQuery) return [...entries];
+  return entries.filter((entry) =>
+    normalizedName(`${entry.name} ${entry.description ?? ''}`).includes(normalizedQuery),
+  );
 }
 
 function compareText(left: string, right: string): number {
@@ -301,6 +314,7 @@ export function createCollectionDialPickup(input: {
   repoIds: readonly string[];
   repoLabel: string;
   targets: readonly CollectionDialTarget[];
+  catalog?: readonly CollectionDialSnapshotEntry[];
 }): CollectionDialPickup {
   return {
     scopeId: input.scopeId ?? `scope:${input.repoIds.join(',')}`,
@@ -310,6 +324,10 @@ export function createCollectionDialPickup(input: {
     targets: input.targets.map((target) => ({
       ...target,
       ...(target.missingRepoIds ? { missingRepoIds: [...target.missingRepoIds] } : {}),
+    })),
+    catalog: (input.catalog ?? []).map((entry) => ({
+      ...entry,
+      missingRepoIds: [...entry.missingRepoIds],
     })),
   };
 }
@@ -327,7 +345,6 @@ export function collectionDialReducer(
     ) {
       return state;
     }
-    if (event.pickup.targets.length === 0) return { phase: 'idle' };
     return { phase: 'active', pickup: event.pickup, activeIndex: 0, status: 'ready' };
   }
   if (event.type === 'cancel') {
@@ -348,6 +365,20 @@ export function collectionDialReducer(
     return activeIndex < 0
       ? state
       : { ...state, activeIndex, status: 'ready', operationId: undefined, message: undefined };
+  }
+  if (event.type === 'promote' && state.status !== 'submitting' && state.status !== 'success') {
+    const targets = [
+      event.target,
+      ...state.pickup.targets.filter((target) => target.id !== event.target.id),
+    ].slice(0, 7);
+    return {
+      ...state,
+      pickup: { ...state.pickup, targets },
+      activeIndex: 0,
+      status: 'ready',
+      operationId: undefined,
+      message: undefined,
+    };
   }
   if (event.type === 'step' && state.status !== 'submitting' && state.status !== 'success') {
     const activeIndex = Math.max(

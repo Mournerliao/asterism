@@ -1,7 +1,9 @@
 import type { BulkOperation, BulkOperationItem, BulkOperationRequest } from '@asterism/db';
 import { runBulkOperationUntilSettled } from './bulk-operation-runner';
 
-type InvokeBulkOperation = (request: BulkOperationRequest) => Promise<BulkOperation>;
+type InvokeBulkOperation = (
+  request: Exclude<BulkOperationRequest, { action: 'undo' }>,
+) => Promise<BulkOperation>;
 
 export type CollectionDialOperationResult =
   | { kind: 'success'; operation: BulkOperation }

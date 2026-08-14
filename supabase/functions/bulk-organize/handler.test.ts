@@ -12,6 +12,10 @@ const operation: BulkOperation = {
   clientRequestId: '11111111-1111-4111-8111-111111111111',
   undoOfOperationId: null,
   undoExpiresAt: null,
+  undoEligibleCount: 0,
+  undoSkippedCount: 0,
+  undoConflictCount: 0,
+  undoExpired: false,
   sourceRepoIds: ['repo-1', 'repo-2'],
   status: 'pending',
   completedAt: null,
@@ -43,6 +47,10 @@ function dependencies(overrides: Partial<BulkOrganizeDependencies> = {}): BulkOr
     executeOperation: vi.fn().mockResolvedValue(operation),
     retryOperation: vi.fn().mockResolvedValue(operation),
     completeOperation: vi.fn().mockResolvedValue(operation),
+    undoOperation: vi.fn().mockResolvedValue({
+      operation,
+      undoSummary: { eligibleCount: 1, skippedCount: 1, conflictCount: 0, expired: false },
+    }),
     ...overrides,
   };
 }
@@ -140,6 +148,24 @@ describe('bulk-organize trusted HTTP interface', () => {
     expect(deps.createOperation).not.toHaveBeenCalled();
   });
 
+  it('rejects a Collection Dial request that is not exactly one collection add', async () => {
+    const deps = dependencies();
+    const response = await createBulkOrganizeHandler(deps)(
+      request({
+        action: 'create',
+        source: 'manual',
+        interaction: 'collection_dial',
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
+        repoIds: ['repo-1'],
+        itemRepoIds: ['repo-1'],
+        changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'remove' }],
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(deps.createOperation).not.toHaveBeenCalled();
+  });
+
   it('rejects unauthenticated and malformed requests before touching organization data', async () => {
     const deps = dependencies();
     const handler = createBulkOrganizeHandler(deps);
@@ -207,6 +233,28 @@ describe('bulk-organize trusted HTTP interface', () => {
     expect(response.status).toBe(200);
     expect(deps[method]).toHaveBeenCalledWith('user-1', 'operation-1');
     expect(await outcome(response)).toEqual({ operation });
+  });
+
+  it('routes Undo with both the original operation and client request identities', async () => {
+    const deps = dependencies();
+    const response = await createBulkOrganizeHandler(deps)(
+      request({
+        action: 'undo',
+        operationId: 'operation-1',
+        clientRequestId: '22222222-2222-4222-8222-222222222222',
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(deps.undoOperation).toHaveBeenCalledWith(
+      'user-1',
+      'operation-1',
+      '22222222-2222-4222-8222-222222222222',
+    );
+    expect(await outcome(response)).toEqual({
+      operation,
+      undoSummary: { eligibleCount: 1, skippedCount: 1, conflictCount: 0, expired: false },
+    });
   });
 
   it('does not reveal whether another user owns a missing operation', async () => {

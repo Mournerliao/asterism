@@ -15,6 +15,7 @@ export {
   createCollectionDialPickup,
   createCollectionDialSnapshot,
   rankCollectionDialTargets,
+  searchCollectionDialCatalog,
 } from './collections/collection-dial';
 export {
   buildExportPayload,

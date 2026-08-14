@@ -201,6 +201,10 @@ export interface Database {
           client_request_id: string;
           undo_of_operation_id: string | null;
           undo_expires_at: string | null;
+          undo_eligible_count: number;
+          undo_skipped_count: number;
+          undo_conflict_count: number;
+          undo_expired: boolean;
           source_repo_ids: string[];
           status: 'pending' | 'running' | 'needs_attention' | 'completed';
           completed_at: string | null;
@@ -215,6 +219,10 @@ export interface Database {
           client_request_id?: string;
           undo_of_operation_id?: string | null;
           undo_expires_at?: string | null;
+          undo_eligible_count?: number;
+          undo_skipped_count?: number;
+          undo_conflict_count?: number;
+          undo_expired?: boolean;
           source_repo_ids: string[];
           status?: 'pending' | 'running' | 'needs_attention' | 'completed';
           completed_at?: string | null;
@@ -383,6 +391,14 @@ export interface Database {
     };
     Views: Record<string, never>;
     Functions: {
+      create_collection_dial_undo: {
+        Args: {
+          p_user_id: string;
+          p_operation_id: string;
+          p_client_request_id: string;
+        };
+        Returns: Json;
+      };
       has_unfinished_multi_collection_dial_operation: {
         Args: { p_user_id: string };
         Returns: boolean;

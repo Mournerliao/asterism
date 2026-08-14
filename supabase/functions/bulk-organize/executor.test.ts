@@ -48,6 +48,10 @@ function store(items: BulkOperationItem[]): BulkExecutionStore & { applied: stri
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       undoOfOperationId: null,
       undoExpiresAt: null,
+      undoEligibleCount: 0,
+      undoSkippedCount: 0,
+      undoConflictCount: 0,
+      undoExpired: false,
       sourceRepoIds: items.map((candidate) => candidate.repoId),
       status: items.every((candidate) => candidate.status === 'succeeded')
         ? 'completed'

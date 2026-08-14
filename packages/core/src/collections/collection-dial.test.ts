@@ -4,6 +4,7 @@ import {
   createCollectionDialPickup,
   createCollectionDialSnapshot,
   rankCollectionDialTargets,
+  searchCollectionDialCatalog,
 } from './collection-dial';
 
 const collections = [
@@ -200,13 +201,53 @@ describe('Collection Dial snapshot', () => {
     expect(snapshot.quickTargetIds[0]).toBe('systems');
     expect(snapshot.semanticOrderingApplied).toBe(false);
   });
+
+  it('searches the frozen eligible catalog by name and description without reordering it', () => {
+    const snapshot = createCollectionDialSnapshot({
+      scopeId: 'scope-search',
+      createdAt: '2026-08-14T00:00:00.000Z',
+      repoIds: ['source'],
+      collections: catalog,
+      collectionRepos: memberships,
+      sessionMru: ['systems'],
+    });
+
+    expect(searchCollectionDialCatalog(snapshot.entries, 'web').map((entry) => entry.id)).toEqual([
+      'frontend',
+    ]);
+    expect(
+      searchCollectionDialCatalog(snapshot.entries, 'low-level').map((entry) => entry.id),
+    ).toEqual(['systems']);
+    expect(searchCollectionDialCatalog(snapshot.entries, '').map((entry) => entry.id)).toEqual([
+      'systems',
+      'owned',
+      'frontend',
+    ]);
+  });
 });
 
 describe('Collection Dial reducer', () => {
   it('freezes repository scope and catalog at pickup', () => {
     const repoIds = ['repo-1'];
     const targets = [{ id: 'collection-1', name: 'Frontend', updatedAt: '2026-08-13' }];
-    const pickup = createCollectionDialPickup({ repoIds, repoLabel: 'owner/repo', targets });
+    const pickup = createCollectionDialPickup({
+      repoIds,
+      repoLabel: 'owner/repo',
+      targets,
+      catalog: [
+        {
+          id: 'collection-1',
+          name: 'Frontend',
+          description: 'Web',
+          updatedAt: '2026-08-13',
+          repoCount: 1,
+          missingRepoIds: ['repo-1'],
+          alreadyMemberCount: 0,
+          missingCount: 1,
+          fallbackRank: 0,
+        },
+      ],
+    });
 
     repoIds.push('repo-2');
     targets[0] = { id: 'collection-2', name: 'Changed', updatedAt: '2026-08-14' };
@@ -215,6 +256,7 @@ describe('Collection Dial reducer', () => {
     expect(pickup.targets).toEqual([
       { id: 'collection-1', name: 'Frontend', updatedAt: '2026-08-13' },
     ]);
+    expect(pickup.catalog[0]?.missingRepoIds).toEqual(['repo-1']);
   });
 
   it('selects without submitting, clamps non-looping steps, and retains context on failure', () => {
@@ -249,6 +291,50 @@ describe('Collection Dial reducer', () => {
       message: 'Network unavailable',
     });
     expect(state.phase === 'active' && state.pickup).toEqual(pickup);
+  });
+
+  it('promotes a frozen More target into the quick window without changing the catalog', () => {
+    const pickup = createCollectionDialPickup({
+      repoIds: ['repo-1'],
+      repoLabel: 'owner/repo',
+      targets: Array.from({ length: 7 }, (_, index) => ({
+        id: `quick-${index}`,
+        name: `Quick ${index}`,
+        updatedAt: '2026-08-13',
+      })),
+      catalog: [
+        {
+          id: 'more-target',
+          name: 'More target',
+          description: null,
+          updatedAt: '2026-08-12',
+          repoCount: 0,
+          missingRepoIds: ['repo-1'],
+          alreadyMemberCount: 0,
+          missingCount: 1,
+          fallbackRank: 7,
+        },
+      ],
+    });
+    const state = collectionDialReducer(
+      collectionDialReducer({ phase: 'idle' }, { type: 'pickup', pickup }),
+      {
+        type: 'promote',
+        target: pickup.catalog[0] as NonNullable<(typeof pickup.catalog)[number]>,
+      },
+    );
+
+    expect(state.phase === 'active' && state.pickup.targets.map((target) => target.id)).toEqual([
+      'more-target',
+      'quick-0',
+      'quick-1',
+      'quick-2',
+      'quick-3',
+      'quick-4',
+      'quick-5',
+    ]);
+    expect(state.phase === 'active' && state.activeIndex).toBe(0);
+    expect(state.phase === 'active' && state.pickup.catalog).toEqual(pickup.catalog);
   });
 
   it('keeps success terminal until the dial is dismissed', () => {

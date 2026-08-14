@@ -14,6 +14,10 @@ const operation = {
   clientRequestId: '11111111-1111-4111-8111-111111111111',
   undoOfOperationId: null,
   undoExpiresAt: null,
+  undoEligibleCount: 0,
+  undoSkippedCount: 0,
+  undoConflictCount: 0,
+  undoExpired: false,
   sourceRepoIds: ['repo-1'],
   status: 'pending',
   completedAt: null,
@@ -64,6 +68,27 @@ describe('invokeBulkOperation', () => {
     await expect(
       invokeBulkOperation(client, { action, operationId: 'operation-1' }),
     ).resolves.toEqual(operation);
+  });
+
+  it('creates one operation-scoped undo with a stable client request identity', async () => {
+    const undoOperation = {
+      ...operation,
+      interaction: 'collection_dial_undo',
+      undoOfOperationId: 'operation-1',
+    };
+    const undoSummary = { eligibleCount: 1, skippedCount: 2, conflictCount: 1, expired: false };
+    const { client, invoke } = clientReturning({ operation: undoOperation, undoSummary });
+    const input = {
+      action: 'undo' as const,
+      operationId: 'operation-1',
+      clientRequestId: '22222222-2222-4222-8222-222222222222',
+    };
+
+    await expect(invokeBulkOperation(client, input)).resolves.toEqual({
+      operation: undoOperation,
+      undoSummary,
+    });
+    expect(invoke).toHaveBeenCalledWith('bulk-organize', { body: input });
   });
 
   it('rejects malformed outcomes at the trust boundary', async () => {

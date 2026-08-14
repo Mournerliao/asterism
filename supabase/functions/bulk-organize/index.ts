@@ -1,6 +1,7 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import type { Database, Json } from '../../../packages/db/src/database.types.ts';
 import {
+  BulkExecutionError,
   type BulkExecutionResult,
   type BulkExecutionStore,
   executeBulkOperation,
@@ -8,6 +9,7 @@ import {
 import {
   type BulkOperation,
   type BulkOperationItem,
+  type BulkUndoOutcome,
   type CreateBulkOperationInput,
   createBulkOrganizeHandler,
 } from './handler.ts';
@@ -43,7 +45,7 @@ async function getOperation(
     admin
       .from('bulk_operations')
       .select(
-        'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, source_repo_ids, status, completed_at, created_at, updated_at',
+        'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, undo_eligible_count, undo_skipped_count, undo_conflict_count, undo_expired, source_repo_ids, status, completed_at, created_at, updated_at',
       )
       .eq('id', operationId)
       .eq('user_id', userId)
@@ -72,6 +74,10 @@ async function getOperation(
     undoOfOperationId:
       typeof row.undo_of_operation_id === 'string' ? row.undo_of_operation_id : null,
     undoExpiresAt: typeof row.undo_expires_at === 'string' ? row.undo_expires_at : null,
+    undoEligibleCount: Number(row.undo_eligible_count),
+    undoSkippedCount: Number(row.undo_skipped_count),
+    undoConflictCount: Number(row.undo_conflict_count),
+    undoExpired: row.undo_expired === true,
     sourceRepoIds: (row.source_repo_ids as string[]) ?? [],
     status: row.status as BulkOperation['status'],
     completedAt: typeof row.completed_at === 'string' ? row.completed_at : null,
@@ -148,7 +154,17 @@ function createExecutionStore(admin: AdminClient): BulkExecutionStore {
         p_action: item.action,
         p_operation_item_id: item.id,
       });
-      if (error || !data || typeof data !== 'object' || Array.isArray(data)) {
+      if (error) {
+        if (error.message.includes('undo_conflict')) {
+          throw new BulkExecutionError(
+            'terminal',
+            'undo_conflict',
+            'The collection changed after this operation and was not removed.',
+          );
+        }
+        throw new Error('relationship_write_failed');
+      }
+      if (!data || typeof data !== 'object' || Array.isArray(data)) {
         throw new Error('relationship_write_failed');
       }
       const result = data as Record<string, unknown>;
@@ -252,6 +268,44 @@ Deno.serve(async (request: Request) => {
       });
       if (error) throw new Error('bulk_operation_complete_failed');
       return getOperation(admin, userId, operationId);
+    },
+    undoOperation: async (userId, operationId, clientRequestId) => {
+      const { data, error } = await admin.rpc('create_collection_dial_undo', {
+        p_user_id: userId,
+        p_operation_id: operationId,
+        p_client_request_id: clientRequestId,
+      });
+      if (error) {
+        const message = error.message;
+        if (message.includes('invalid_undo_request')) throw new Error('invalid_undo_request');
+        if (message.includes('client_request_conflict')) throw new Error('client_request_conflict');
+        throw new Error('bulk_operation_create_failed');
+      }
+      if (!data) return null;
+      if (typeof data !== 'object' || Array.isArray(data)) {
+        throw new Error('bulk_operation_create_failed');
+      }
+      const summary = data as Record<string, unknown>;
+      if (
+        typeof summary.operationId !== 'string' ||
+        typeof summary.eligibleCount !== 'number' ||
+        typeof summary.skippedCount !== 'number' ||
+        typeof summary.conflictCount !== 'number' ||
+        typeof summary.expired !== 'boolean'
+      ) {
+        throw new Error('bulk_operation_create_failed');
+      }
+      const operation = await getOperation(admin, userId, summary.operationId);
+      if (!operation) throw new Error('bulk_operation_create_failed');
+      return {
+        operation,
+        undoSummary: {
+          eligibleCount: summary.eligibleCount,
+          skippedCount: summary.skippedCount,
+          conflictCount: summary.conflictCount,
+          expired: summary.expired,
+        },
+      } satisfies BulkUndoOutcome;
     },
   });
 

@@ -1,6 +1,7 @@
 import {
   type CollectionDialRepositoryEmbedding,
   type CollectionDialState,
+  type CollectionDialTarget,
   collectionDialReducer,
   createCollectionDialPickup,
   createCollectionDialSnapshot,
@@ -25,10 +26,7 @@ import {
 } from 'react';
 import { useSession } from '../auth/use-session';
 import { bulkOperationKeys, collectionKeys, collectionRepoKeys } from '../data/keys';
-import {
-  type CollectionDialUnavailableReason,
-  getCollectionDialUnavailableReason,
-} from '../lib/collection-dial-availability';
+import type { CollectionDialUnavailableReason } from '../lib/collection-dial-availability';
 import {
   runCollectionDialOperation,
   summarizeCollectionDialCounts,
@@ -110,6 +108,7 @@ export function useCollectionDial({
   stateRef.current = state;
   const [dragPoint, setDragPoint] = useState<{ x: number; y: number } | null>(null);
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
+  const [overlay, setOverlay] = useState<'more' | 'new' | null>(null);
   const focusOnOpenRef = useRef(false);
   const sourceFocusRef = useRef<HTMLButtonElement | null>(null);
   const pointerSessionRef = useRef<PointerSession | null>(null);
@@ -143,6 +142,7 @@ export function useCollectionDial({
     dispatch({ type: 'cancel' });
     setDragPoint(null);
     setDropTargetId(null);
+    setOverlay(null);
     operationRef.current = undefined;
     clientRequestIdRef.current = undefined;
     restoreFocus(repoId);
@@ -187,10 +187,6 @@ export function useCollectionDial({
         const target = entryById.get(targetId);
         return target ? [target] : [];
       });
-      if (targets.length === 0) {
-        onUnavailable(getCollectionDialUnavailableReason(collections.length));
-        return false;
-      }
       sourceFocusRef.current = source;
       focusOnOpenRef.current = focusOnOpen;
       operationRef.current = undefined;
@@ -203,6 +199,7 @@ export function useCollectionDial({
           repoIds,
           repoLabel: selectionMode ? scopeLabel(repoIds.length) : record.repo.fullName,
           targets,
+          catalog: snapshot.entries,
         }),
       });
       return true;
@@ -295,12 +292,14 @@ export function useCollectionDial({
   );
 
   const confirm = useCallback(
-    async (explicitTargetId?: string) => {
+    async (explicitTargetId?: string, suppliedTarget?: CollectionDialTarget) => {
       const current = stateRef.current;
       if (current.phase !== 'active' || current.status === 'submitting') return;
-      const target = explicitTargetId
-        ? current.pickup.targets.find((candidate) => candidate.id === explicitTargetId)
-        : current.pickup.targets[current.activeIndex];
+      const target =
+        suppliedTarget ??
+        (explicitTargetId
+          ? current.pickup.targets.find((candidate) => candidate.id === explicitTargetId)
+          : current.pickup.targets[current.activeIndex]);
       const repoIds = current.pickup.repoIds;
       const scopeId = current.pickup.scopeId;
       if (!target || repoIds.length === 0) return;
@@ -429,6 +428,23 @@ export function useCollectionDial({
     onGripPickup,
     onGripPointerDown,
     select,
+    overlay,
+    openMore: () => setOverlay('more'),
+    openNew: () => setOverlay('new'),
+    closeOverlay: () => setOverlay(null),
+    promote: (target: CollectionDialTarget) => {
+      operationRef.current = undefined;
+      clientRequestIdRef.current = crypto.randomUUID();
+      dispatch({ type: 'promote', target });
+      setOverlay(null);
+    },
+    createAndAdd: (target: CollectionDialTarget) => {
+      operationRef.current = undefined;
+      clientRequestIdRef.current = crypto.randomUUID();
+      dispatch({ type: 'promote', target });
+      setOverlay(null);
+      void confirm(target.id, target);
+    },
     step: (direction: -1 | 1) => dispatch({ type: 'step', direction }),
     confirm: () => void confirm(),
     retry: () => void confirm(),

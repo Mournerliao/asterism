@@ -1,7 +1,7 @@
 create extension if not exists pgtap with schema extensions;
 create extension if not exists dblink with schema extensions;
 
-select extensions.plan(20);
+select extensions.plan(26);
 
 insert into auth.users (id, email)
 values
@@ -258,6 +258,125 @@ select extensions.ok(
 );
 reset role;
 reset request.jwt.claim.sub;
+
+create temporary table dial_item as
+select * from public.claim_bulk_operation_items(
+  '10000000-0000-4000-8000-000000000001',
+  (select id from dial_scope_operation),
+  array['pending']
+);
+
+create temporary table dial_mutation as
+select public.apply_collection_relation_mutation(
+  '10000000-0000-4000-8000-000000000001',
+  target_id,
+  repo_id,
+  action,
+  id
+) as receipt
+from dial_item;
+
+select extensions.ok(
+  (select undo_expires_at > statement_timestamp()
+   from public.bulk_operations where id = (select id from dial_scope_operation)),
+  'the effective mutation receipt starts Undo before result recording'
+);
+
+select public.record_bulk_operation_item_result(
+  '10000000-0000-4000-8000-000000000001',
+  (select id from dial_item),
+  'succeeded',
+  null,
+  null,
+  (select (receipt->>'effectiveChanged')::boolean from dial_mutation),
+  (select (receipt->>'effectiveMutationId')::uuid from dial_mutation),
+  (select (receipt->>'relationVersion')::bigint from dial_mutation)
+);
+
+create temporary table first_undo as
+select public.create_collection_dial_undo(
+  '10000000-0000-4000-8000-000000000001',
+  (select id from dial_scope_operation),
+  '40000000-0000-4000-8000-000000000011'
+) as outcome;
+
+select extensions.is(
+  (select (outcome->>'eligibleCount')::integer from first_undo),
+  1,
+  'Undo includes only the effective relation whose head still matches'
+);
+select extensions.is(
+  (select (outcome->>'skippedCount')::integer from first_undo),
+  1,
+  'Undo reports the already-present repository from the frozen scope as skipped'
+);
+select extensions.is(
+  public.create_collection_dial_undo(
+    '10000000-0000-4000-8000-000000000001',
+    (select id from dial_scope_operation),
+    '40000000-0000-4000-8000-000000000011'
+  ),
+  (select outcome from first_undo),
+  'response-loss replay restores the same Undo outcome'
+);
+select extensions.is(
+  (select count(*) from public.bulk_operations
+   where undo_of_operation_id = (select id from dial_scope_operation)),
+  1::bigint,
+  'each original Collection Dial operation has at most one Undo operation'
+);
+
+create temporary table historical_dial_operation as
+select public.create_bulk_operation(
+  '10000000-0000-4000-8000-000000000001',
+  'manual',
+  'collection_dial',
+  '40000000-0000-4000-8000-000000000012',
+  array['20000000-0000-4000-8000-000000000001'::uuid],
+  array['20000000-0000-4000-8000-000000000001'::uuid],
+  '[{"relationType":"collection","targetId":"30000000-0000-4000-8000-000000000001","action":"add"}]'::jsonb
+) as id;
+
+create temporary table historical_dial_item as
+select * from public.claim_bulk_operation_items(
+  '10000000-0000-4000-8000-000000000001',
+  (select id from historical_dial_operation),
+  array['pending']
+);
+
+create temporary table historical_dial_mutation as
+select public.apply_collection_relation_mutation(
+  '10000000-0000-4000-8000-000000000001',
+  target_id,
+  repo_id,
+  action,
+  id
+) as receipt
+from historical_dial_item;
+
+select public.record_bulk_operation_item_result(
+  '10000000-0000-4000-8000-000000000001',
+  (select id from historical_dial_item),
+  'succeeded',
+  null,
+  null,
+  (select (receipt->>'effectiveChanged')::boolean from historical_dial_mutation),
+  (select (receipt->>'effectiveMutationId')::uuid from historical_dial_mutation),
+  (select (receipt->>'relationVersion')::bigint from historical_dial_mutation)
+);
+
+update public.bulk_operations
+set undo_expires_at = null
+where id = (select id from historical_dial_operation);
+
+select extensions.ok(
+  (public.create_collection_dial_undo(
+    '10000000-0000-4000-8000-000000000001',
+    (select id from historical_dial_operation),
+    '40000000-0000-4000-8000-000000000013'
+  )->>'expired')::boolean,
+  'a historical operation without a server expiry is fail-closed'
+);
 
 select * from extensions.finish();
 

@@ -1,6 +1,8 @@
 import type { BulkItemStatus, BulkOperation, BulkOperationRequest } from '@asterism/db';
 
-type InvokeBulkOperation = (request: BulkOperationRequest) => Promise<BulkOperation>;
+type InvokeBulkOperation = (
+  request: Exclude<BulkOperationRequest, { action: 'undo' }>,
+) => Promise<BulkOperation>;
 
 export async function runBulkOperationUntilSettled(
   operationId: string,

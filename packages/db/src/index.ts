@@ -13,6 +13,8 @@ export type {
   BulkOperationStatus,
   BulkRelationAction,
   BulkRelationType,
+  BulkUndoOutcome,
+  BulkUndoSummary,
 } from './bulk-operations';
 export {
   hasUnfinishedMultiCollectionDialOperation,

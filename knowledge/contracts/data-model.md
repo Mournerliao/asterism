@@ -102,11 +102,14 @@
 - `client_request_id` — 客户端请求幂等键；`(user_id, client_request_id)` 唯一
 - `undo_of_operation_id` — Undo operation 指向原 Collection Dial operation（可选；每个原 operation 最多一个）
 - `undo_expires_at` — 原 operation 的短期 Undo 服务端截止时间（可选）
+- `undo_eligible_count` / `undo_skipped_count` / `undo_conflict_count` / `undo_expired` — Undo operation 在首次创建时固化的准确服务端结果基线；响应丢失或刷新后不得按变化后的 head 重新解释
 - `source_repo_ids` — 确认时固化的 repository ID 范围
 - `status` — `pending` / `running` / `needs_attention` / `completed`
 - `completed_at` — 完成时间（可选）
 
 用户确认后才创建操作。范围不随筛选变化或后续同步改变；状态由逐关系项目汇总。Collection Dial 的 `source_repo_ids` 始终保存拿起时冻结的完整范围，RPC 另接收该目标当时真正缺失的 repository ID 子集，并只为这个子集创建 items；子集必须非空、去重且完全包含于完整范围，幂等冲突同时绑定完整范围与 item 子集。这样已存在关系不会产生 no-op receipt，失败恢复仍能准确播报完整范围。AI 来源的 operation 与草稿幂等字段已随 ADR 0032 删除。
+
+Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写入 `undo_expires_at = statement_timestamp() + 30 seconds`，后续状态记录、恢复或重试不得延长；缺失 expiry 必须 fail closed。Undo RPC 在锁定原 operation 后最多创建一个 `collection_dial_undo` operation，只为当前 relation head 仍匹配原 item receipt 的有效 add 创建 remove items；过期、历史 no-op、目标 / 仓库失效及 head drift 固化为 skip / conflict 计数。执行 remove 前再次在同一事务复核 head；响应丢失后若同一 Undo item 已有 mutation receipt，则幂等恢复该 receipt，而不是误判为后续冲突。
 
 ### `bulk_operation_items` — 批量关系变更
 

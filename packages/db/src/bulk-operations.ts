@@ -45,12 +45,28 @@ export interface BulkOperation {
   clientRequestId: string;
   undoOfOperationId: string | null;
   undoExpiresAt: string | null;
+  undoEligibleCount: number;
+  undoSkippedCount: number;
+  undoConflictCount: number;
+  undoExpired: boolean;
   sourceRepoIds: string[];
   status: BulkOperationStatus;
   completedAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: BulkOperationItem[];
+}
+
+export interface BulkUndoSummary {
+  eligibleCount: number;
+  skippedCount: number;
+  conflictCount: number;
+  expired: boolean;
+}
+
+export interface BulkUndoOutcome {
+  operation: BulkOperation;
+  undoSummary: BulkUndoSummary;
 }
 
 export type BulkOperationRequest =
@@ -71,7 +87,8 @@ export type BulkOperationRequest =
       itemRepoIds: string[];
       changes: BulkChange[];
     }
-  | { action: 'get' | 'execute' | 'retry' | 'complete'; operationId: string };
+  | { action: 'get' | 'execute' | 'retry' | 'complete'; operationId: string }
+  | { action: 'undo'; operationId: string; clientRequestId: string };
 
 const operationStatuses = new Set<BulkOperationStatus>([
   'pending',
@@ -160,6 +177,10 @@ function isBulkOperation(value: unknown): value is BulkOperation {
       'clientRequestId',
       'undoOfOperationId',
       'undoExpiresAt',
+      'undoEligibleCount',
+      'undoSkippedCount',
+      'undoConflictCount',
+      'undoExpired',
       'sourceRepoIds',
       'status',
       'completedAt',
@@ -173,6 +194,16 @@ function isBulkOperation(value: unknown): value is BulkOperation {
     isUuid(operation.clientRequestId) &&
     isStringOrNull(operation.undoOfOperationId) &&
     isStringOrNull(operation.undoExpiresAt) &&
+    typeof operation.undoEligibleCount === 'number' &&
+    Number.isInteger(operation.undoEligibleCount) &&
+    operation.undoEligibleCount >= 0 &&
+    typeof operation.undoSkippedCount === 'number' &&
+    Number.isInteger(operation.undoSkippedCount) &&
+    operation.undoSkippedCount >= 0 &&
+    typeof operation.undoConflictCount === 'number' &&
+    Number.isInteger(operation.undoConflictCount) &&
+    operation.undoConflictCount >= 0 &&
+    typeof operation.undoExpired === 'boolean' &&
     Array.isArray(operation.sourceRepoIds) &&
     operation.sourceRepoIds.every((id) => typeof id === 'string') &&
     operationStatuses.has(operation.status as BulkOperationStatus) &&
@@ -217,16 +248,52 @@ function mapItem(row: BulkOperationItemRow): BulkOperationItem {
   };
 }
 
+export function invokeBulkOperation(
+  client: SupabaseClient,
+  request: Extract<BulkOperationRequest, { action: 'undo' }>,
+): Promise<BulkUndoOutcome>;
+export function invokeBulkOperation(
+  client: SupabaseClient,
+  request: Exclude<BulkOperationRequest, { action: 'undo' }>,
+): Promise<BulkOperation>;
 export async function invokeBulkOperation(
   client: SupabaseClient,
   request: BulkOperationRequest,
-): Promise<BulkOperation> {
+): Promise<BulkOperation | BulkUndoOutcome> {
   const { data, error } = await client.functions.invoke<unknown>('bulk-organize', {
     body: request,
   });
   if (error) throw error;
   const response = data && typeof data === 'object' ? (data as Record<string, unknown>) : null;
   const operation = response?.operation;
+  if (request.action === 'undo') {
+    const summary = response?.undoSummary;
+    if (
+      !response ||
+      !hasExactKeys(response, ['operation', 'undoSummary']) ||
+      !isBulkOperation(operation) ||
+      !summary ||
+      typeof summary !== 'object' ||
+      !hasExactKeys(summary as Record<string, unknown>, [
+        'eligibleCount',
+        'skippedCount',
+        'conflictCount',
+        'expired',
+      ])
+    ) {
+      throw new Error('bulk-organize returned an invalid response');
+    }
+    const undoSummary = summary as Record<string, unknown>;
+    if (
+      !Number.isInteger(undoSummary.eligibleCount) ||
+      !Number.isInteger(undoSummary.skippedCount) ||
+      !Number.isInteger(undoSummary.conflictCount) ||
+      typeof undoSummary.expired !== 'boolean'
+    ) {
+      throw new Error('bulk-organize returned an invalid response');
+    }
+    return { operation, undoSummary: undoSummary as unknown as BulkUndoSummary };
+  }
   if (!response || !hasExactKeys(response, ['operation']) || !isBulkOperation(operation)) {
     throw new Error('bulk-organize returned an invalid response');
   }
@@ -240,7 +307,7 @@ export async function listBulkOperations(
   const { data: operations, error: operationsError } = await client
     .from('bulk_operations')
     .select(
-      'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, source_repo_ids, status, completed_at, created_at, updated_at',
+      'id, source, interaction, client_request_id, undo_of_operation_id, undo_expires_at, undo_eligible_count, undo_skipped_count, undo_conflict_count, undo_expired, source_repo_ids, status, completed_at, created_at, updated_at',
     )
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
@@ -273,6 +340,10 @@ export async function listBulkOperations(
     clientRequestId: row.client_request_id,
     undoOfOperationId: row.undo_of_operation_id,
     undoExpiresAt: row.undo_expires_at,
+    undoEligibleCount: row.undo_eligible_count,
+    undoSkippedCount: row.undo_skipped_count,
+    undoConflictCount: row.undo_conflict_count,
+    undoExpired: row.undo_expired,
     sourceRepoIds: row.source_repo_ids,
     status: row.status,
     completedAt: row.completed_at,

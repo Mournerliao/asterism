@@ -38,6 +38,9 @@ export interface CollectionDialCopy {
   submittingStatus: string;
   successStatus: string;
   keyboardHint: string;
+  noTargetStatus?: string;
+  more?: string;
+  createNew?: string;
   membership?: (missingCount: number, alreadyMemberCount: number) => string;
 }
 
@@ -140,6 +143,8 @@ export function CollectionDial({
   onConfirm,
   onCancel,
   onRetry,
+  onMore,
+  onCreateNew,
 }: {
   repoLabel: string;
   targets: readonly CollectionDialViewTarget[];
@@ -155,6 +160,8 @@ export function CollectionDial({
   onConfirm: () => void;
   onCancel: () => void;
   onRetry: () => void;
+  onMore?: () => void;
+  onCreateNew?: () => void;
 }) {
   const shellRef = useRef<HTMLElement>(null);
   const activeButtonRef = useRef<HTMLButtonElement>(null);
@@ -181,8 +188,6 @@ export function CollectionDial({
     else shellRef.current?.focus();
   }, [activeIndex, focusOnOpen]);
 
-  if (!activeTarget) return null;
-
   const handleKeyDown = (event: KeyboardEvent<HTMLElement>) => {
     const onAction = (event.target as HTMLElement).closest('[data-collection-dial-action]');
     if (onAction && (event.key === 'Enter' || event.key === ' ')) return;
@@ -200,16 +205,19 @@ export function CollectionDial({
       onCancel();
     }
   };
-  const membershipText = copy.membership
-    ? copy.membership(activeTarget.missingCount ?? 1, activeTarget.alreadyMemberCount ?? 0)
-    : '';
+  const membershipText =
+    activeTarget && copy.membership
+      ? copy.membership(activeTarget.missingCount ?? 1, activeTarget.alreadyMemberCount ?? 0)
+      : '';
   const statusText =
     message ??
     (status === 'submitting'
       ? `${copy.submittingStatus}${membershipText ? ` ${membershipText}` : ''}`
       : status === 'success'
         ? copy.successStatus
-        : `${copy.readyStatus}${membershipText ? ` ${membershipText}` : ''}`);
+        : activeTarget
+          ? `${copy.readyStatus}${membershipText ? ` ${membershipText}` : ''}`
+          : (copy.noTargetStatus ?? copy.readyStatus));
 
   return (
     <section
@@ -236,14 +244,16 @@ export function CollectionDial({
       <div className="absolute inset-x-0 bottom-0 h-[22rem]">
         <div className="absolute top-4 left-1/2 z-20 flex w-[min(38rem,calc(100%-2rem))] -translate-x-1/2 flex-col items-center gap-2 text-center">
           <p className="max-w-full truncate text-sm font-semibold">
-            {copy.placement(repoLabel, activeTarget.name)}
+            {activeTarget ? copy.placement(repoLabel, activeTarget.name) : repoLabel}
           </p>
-          <div className="flex items-center gap-2 text-micro text-muted-foreground">
-            <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono tabular-nums">
-              {copy.position(activeIndex + 1, targets.length)}
-            </span>
-            <span>{copy.keyboardHint}</span>
-          </div>
+          {activeTarget ? (
+            <div className="flex items-center gap-2 text-micro text-muted-foreground">
+              <span className="rounded-sm bg-muted px-1.5 py-0.5 font-mono tabular-nums">
+                {copy.position(activeIndex + 1, targets.length)}
+              </span>
+              <span>{copy.keyboardHint}</span>
+            </div>
+          ) : null}
           <p
             role={
               status === 'retryable_failure' || status === 'terminal_failure' ? 'alert' : 'status'
@@ -333,7 +343,7 @@ export function CollectionDial({
               <RotateCcwIcon className="size-4" aria-hidden="true" />
               {copy.retry}
             </Button>
-          ) : status === 'ready' ? (
+          ) : status === 'ready' && activeTarget ? (
             <Button type="button" data-collection-dial-action onClick={onConfirm}>
               {copy.confirm(activeTarget.name)}
             </Button>
@@ -344,6 +354,28 @@ export function CollectionDial({
                 aria-hidden="true"
               />
               {copy.submittingStatus}
+            </Button>
+          ) : null}
+          {status === 'ready' && onMore && copy.more ? (
+            <Button
+              type="button"
+              variant="outline"
+              data-collection-dial-action
+              data-collection-dial-more
+              onClick={onMore}
+            >
+              {copy.more}
+            </Button>
+          ) : null}
+          {status === 'ready' && onCreateNew && copy.createNew ? (
+            <Button
+              type="button"
+              variant={activeTarget ? 'outline' : 'default'}
+              data-collection-dial-action
+              data-collection-dial-new
+              onClick={onCreateNew}
+            >
+              {copy.createNew}
             </Button>
           ) : null}
           <Button

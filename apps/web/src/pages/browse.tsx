@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useSearchParams } from 'react-router-dom';
 import { BrowseRepoList } from '../components/browse-repo-list';
 import { BulkExportDialog } from '../components/bulk-export';
 import { BulkOperationBanner, BulkOrganizeDialog } from '../components/bulk-organization';
@@ -23,7 +22,6 @@ import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
 import { BrowseToolbarSkeleton } from '../components/page-loading-states';
-import { CollectionDialPrototype } from '../components/prototypes/collection-dial-prototype';
 import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
@@ -67,10 +65,6 @@ function InitialLoadingState({ view }: { view: RepoViewMode }) {
 }
 
 export function BrowsePage() {
-  const [params] = useSearchParams();
-  if (import.meta.env.DEV && params.get('prototype') === 'collection-dial') {
-    return <CollectionDialPrototype />;
-  }
   return <BrowseDataPage />;
 }
 

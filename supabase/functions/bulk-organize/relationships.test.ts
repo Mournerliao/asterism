@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
+import { BulkExecutionError } from './executor';
 import type { BulkOperationItem } from './handler';
-import { applyRelationship, type RelationshipStore } from './relationships';
+import {
+  applyRelationship,
+  type RelationshipStore,
+  throwCollectionMutationError,
+} from './relationships';
 
 function item(overrides: Partial<BulkOperationItem> = {}): BulkOperationItem {
   return {
@@ -100,5 +105,30 @@ describe('idempotent tag and collection relationship writes', () => {
       kind: 'terminal',
     });
     expect(memory.addRelationship).not.toHaveBeenCalled();
+  });
+});
+
+describe('collection mutation error mapping', () => {
+  it('keeps Undo head drift as a terminal conflict', () => {
+    expect(() => throwCollectionMutationError(new Error('undo_conflict'))).toThrowError(
+      BulkExecutionError,
+    );
+    try {
+      throwCollectionMutationError({ message: 'P0001 undo_conflict' });
+    } catch (error) {
+      expect(error).toMatchObject({ kind: 'terminal', code: 'undo_conflict' });
+    }
+  });
+
+  it('preserves the durable write error so Retry Undo can show the real cause', () => {
+    try {
+      throwCollectionMutationError({ message: 'operation_item_not_owned' });
+    } catch (error) {
+      expect(error).toMatchObject({
+        kind: 'retryable',
+        code: 'relationship_write_failed',
+        message: 'operation_item_not_owned',
+      });
+    }
   });
 });

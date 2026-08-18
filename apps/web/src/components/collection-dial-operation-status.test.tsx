@@ -187,6 +187,58 @@ describe('durable Collection Dial operation status', () => {
     expect(onResume).toHaveBeenCalledWith(expect.objectContaining({ id: 'undo-1' }));
   });
 
+  it('surfaces the durable Undo item error so Retry Undo can be diagnosed', () => {
+    const host = document.createElement('div');
+    document.body.append(host);
+    root = createRoot(host);
+    const original = operation({ status: 'completed', completedAt: new Date().toISOString() });
+    const [originalItem] = original.items;
+    if (!originalItem) throw new Error('fixture item is required');
+    const undo = operation({
+      id: 'undo-1',
+      interaction: 'collection_dial_undo',
+      undoOfOperationId: original.id,
+      undoEligibleCount: 1,
+      status: 'needs_attention',
+      items: [
+        {
+          ...originalItem,
+          id: 'undo-item-1',
+          action: 'remove',
+          status: 'retryable_failed',
+          lastErrorCode: 'temporary_failure',
+          lastErrorMessage: 'The relationship could not be updated. Try again.',
+          effectiveChanged: false,
+          effectiveMutationId: null,
+          effectiveRelationVersion: null,
+        },
+      ],
+    });
+    act(() => {
+      root?.render(
+        <CollectionDialOperationStatus
+          operations={[undo, original]}
+          collections={[]}
+          queryError={false}
+          onResume={vi.fn()}
+          onRetry={vi.fn()}
+          onUndo={vi.fn()}
+          onRefresh={vi.fn()}
+        />,
+      );
+    });
+
+    expect(document.body.textContent).toContain('Undo is still in progress.');
+    expect(document.body.textContent).toContain(
+      'The relationship could not be updated. Try again.',
+    );
+    expect(
+      [...document.querySelectorAll('button')].some((button) =>
+        button.textContent?.includes('Retry Undo'),
+      ),
+    ).toBe(true);
+  });
+
   it('reports terminal Undo conflicts without offering a no-op Retry', () => {
     const host = document.createElement('div');
     document.body.append(host);

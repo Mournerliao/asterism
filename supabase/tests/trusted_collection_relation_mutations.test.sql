@@ -1,7 +1,7 @@
 create extension if not exists pgtap with schema extensions;
 create extension if not exists dblink with schema extensions;
 
-select extensions.plan(26);
+select extensions.plan(29);
 
 insert into auth.users (id, email)
 values
@@ -324,6 +324,42 @@ select extensions.is(
    where undo_of_operation_id = (select id from dial_scope_operation)),
   1::bigint,
   'each original Collection Dial operation has at most one Undo operation'
+);
+
+create temporary table first_undo_items as
+select * from public.claim_bulk_operation_items(
+  '10000000-0000-4000-8000-000000000001',
+  (select (outcome->>'operationId')::uuid from first_undo),
+  array['pending']
+);
+
+select extensions.is(
+  (select count(*) from first_undo_items),
+  1::bigint,
+  'Undo creates one running remove item for the effective add'
+);
+
+create temporary table first_undo_mutation as
+select public.apply_collection_relation_mutation(
+  '10000000-0000-4000-8000-000000000001',
+  target_id,
+  repo_id,
+  action,
+  id
+) as receipt
+from first_undo_items;
+
+select extensions.ok(
+  (select (receipt->>'effectiveChanged')::boolean from first_undo_mutation),
+  'Undo remove applies against the original receipt and matching head'
+);
+select extensions.is(
+  (select present from public.collection_relation_heads
+   where user_id = '10000000-0000-4000-8000-000000000001'
+     and collection_id = '30000000-0000-4000-8000-000000000001'
+     and repo_id = '20000000-0000-4000-8000-000000000002'),
+  false,
+  'Undo remove clears the matching collection membership'
 );
 
 create temporary table historical_dial_operation as

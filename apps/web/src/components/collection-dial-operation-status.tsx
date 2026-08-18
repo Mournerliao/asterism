@@ -104,7 +104,12 @@ export function CollectionDialOperationStatus({
           operation.items.filter((item) => item.status === 'succeeded' && !item.effectiveChanged)
             .length;
         const expired = !operation.undoExpiresAt || Date.parse(operation.undoExpiresAt) <= now;
-        const busy = busyOperationId === (undo?.id ?? operation.id);
+        const busy =
+          Boolean(busyOperationId) &&
+          (busyOperationId === operation.id || busyOperationId === undo?.id);
+        const retryableUndoItem = undo?.items.find(
+          (item) => item.status === 'retryable_failed' && item.lastErrorCode,
+        );
         let status = t('collectionDial.ledgerPending');
         if (undo) {
           status = undo.undoExpired
@@ -118,7 +123,9 @@ export function CollectionDialOperationStatus({
                     undo.undoConflictCount +
                     undo.items.filter((item) => item.status === 'terminal_failed').length,
                 })
-              : t('collectionDial.undoPending');
+              : retryableUndoItem
+                ? `${t('collectionDial.undoPending')} ${t('collectionDial.undoRetryableDetail')}`
+                : t('collectionDial.undoPending');
         } else if (operation.status === 'needs_attention') {
           status = t('collectionDial.ledgerNeedsAttention', { addedCount: effectiveCount });
         } else if (operation.status === 'completed' && effectiveCount === 0) {

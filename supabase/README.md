@@ -26,6 +26,7 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260812120000_trusted_collection_relation_mutations.sql` | 按 ADR 0034 建立受信集合关系 mutation seam：基线 relation head、单调 version / effective mutation receipt、bulk interaction / client request 幂等字段，并撤销普通客户端对 `collection_repos` 的直接写权限 |
 | `20260814120000_collection_dial_missing_item_scope.sql` | Collection Dial 多选只为冻结范围内真正缺失的 repository ID 创建 items；幂等冲突同时绑定完整范围与缺失子集 |
 | `20260814170000_collection_dial_undo.sql` | Collection Dial 30 秒 Undo：首次 effective add receipt 原子写入不可延长的 `undo_expires_at`，并新增仅 service-role 的 `create_collection_dial_undo` RPC |
+| `20260818150000_fix_collection_dial_undo_apply.sql` | 修正 `apply_collection_relation_mutation` 中 Undo 收据查找的 PL/pgSQL 变量 / SQL 别名碰撞，使 remove 能真正落到 matching membership |
 
 > 2026-08-05 之前的 AI / Organization migration 是已部署环境必须重放的历史；
 > 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛到当前 schema。
@@ -90,7 +91,7 @@ user_repo_embeddings` 的
    `last_operation_item_id is null` 的基线 head，canonical 行数保持不变。
 
 应用 `20260814170000_collection_dial_undo.sql` 并部署含 `undo` action 的 `bulk-organize` 后，
-Collection Dial 的 30 秒 Undo 才可在真实会话使用。真实连续桌面 / 移动旅程验收属于 GitHub #34。
+Collection Dial 的 30 秒 Undo 才可在真实会话使用。GitHub #34 已完成部分真实连续旅程验收（两次 Undo、List、多选冻结、390 连续 5 项），throwaway prototype 已退役；桌面连续 10、Grid 投放、More/New 真路径等仍待补测。
 
 ## GitHub OAuth 配置（后台手动一次）
 

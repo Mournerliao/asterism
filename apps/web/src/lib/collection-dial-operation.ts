@@ -15,6 +15,26 @@ export type CollectionDialOperationResult =
     }
   | { kind: 'terminal_failure'; operation: BulkOperation; message?: string };
 
+export function mergeBulkOperationIntoList(
+  current: readonly BulkOperation[] | undefined,
+  operation: BulkOperation,
+): BulkOperation[] {
+  return [operation, ...(current ?? []).filter((item) => item.id !== operation.id)];
+}
+
+export function mergeCollectionRepoLinks(
+  current: readonly { collectionId: string; repoId: string }[] | undefined,
+  targetId: string,
+  repoIds: readonly string[],
+): { collectionId: string; repoId: string }[] {
+  const links = current ?? [];
+  const seen = new Set(links.map((link) => `${link.collectionId}:${link.repoId}`));
+  const additions = repoIds.flatMap((repoId) =>
+    seen.has(`${targetId}:${repoId}`) ? [] : [{ collectionId: targetId, repoId }],
+  );
+  return additions.length === 0 ? [...links] : [...links, ...additions];
+}
+
 export function summarizeCollectionDialCounts(input: {
   alreadyMemberCount: number;
   missingCount: number;
@@ -50,6 +70,7 @@ export async function runCollectionDialOperation(input: {
   existingOperation?: BulkOperation;
   invoke: InvokeBulkOperation;
   converge: (repoIds: readonly string[], targetId: string) => Promise<boolean>;
+  onWriteCommitted?: (repoIds: readonly string[], targetId: string) => void;
 }): Promise<CollectionDialOperationResult> {
   let operation = input.existingOperation;
   try {
@@ -117,10 +138,9 @@ export async function runCollectionDialOperation(input: {
         message: unsettledItem.lastErrorMessage ?? undefined,
       };
     }
-    const converged = await input.converge(input.repoIds, input.targetId);
-    return converged
-      ? { kind: 'success', operation }
-      : { kind: 'retryable_failure', reason: 'convergence', operation };
+    input.onWriteCommitted?.(input.repoIds, input.targetId);
+    void input.converge(input.repoIds, input.targetId);
+    return { kind: 'success', operation };
   } catch (error) {
     return {
       kind: 'retryable_failure',

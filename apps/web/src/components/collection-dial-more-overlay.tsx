@@ -45,6 +45,9 @@ export function CollectionDialMoreOverlay({
   };
   const wasOpenRef = useRef(open);
   useEffect(() => {
+    if (open) setQuery('');
+  }, [open]);
+  useEffect(() => {
     if (wasOpenRef.current && !open) {
       queueMicrotask(() =>
         document.querySelector<HTMLButtonElement>('[data-collection-dial-more]')?.focus(),

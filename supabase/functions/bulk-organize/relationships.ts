@@ -23,6 +23,21 @@ export interface RelationshipMutationResult {
   effectiveRelationVersion: number | null;
 }
 
+export function throwCollectionMutationError(error: unknown): never {
+  const message =
+    error && typeof error === 'object' && 'message' in error && typeof error.message === 'string'
+      ? error.message
+      : 'relationship_write_failed';
+  if (message.includes('undo_conflict')) {
+    throw new BulkExecutionError(
+      'terminal',
+      'undo_conflict',
+      'The collection changed after this operation and was not removed.',
+    );
+  }
+  throw new BulkExecutionError('retryable', 'relationship_write_failed', message);
+}
+
 export async function applyRelationship(
   store: RelationshipStore,
   userId: string,

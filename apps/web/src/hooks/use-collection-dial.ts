@@ -28,6 +28,8 @@ import { useSession } from '../auth/use-session';
 import { bulkOperationKeys, collectionKeys, collectionRepoKeys } from '../data/keys';
 import type { CollectionDialUnavailableReason } from '../lib/collection-dial-availability';
 import {
+  mergeBulkOperationIntoList,
+  mergeCollectionRepoLinks,
   runCollectionDialOperation,
   summarizeCollectionDialCounts,
 } from '../lib/collection-dial-operation';
@@ -274,19 +276,36 @@ export function useCollectionDial({
     dispatch({ type: 'select', targetId });
   }, []);
 
+  const applyCommittedWrite = useCallback(
+    (repoIds: readonly string[], targetId: string) => {
+      if (!userId) return;
+      void queryClient.cancelQueries({ queryKey: collectionRepoKeys.list(userId) });
+      queryClient.setQueryData(
+        collectionRepoKeys.list(userId),
+        (current: CollectionRepoLink[] | undefined) =>
+          mergeCollectionRepoLinks(current, targetId, repoIds),
+      );
+      void queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) });
+    },
+    [queryClient, userId],
+  );
+
   const converge = useCallback(
     async (repoIds: readonly string[], targetId: string) => {
       if (!userId) return false;
-      await queryClient.invalidateQueries({ queryKey: collectionRepoKeys.list(userId) });
-      const links = await queryClient.fetchQuery({
-        queryKey: collectionRepoKeys.list(userId),
-        queryFn: () => listCollectionRepos(supabase, userId),
-      });
-      await queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) });
-      const members = new Set(
-        links.filter((link) => link.collectionId === targetId).map((link) => link.repoId),
+      const cached = queryClient.getQueryData<CollectionRepoLink[]>(
+        collectionRepoKeys.list(userId),
       );
-      return repoIds.every((repoId) => members.has(repoId));
+      const members = new Set(
+        (cached ?? []).filter((link) => link.collectionId === targetId).map((link) => link.repoId),
+      );
+      if (repoIds.every((repoId) => members.has(repoId))) return true;
+      const links = await listCollectionRepos(supabase, userId);
+      queryClient.setQueryData(collectionRepoKeys.list(userId), links);
+      void queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) });
+      return repoIds.every((repoId) =>
+        links.some((link) => link.collectionId === targetId && link.repoId === repoId),
+      );
     },
     [queryClient, userId],
   );
@@ -319,10 +338,20 @@ export function useCollectionDial({
         existingOperation: operationRef.current,
         invoke: (request) => invokeBulkOperation(supabase, request),
         converge,
+        onWriteCommitted: applyCommittedWrite,
       });
       if (!mountedRef.current) return;
       if (userId) {
-        await queryClient.invalidateQueries({ queryKey: bulkOperationKeys.list(userId) });
+        if (result.operation) {
+          const completed = result.operation;
+          await queryClient.cancelQueries({ queryKey: bulkOperationKeys.list(userId) });
+          queryClient.setQueryData(
+            bulkOperationKeys.list(userId),
+            (current: BulkOperation[] | undefined) =>
+              mergeBulkOperationIntoList(current, completed),
+          );
+        }
+        void queryClient.invalidateQueries({ queryKey: bulkOperationKeys.list(userId) });
       }
       if (pendingMultiScopeRef.current === scopeId) pendingMultiScopeRef.current = null;
       const latest = stateRef.current;
@@ -362,6 +391,7 @@ export function useCollectionDial({
       }
     },
     [
+      applyCommittedWrite,
       converge,
       convergenceMessage,
       failureCountsMessage,

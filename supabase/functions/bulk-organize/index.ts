@@ -1,7 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import type { Database, Json } from '../../../packages/db/src/database.types.ts';
 import {
-  BulkExecutionError,
   type BulkExecutionResult,
   type BulkExecutionStore,
   executeBulkOperation,
@@ -13,7 +12,11 @@ import {
   type CreateBulkOperationInput,
   createBulkOrganizeHandler,
 } from './handler.ts';
-import { applyRelationship, type RelationshipStore } from './relationships.ts';
+import {
+  applyRelationship,
+  type RelationshipStore,
+  throwCollectionMutationError,
+} from './relationships.ts';
 
 type AdminClient = ReturnType<typeof createClient<Database>>;
 
@@ -155,14 +158,7 @@ function createExecutionStore(admin: AdminClient): BulkExecutionStore {
         p_operation_item_id: item.id,
       });
       if (error) {
-        if (error.message.includes('undo_conflict')) {
-          throw new BulkExecutionError(
-            'terminal',
-            'undo_conflict',
-            'The collection changed after this operation and was not removed.',
-          );
-        }
-        throw new Error('relationship_write_failed');
+        throwCollectionMutationError(error);
       }
       if (!data || typeof data !== 'object' || Array.isArray(data)) {
         throw new Error('relationship_write_failed');

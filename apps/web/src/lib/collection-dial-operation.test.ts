@@ -1,6 +1,8 @@
 import type { BulkOperation, BulkOperationRequest } from '@asterism/db';
 import { describe, expect, it, vi } from 'vitest';
 import {
+  mergeBulkOperationIntoList,
+  mergeCollectionRepoLinks,
   runCollectionDialOperation,
   summarizeCollectionDialCounts,
 } from './collection-dial-operation';
@@ -88,8 +90,11 @@ describe('Collection Dial persistent operation', () => {
     expect(converge).toHaveBeenCalledWith(['repo-1'], 'collection-1');
   });
 
-  it('does not report success until the collection query contains the relation', async () => {
-    const succeeded = operation('succeeded', 'completed');
+  it('does not report success for an empty item list until the collection query contains the relation', async () => {
+    const succeeded = {
+      ...operation('succeeded', 'completed'),
+      items: [],
+    };
     const invoke = vi.fn().mockResolvedValue(succeeded);
 
     await expect(
@@ -104,6 +109,26 @@ describe('Collection Dial persistent operation', () => {
       }),
     ).resolves.toMatchObject({ kind: 'retryable_failure', reason: 'convergence' });
     expect(invoke).not.toHaveBeenCalled();
+  });
+
+  it('reports success from the authoritative write without waiting for collection query refresh', async () => {
+    const succeeded = operation('succeeded', 'completed');
+    const onWriteCommitted = vi.fn();
+    const converge = vi.fn().mockReturnValue(new Promise<boolean>(() => {}));
+
+    await expect(
+      runCollectionDialOperation({
+        repoIds: ['repo-1'],
+        itemRepoIds: ['repo-1'],
+        targetId: 'collection-1',
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
+        existingOperation: succeeded,
+        invoke: vi.fn(),
+        converge,
+        onWriteCommitted,
+      }),
+    ).resolves.toMatchObject({ kind: 'success', operation: succeeded });
+    expect(onWriteCommitted).toHaveBeenCalledWith(['repo-1'], 'collection-1');
   });
 
   it('retains retryable and terminal operation outcomes for recovery', async () => {
@@ -174,5 +199,36 @@ describe('Collection Dial persistent operation', () => {
       changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
     });
     expect(converge).toHaveBeenCalledWith(['repo-1', 'repo-2'], 'collection-1');
+  });
+
+  it('seeds the ledger cache with the completed operation so Undo is visible before list refetch', () => {
+    const older = operation('succeeded', 'completed');
+    const completed = {
+      ...operation('succeeded', 'completed'),
+      id: 'operation-2',
+      undoExpiresAt: '2026-08-18T06:14:29.000Z',
+    };
+    expect(mergeBulkOperationIntoList([older], completed)[0]).toMatchObject({
+      id: 'operation-2',
+      undoExpiresAt: '2026-08-18T06:14:29.000Z',
+    });
+    expect(mergeBulkOperationIntoList([completed, older], completed)).toHaveLength(2);
+  });
+
+  it('merges newly written collection links without duplicating existing membership', () => {
+    expect(
+      mergeCollectionRepoLinks(
+        [
+          { collectionId: 'collection-1', repoId: 'repo-1' },
+          { collectionId: 'collection-2', repoId: 'repo-3' },
+        ],
+        'collection-1',
+        ['repo-1', 'repo-2'],
+      ),
+    ).toEqual([
+      { collectionId: 'collection-1', repoId: 'repo-1' },
+      { collectionId: 'collection-2', repoId: 'repo-3' },
+      { collectionId: 'collection-1', repoId: 'repo-2' },
+    ]);
   });
 });

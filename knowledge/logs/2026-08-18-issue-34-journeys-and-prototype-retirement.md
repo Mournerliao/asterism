@@ -27,7 +27,7 @@ DEV 页内验收脚本仅用于本轮测量，未合入仓库。
 
 ## 残留
 
-- 临时集合 `Asterism #34 temp 2026-08-18` 应在 Collections 页删除，账号回到 0 collections。本环境 Chrome「允许 Apple 事件中的 JavaScript」已关闭，无法自动点删除；已打开 `http://localhost:5173/collections`。
+- 临时集合已删除。2026-08-18 19:30 在已登录 Chrome `/collections` 核到 `0 collections` 与 empty state `No collections yet`，未见 `#34 temp`。
 - 未实测：桌面连续 10、Grid pointer drop、虚拟化卸载、More/New 真路径、Undo 冲突/过期、390 滚动误触、200% zoom / reduced motion。合入后不要关闭 #34，直到这些项有证据或明确降级。
 
 ## 后续

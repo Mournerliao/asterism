@@ -57,7 +57,7 @@
     {
       "name": "impeccable",
       "upstream": "pbakaus/impeccable",
-      "version": "3.9.1",
+      "version": "4.1.1",
       "agentPath": ".agents/skills/impeccable",
       "hookPath": ".codex/hooks.json",
       "useWhen": "Frontend design, redesign, shape, colorize, critique, audit, polish, responsive, interaction, motion, or design-system work.",

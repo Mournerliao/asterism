@@ -1,7 +1,10 @@
-import type { Tag } from '@asterism/core';
+export type RepoCardCollection = {
+  id: string;
+  name: string;
+};
 
 export type RepoContextItem =
-  | { kind: 'tag'; key: string; label: string; color: string | null }
+  | { kind: 'collection'; key: string; label: string }
   | { kind: 'topic'; key: string; label: string };
 
 function normalizeLabel(value: string): string {
@@ -9,20 +12,20 @@ function normalizeLabel(value: string): string {
 }
 
 export function buildRepoContextItems(
-  tags: readonly Tag[],
+  collections: readonly RepoCardCollection[],
   topics: readonly string[],
 ): RepoContextItem[] {
   const items: RepoContextItem[] = [];
   const seen = new Set<string>();
 
-  for (const tag of tags) {
-    const label = tag.name.trim();
+  for (const collection of collections) {
+    const label = collection.name.trim();
     const normalized = normalizeLabel(label);
     if (!normalized || seen.has(normalized)) {
       continue;
     }
     seen.add(normalized);
-    items.push({ kind: 'tag', key: `tag:${tag.id}`, label, color: tag.color });
+    items.push({ kind: 'collection', key: `collection:${collection.id}`, label });
   }
 
   for (const topic of topics) {

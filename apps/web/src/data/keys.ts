@@ -5,16 +5,6 @@ export const repoKeys = {
     ['repos', 'readme', userId, owner.toLowerCase(), name.toLowerCase()] as const,
 };
 
-export const tagKeys = {
-  all: ['tags'] as const,
-  list: (userId: string) => ['tags', userId] as const,
-};
-
-export const repoTagKeys = {
-  all: ['repo-tags'] as const,
-  list: (userId: string) => ['repo-tags', userId] as const,
-};
-
 export const collectionKeys = {
   all: ['collections'] as const,
   list: (userId: string) => ['collections', userId] as const,

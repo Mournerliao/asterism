@@ -1,16 +1,15 @@
 import type { Collection } from '../models/collection';
-import type { Tag } from '../models/tag';
 import type { StarredRepoLike } from './filter';
 
-export interface RepoTagLink {
+export interface RepoCollectionLink {
   repoId: string;
-  tagId: string;
+  collectionId: string;
 }
 
 export interface DashboardStats {
   totalStars: number;
   languageCount: number;
-  taggedRepoCount: number;
+  collectedRepoCount: number;
   collectionCount: number;
 }
 
@@ -29,10 +28,9 @@ export interface ArchiveSplit {
   archived: number;
 }
 
-export interface TagUsage {
-  tagId: string;
+export interface CollectionUsage {
+  collectionId: string;
   name: string;
-  color: string | null;
   count: number;
 }
 
@@ -42,14 +40,13 @@ export interface DashboardInsights {
   starredByYear: YearCount[];
   topics: NamedCount[];
   archiveSplit: ArchiveSplit;
-  topTags: TagUsage[];
+  topCollections: CollectionUsage[];
 }
 
 export interface DeriveDashboardInput {
   starredRepos: StarredRepoLike[];
-  tags: Tag[];
   collections: Collection[];
-  repoTags: RepoTagLink[];
+  collectionRepos: RepoCollectionLink[];
 }
 
 function countBy<T>(items: T[], keyFn: (item: T) => string | null | undefined): NamedCount[] {
@@ -66,11 +63,11 @@ function countBy<T>(items: T[], keyFn: (item: T) => string | null | undefined): 
     .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
 }
 
-/** 从 stars / 标签 / 集合数据聚合仪表盘洞察。 */
+/** 从 stars / 集合数据聚合仪表盘洞察。 */
 export function deriveDashboardInsights(input: DeriveDashboardInput): DashboardInsights {
-  const { starredRepos, tags, collections, repoTags } = input;
+  const { starredRepos, collections, collectionRepos } = input;
 
-  const taggedRepoIds = new Set(repoTags.map((link) => link.repoId));
+  const collectedRepoIds = new Set(collectionRepos.map((link) => link.repoId));
   const languages = new Set(
     starredRepos.map(({ repo }) => repo.language).filter(Boolean) as string[],
   );
@@ -112,18 +109,20 @@ export function deriveDashboardInsights(input: DeriveDashboardInput): DashboardI
     }
   }
 
-  const tagById = new Map(tags.map((tag) => [tag.id, tag]));
-  const tagUsageCounts = new Map<string, number>();
-  for (const link of repoTags) {
-    tagUsageCounts.set(link.tagId, (tagUsageCounts.get(link.tagId) ?? 0) + 1);
+  const collectionById = new Map(collections.map((collection) => [collection.id, collection]));
+  const collectionUsageCounts = new Map<string, number>();
+  for (const link of collectionRepos) {
+    collectionUsageCounts.set(
+      link.collectionId,
+      (collectionUsageCounts.get(link.collectionId) ?? 0) + 1,
+    );
   }
-  const topTags = [...tagUsageCounts.entries()]
-    .map(([tagId, count]) => {
-      const tag = tagById.get(tagId);
+  const topCollections = [...collectionUsageCounts.entries()]
+    .map(([collectionId, count]) => {
+      const collection = collectionById.get(collectionId);
       return {
-        tagId,
-        name: tag?.name ?? tagId,
-        color: tag?.color ?? null,
+        collectionId,
+        name: collection?.name ?? collectionId,
         count,
       };
     })
@@ -134,13 +133,13 @@ export function deriveDashboardInsights(input: DeriveDashboardInput): DashboardI
     stats: {
       totalStars: starredRepos.length,
       languageCount: languages.size,
-      taggedRepoCount: taggedRepoIds.size,
+      collectedRepoCount: collectedRepoIds.size,
       collectionCount: collections.length,
     },
     languages: languageCounts,
     starredByYear,
     topics,
     archiveSplit: { active, archived },
-    topTags,
+    topCollections,
   };
 }

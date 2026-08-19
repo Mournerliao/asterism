@@ -102,52 +102,15 @@ function createExecutionStore(admin: AdminClient): BulkExecutionStore {
       if (error) throw new Error('membership_check_failed');
       return Boolean(data);
     },
-    ownsTarget: async (userId, relationType, targetId) => {
-      const result =
-        relationType === 'tag'
-          ? await admin
-              .from('tags')
-              .select('id')
-              .eq('id', targetId)
-              .eq('user_id', userId)
-              .maybeSingle()
-          : await admin
-              .from('collections')
-              .select('id')
-              .eq('id', targetId)
-              .eq('user_id', userId)
-              .maybeSingle();
+    ownsTarget: async (userId, _relationType, targetId) => {
+      const result = await admin
+        .from('collections')
+        .select('id')
+        .eq('id', targetId)
+        .eq('user_id', userId)
+        .maybeSingle();
       if (result.error) throw new Error('target_check_failed');
       return Boolean(result.data);
-    },
-    relationshipExists: async (userId, item) => {
-      const result = await admin
-        .from('repo_tags')
-        .select('id')
-        .eq('user_id', userId)
-        .eq('repo_id', item.repoId)
-        .eq('tag_id', item.targetId)
-        .maybeSingle();
-      if (result.error) throw new Error('relationship_check_failed');
-      return Boolean(result.data);
-    },
-    addRelationship: async (userId, item) => {
-      const { error } = await admin
-        .from('repo_tags')
-        .upsert(
-          { user_id: userId, repo_id: item.repoId, tag_id: item.targetId },
-          { onConflict: 'user_id,repo_id,tag_id', ignoreDuplicates: true },
-        );
-      if (error) throw new Error('relationship_write_failed');
-    },
-    removeRelationship: async (userId, item) => {
-      const { error } = await admin
-        .from('repo_tags')
-        .delete()
-        .eq('user_id', userId)
-        .eq('repo_id', item.repoId)
-        .eq('tag_id', item.targetId);
-      if (error) throw new Error('relationship_write_failed');
     },
     mutateCollectionRelationship: async (userId, item) => {
       const { data, error } = await admin.rpc('apply_collection_relation_mutation', {

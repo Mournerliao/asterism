@@ -7,9 +7,17 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  Input,
 } from '@asterism/ui';
-import { FolderIcon, MoreHorizontalIcon, PencilIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import { useState } from 'react';
+import {
+  FolderIcon,
+  MoreHorizontalIcon,
+  PencilIcon,
+  PlusIcon,
+  SearchIcon,
+  Trash2Icon,
+} from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { CollectionFormDialog } from '../components/collection-form-dialog';
@@ -18,6 +26,7 @@ import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
 import { CollectionGridSkeleton } from '../components/page-loading-states';
+import { SearchInputIcon } from '../components/search-input-icon';
 import {
   useCollections,
   useCreateCollection,
@@ -34,12 +43,21 @@ export function CollectionsPage() {
   const updateCollection = useUpdateCollection();
   const deleteCollection = useDeleteCollection();
 
+  const [query, setQuery] = useState('');
   const [createOpen, setCreateOpen] = useState(false);
   const [editing, setEditing] = useState<CollectionWithMeta | null>(null);
   const [deleting, setDeleting] = useState<CollectionWithMeta | null>(null);
 
   const list = collections ?? [];
   const collectionNames = list.map((item) => item.name);
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) {
+      return list;
+    }
+    return list.filter((collection) => collection.name.toLowerCase().includes(q));
+  }, [list, query]);
+
   const subtitle = t('collections.subtitle', {
     total: new Intl.NumberFormat(i18n.language).format(list.length),
   });
@@ -64,6 +82,18 @@ export function CollectionsPage() {
         }
       />
 
+      {isLoading ? null : list.length > 0 ? (
+        <div className="relative max-w-md">
+          <SearchInputIcon className="left-3" />
+          <Input
+            className="px-9"
+            placeholder={t('collections.searchPlaceholder')}
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+          />
+        </div>
+      ) : null}
+
       {isLoading ? (
         <LoadingRegion label={t('loading.collections')}>
           <CollectionGridSkeleton />
@@ -85,9 +115,11 @@ export function CollectionsPage() {
             </Button>
           }
         />
+      ) : filtered.length === 0 ? (
+        <EmptyState icon={SearchIcon} title={t('collections.noResults')} />
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((collection) => (
+          {filtered.map((collection) => (
             <Card
               key={collection.id}
               role="button"

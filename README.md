@@ -4,7 +4,7 @@
 
 **Asterism** is an open-source, self-deployable manager for your GitHub Stars. It
 turns a sprawling, unsearchable list of starred repositories into an organized
-sky — tag them, group them into collections, take notes, and find repositories
+sky — group them into collections, take notes, and find repositories
 through keyword and semantic search, structured filters, and reliable manual bulk
 workflows. The browser extension and desktop app follow next.
 
@@ -20,7 +20,7 @@ workflows. The browser extension and desktop app follow next.
 ## Why Asterism
 
 GitHub Stars are easy to collect and almost impossible to use. Once you cross a
-few hundred, the built-in list offers no tags, no notes, no real search, and no
+few hundred, the built-in list offers no collections, no notes, no real search, and no
 way to think about what you saved. Asterism is the layer on top: an *asterism*
 is a recognizable pattern picked out of countless stars — exactly what this tool
 helps you do with yours.
@@ -31,10 +31,10 @@ A short overview — see [`knowledge/contracts/product.md`](knowledge/contracts/
 for the authoritative feature scope and acceptance criteria.
 
 - **Sync your stars** from GitHub and keep them up to date.
-- **Tags & collections** to organize repositories your way.
+- **Collections** to organize repositories your way.
 - **Notes** on any repository, kept private to you.
 - **Search & filtering** across repository name/description, language, topics,
-  tags, star count, update time, and archive status.
+  collections, star count, update time, and archive status.
 - **Stats dashboard** to understand your stars at a glance.
 - **Import / export** so your data stays yours.
 - **Private semantic retrieval** — browser-generated embeddings power invisible

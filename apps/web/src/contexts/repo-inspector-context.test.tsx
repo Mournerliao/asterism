@@ -19,16 +19,6 @@ vi.mock('../data/use-note', () => ({
   useSaveNote: () => ({ mutateAsync: mocks.mutateAsync, isPending: false }),
 }));
 
-vi.mock('../data/use-tags', () => ({
-  useTags: () => ({ data: [] }),
-  useCreateTag: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
-
-vi.mock('../data/use-repo-tags', () => ({
-  useRepoTags: () => ({ data: [] }),
-  useToggleRepoTag: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
-}));
-
 vi.mock('../data/use-collections', () => ({
   useCollections: () => ({ data: [] }),
 }));

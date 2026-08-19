@@ -29,16 +29,6 @@ vi.mock('../data/use-note', () => ({
   useSaveNote: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock('../data/use-tags', () => ({
-  useTags: () => ({ data: [] }),
-  useCreateTag: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
-
-vi.mock('../data/use-repo-tags', () => ({
-  useRepoTags: () => ({ data: [] }),
-  useToggleRepoTag: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
-}));
-
 vi.mock('../data/use-collections', () => ({
   useCollections: () => ({ data: [] }),
 }));
@@ -140,12 +130,12 @@ describe('floating Quick Look overlay dismissal', () => {
     expect(document.getElementById('repo-inspector')).not.toBeNull();
   });
 
-  it('does not close when pointerdown lands on a portaled menu (Add tag → Create tag)', async () => {
+  it('does not close when pointerdown lands on a portaled menu', async () => {
     const menu = document.createElement('div');
     menu.setAttribute('role', 'menu');
     const item = document.createElement('div');
     item.setAttribute('role', 'menuitem');
-    item.textContent = 'Create new tag…';
+    item.textContent = 'Create collection';
     menu.append(item);
     document.body.append(menu);
 
@@ -155,12 +145,12 @@ describe('floating Quick Look overlay dismissal', () => {
     menu.remove();
   });
 
-  it('does not close when pointerdown lands on a portaled dialog (TagFormDialog)', async () => {
+  it('does not close when pointerdown lands on a portaled dialog', async () => {
     const dialog = document.createElement('div');
     dialog.setAttribute('role', 'dialog');
-    dialog.id = 'tag-form-dialog';
+    dialog.id = 'collection-form-dialog';
     const field = document.createElement('input');
-    field.id = 'tag-name';
+    field.id = 'collection-name';
     dialog.append(field);
     document.body.append(dialog);
 

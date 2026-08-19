@@ -117,7 +117,7 @@ sequenceDiagram
 
 > Stars 同步由受信 Edge Function `sync-stars` 执行，满足「全局 `repos` 仅受信路径写」的 RLS 约束。批量整理继续使用与 AI 无关的持久化执行路径：用户确认后固化 repository ID 范围与逐关系项目，服务端按有界批次执行并记录结果；成功项目保留，恢复时只领取待执行或可重试失败项目，幂等关系写保证重复提交不产生脏数据。客户端只经 `packages/db` 创建、触发、查询、重试或明确结束操作，并在查询边界重新读取权威状态。
 
-> ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通标签、集合及关系仍是 canonical 用户数据，不由退役迁移回滚。
+> ADR 0032 已退役服务端 AI 整理：运行时不保存 Provider credential，不调用 Generation Provider，也不维护 AI 草稿、任务、计划或同步后整理机会。历史 AI 操作已经写入的普通组织关系仍是 canonical 用户数据，不由退役迁移回滚。ADR 0035 进一步把用户自定义 Tag 迁入 Collection；成员关系保留，Tag color 不迁移。
 
 > 语义能力保持纯浏览器内边界：浏览器生成 repository/query embedding，只把用户向量存入本人 RLS 隔离的 `user_repo_embeddings`，用于隐形混合搜索、Related Stars 与 Collection Dial 已有集合候选的静默排序；它不经过 BYOK，不自动修改 canonical。Collection Dial 只读取与当前模型和仓库内容指纹匹配的新鲜向量，信号不足、失败或多选无共识时退回会话 MRU 与稳定顺序。
 

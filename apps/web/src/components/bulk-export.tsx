@@ -1,10 +1,4 @@
-import type {
-  CollectionRepoLink,
-  CollectionWithMeta,
-  RepoTagLink,
-  StarredRepoRecord,
-  TagWithCount,
-} from '@asterism/db';
+import type { CollectionRepoLink, CollectionWithMeta, StarredRepoRecord } from '@asterism/db';
 import {
   Button,
   Dialog,
@@ -40,18 +34,14 @@ export function BulkExportDialog({
   onOpenChange,
   selectedRepoIds,
   starredRepos,
-  tags,
   collections,
-  repoTags,
   collectionRepos,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   selectedRepoIds: ReadonlySet<string>;
   starredRepos: StarredRepoRecord[];
-  tags: TagWithCount[];
   collections: CollectionWithMeta[];
-  repoTags: RepoTagLink[];
   collectionRepos: CollectionRepoLink[];
 }) {
   const { t } = useTranslation();
@@ -67,10 +57,10 @@ export function BulkExportDialog({
   const snapshot = useMemo(
     () =>
       buildSelectedExportSnapshot(
-        { starredRepos, tags, collections, repoTags, collectionRepos, notes: notes.data ?? [] },
+        { starredRepos, collections, collectionRepos, notes: notes.data ?? [] },
         selectedRepoIds,
       ),
-    [starredRepos, tags, collections, repoTags, collectionRepos, notes.data, selectedRepoIds],
+    [starredRepos, collections, collectionRepos, notes.data, selectedRepoIds],
   );
   const repoCount = snapshot.repos.length;
 

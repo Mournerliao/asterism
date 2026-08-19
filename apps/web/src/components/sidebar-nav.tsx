@@ -5,7 +5,6 @@ import {
   FolderIcon,
   LayoutGridIcon,
   SettingsIcon,
-  TagIcon,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -17,7 +16,6 @@ type IconType = ComponentType<SVGProps<SVGSVGElement>>;
 const NAV_ITEMS: { to: string; key: string; icon: IconType; end?: boolean }[] = [
   { to: '/', key: 'nav.browse', icon: LayoutGridIcon, end: true },
   { to: '/collections', key: 'nav.collections', icon: FolderIcon },
-  { to: '/tags', key: 'nav.tags', icon: TagIcon },
   { to: '/dashboard', key: 'nav.dashboard', icon: ChartColumnIcon },
   { to: '/import-export', key: 'nav.importExport', icon: DownloadIcon },
   { to: '/settings', key: 'nav.settings', icon: SettingsIcon },

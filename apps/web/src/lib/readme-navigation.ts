@@ -5,7 +5,7 @@ export type BrowseSourceSnapshot = {
   query: string;
   language: string | null;
   topic: string | null;
-  tagIds: string[];
+  collectionIds: string[];
   minStars: number;
   pushedWithinDays: number | null;
   status: RepoStatus;
@@ -66,7 +66,7 @@ export function createBrowseSourceSnapshot(
     query: string;
     language: string | null;
     topic: string | null;
-    tagIds: readonly string[];
+    collectionIds: readonly string[];
     minStars: number;
     pushedWithinDays: number | null;
     status: RepoStatus;
@@ -79,7 +79,7 @@ export function createBrowseSourceSnapshot(
     query: filter.query,
     language: filter.language,
     topic: filter.topic,
-    tagIds: [...filter.tagIds],
+    collectionIds: [...filter.collectionIds],
     minStars: filter.minStars,
     pushedWithinDays: filter.pushedWithinDays,
     status: filter.status,
@@ -117,7 +117,7 @@ export function createReadmeDestination(
               query: '',
               language: null,
               topic: null,
-              tagIds: [],
+              collectionIds: [],
               minStars: 0,
               pushedWithinDays: null,
               status: 'all',
@@ -193,11 +193,15 @@ export function planReadmeReturn({
     };
   }
 
+  const snapshot = context.source.snapshot;
   return {
     to: '/',
     source: 'browse',
-    restoreBrowse: context.source.snapshot,
+    restoreBrowse: {
+      ...snapshot,
+      collectionIds: snapshot.collectionIds ?? [],
+    },
     reopenRepoId: repoVisible ? context.repoId : null,
-    scrollTop: repoVisible ? context.source.snapshot.scrollTop : null,
+    scrollTop: repoVisible ? snapshot.scrollTop : null,
   };
 }

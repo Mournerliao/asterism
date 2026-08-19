@@ -192,23 +192,28 @@ export function DashboardCharts({ insights }: { insights: DashboardInsights }) {
             </ChartContainer>
           )}
           <div className="flex flex-col gap-3">
-            <p className="font-medium text-muted-foreground text-sm">{t('dashboard.topTags')}</p>
-            {insights.topTags.length === 0 ? (
-              <p className="text-muted-foreground text-sm">{t('dashboard.noTags')}</p>
+            <p className="font-medium text-muted-foreground text-sm">
+              {t('dashboard.topCollections')}
+            </p>
+            {insights.topCollections.length === 0 ? (
+              <p className="text-muted-foreground text-sm">{t('dashboard.noCollections')}</p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {insights.topTags.map((tag, index) => (
-                  <li key={tag.tagId} className="flex items-center justify-between gap-2 text-sm">
+                {insights.topCollections.map((collection, index) => (
+                  <li
+                    key={collection.collectionId}
+                    className="flex items-center justify-between gap-2 text-sm"
+                  >
                     <span className="flex min-w-0 items-center gap-2">
                       <span
                         className="size-2 shrink-0 rounded-full"
-                        style={{
-                          backgroundColor: tag.color ?? `var(--chart-${(index % 5) + 1})`,
-                        }}
+                        style={{ backgroundColor: chartColor(index) }}
                       />
-                      <span className="truncate">{tag.name}</span>
+                      <span className="truncate">{collection.name}</span>
                     </span>
-                    <span className="shrink-0 tabular-nums text-muted-foreground">{tag.count}</span>
+                    <span className="shrink-0 tabular-nums text-muted-foreground">
+                      {collection.count}
+                    </span>
                   </li>
                 ))}
               </ul>

@@ -22,16 +22,6 @@ vi.mock('../data/use-note', () => ({
   useSaveNote: () => ({ mutateAsync: vi.fn(), isPending: false }),
 }));
 
-vi.mock('../data/use-tags', () => ({
-  useTags: () => ({ data: [] }),
-  useCreateTag: () => ({ mutateAsync: vi.fn(), isPending: false }),
-}));
-
-vi.mock('../data/use-repo-tags', () => ({
-  useRepoTags: () => ({ data: [] }),
-  useToggleRepoTag: () => ({ mutate: vi.fn(), mutateAsync: vi.fn() }),
-}));
-
 vi.mock('../data/use-collections', () => ({
   useCollections: () => ({ data: [] }),
 }));
@@ -107,7 +97,7 @@ function browseSnapshot(overrides: Partial<Parameters<typeof createBrowseSourceS
       query: 'codex',
       language: 'TypeScript',
       topic: null,
-      tagIds: [],
+      collectionIds: [],
       minStars: 0,
       pushedWithinDays: null,
       status: 'all',

@@ -9,12 +9,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  Input,
   Sheet,
   SheetContent,
   SheetTitle,
@@ -39,6 +34,7 @@ import {
   type ReactNode,
   type PointerEvent as ReactPointerEvent,
   useCallback,
+  useDeferredValue,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -51,9 +47,7 @@ import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useCollectionRepos, useToggleCollectionRepo } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
 import { useNote } from '../data/use-note';
-import { useRepoTags, useToggleRepoTag } from '../data/use-repo-tags';
 import { useSemanticNeighborhood } from '../data/use-semantic-neighborhood';
-import { useCreateTag, useTags } from '../data/use-tags';
 import { useMediaQuery } from '../hooks/use-media-query';
 import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } from '../lib/format';
 import { languageColor } from '../lib/language-colors';
@@ -75,9 +69,9 @@ import { useBrowseFilters } from '../stores/browse-filters';
 import { getBrowseView } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
 import { adjacentRepo, findRepoIndex, useRepoInspectorStore } from '../stores/repo-inspector';
+import { getVisibleLabeledFacetOptions } from './facet-options';
 import { PendingActionContent } from './pending-action-content';
-import { TagBadge } from './tag-badge';
-import { TagFormDialog } from './tag-form-dialog';
+import { SearchInputIcon } from './search-input-icon';
 
 function ControlButton({
   label,
@@ -206,7 +200,7 @@ export function RepoInspector() {
                 query: filters.query,
                 language: filters.language,
                 topic: filters.topic,
-                tagIds: filters.tagIds,
+                collectionIds: filters.collectionIds,
                 minStars: filters.minStars,
                 pushedWithinDays: filters.pushedWithinDays,
                 status: filters.status,
@@ -742,7 +736,6 @@ function InspectorBody({
           <Overview record={record} onReadReadme={onReadReadme} />
           <div className="mt-6 flex flex-col gap-5">
             <RelatedStarsSection record={record} />
-            <TagsSection repoId={record.repoId} />
             <CollectionsSection repoId={record.repoId} />
             <NotesSection repoId={record.repoId} />
           </div>
@@ -915,115 +908,34 @@ function WriteRecovery({
   );
 }
 
-function TagsSection({ repoId }: { repoId: string }) {
-  const { t } = useTranslation();
-  const { data: tags = [] } = useTags();
-  const { data: links = [] } = useRepoTags();
-  const toggle = useToggleRepoTag();
-  const createTag = useCreateTag();
-  const [createOpen, setCreateOpen] = useState(false);
-  const assignedIds = useMemo(
-    () => new Set(links.filter((link) => link.repoId === repoId).map((link) => link.tagId)),
-    [links, repoId],
-  );
-  const assignedTags = tags.filter((tag) => assignedIds.has(tag.id));
-
-  const handleCreate = async (values: { name: string; color: string }) => {
-    const created = await createTag.mutateAsync({
-      name: values.name,
-      color: values.color,
-      seed: tags.length,
-    });
-    setCreateOpen(false);
-    toggle.mutate({ repoId, tagId: created.id, assigned: false });
-  };
-
-  return (
-    <section className="flex flex-col gap-2">
-      <SectionLabel>{t('drawer.tags')}</SectionLabel>
-      <div className="flex flex-wrap items-center gap-2">
-        {assignedTags.map((tag) => (
-          <TagBadge
-            key={tag.id}
-            name={tag.name}
-            color={tag.color}
-            removeLabel={t('drawer.removeTag', { name: tag.name })}
-            removeDisabled={toggle.isPending}
-            onRemove={() => toggle.mutate({ repoId, tagId: tag.id, assigned: true })}
-          />
-        ))}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-6 gap-1 rounded-sm px-2 text-caption">
-              <PlusIcon className="size-3" />
-              {t('drawer.addTag')}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="start" className="max-h-72 w-56 overflow-auto">
-            {tags.map((tag) => (
-              <DropdownMenuCheckboxItem
-                key={tag.id}
-                checked={assignedIds.has(tag.id)}
-                disabled={toggle.isPending}
-                onSelect={(event) => event.preventDefault()}
-                onCheckedChange={() =>
-                  toggle.mutate({ repoId, tagId: tag.id, assigned: assignedIds.has(tag.id) })
-                }
-              >
-                <span
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: tag.color ?? 'var(--muted-foreground)' }}
-                />
-                {tag.name}
-              </DropdownMenuCheckboxItem>
-            ))}
-            {tags.length > 0 ? <DropdownMenuSeparator /> : null}
-            <DropdownMenuItem
-              onSelect={() => {
-                createTag.reset();
-                setCreateOpen(true);
-              }}
-            >
-              <PlusIcon className="size-4" />
-              {t('drawer.createTag')}
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-      {toggle.isError && toggle.variables ? (
-        <WriteRecovery
-          message={t('drawer.tagUpdateError')}
-          pending={toggle.isPending}
-          onRetry={() => toggle.mutate(toggle.variables)}
-          onCancel={() => toggle.reset()}
-        />
-      ) : null}
-      <TagFormDialog
-        open={createOpen}
-        onOpenChange={setCreateOpen}
-        title={t('tags.createTitle')}
-        submitLabel={t('tags.create')}
-        existingNames={tags.map((tag) => tag.name)}
-        pending={createTag.isPending}
-        errorMessage={createTag.isError ? t('tags.saveError') : undefined}
-        onSubmit={handleCreate}
-      />
-    </section>
-  );
-}
-
 function CollectionsSection({ repoId }: { repoId: string }) {
   const { t } = useTranslation();
   const { data: collections = [] } = useCollections();
   const { data: links = [] } = useCollectionRepos();
   const toggle = useToggleCollectionRepo();
   const [editing, setEditing] = useState(false);
+  const [query, setQuery] = useState('');
+  const deferredQuery = useDeferredValue(query);
   const memberIds = useMemo(
     () => new Set(links.filter((link) => link.repoId === repoId).map((link) => link.collectionId)),
     [links, repoId],
   );
+  const memberIdList = useMemo(() => [...memberIds], [memberIds]);
   const selected = collections.filter((collection) => memberIds.has(collection.id));
-  const visible = editing ? collections : selected;
+  const options = useMemo(
+    () => collections.map((collection) => ({ value: collection.id, label: collection.name })),
+    [collections],
+  );
+  const visibleOptions = useMemo(
+    () => getVisibleLabeledFacetOptions(options, deferredQuery, memberIdList),
+    [options, deferredQuery, memberIdList],
+  );
+
+  useEffect(() => {
+    if (!editing) {
+      setQuery('');
+    }
+  }, [editing]);
 
   return (
     <section className="flex flex-col gap-2">
@@ -1042,7 +954,53 @@ function CollectionsSection({ repoId }: { repoId: string }) {
       </div>
       {collections.length === 0 ? (
         <p className="text-body text-muted-foreground">{t('drawer.noCollections')}</p>
-      ) : visible.length === 0 ? (
+      ) : editing ? (
+        <div className="flex flex-col gap-2">
+          <div className="relative">
+            <SearchInputIcon className="left-2.5" />
+            <Input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={t('drawer.searchCollections')}
+              aria-label={t('drawer.searchCollections')}
+              className="pl-8"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            {visibleOptions.items.map((option) => {
+              const member = memberIds.has(option.value);
+              return (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant="ghost"
+                  disabled={toggle.isPending}
+                  onClick={() => toggle.mutate({ collectionId: option.value, repoId, member })}
+                  className={cn(
+                    'h-8 w-full justify-between rounded-sm px-2 text-left text-body',
+                    member
+                      ? 'bg-background text-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <span className="truncate">{option.label}</span>
+                  {member ? <CheckIcon className="size-4 shrink-0 text-link" /> : null}
+                </Button>
+              );
+            })}
+            {visibleOptions.total === 0 ? (
+              <p className="px-2 py-1 text-caption text-muted-foreground">
+                {t('filters.noResults')}
+              </p>
+            ) : null}
+            {visibleOptions.truncated ? (
+              <p className="px-2 text-micro text-muted-foreground">
+                {t('filters.showingTopResults', { count: visibleOptions.items.length })}
+              </p>
+            ) : null}
+          </div>
+        </div>
+      ) : selected.length === 0 ? (
         <Button
           type="button"
           variant="outline"
@@ -1055,27 +1013,14 @@ function CollectionsSection({ repoId }: { repoId: string }) {
         </Button>
       ) : (
         <div className="flex flex-col gap-1">
-          {visible.map((collection) => {
-            const member = memberIds.has(collection.id);
-            return (
-              <Button
-                key={collection.id}
-                type="button"
-                variant="ghost"
-                disabled={!editing || toggle.isPending}
-                onClick={() => toggle.mutate({ collectionId: collection.id, repoId, member })}
-                className={cn(
-                  'h-8 w-full justify-between rounded-sm px-2 text-left text-body',
-                  member
-                    ? 'bg-background text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <span className="truncate">{collection.name}</span>
-                {member ? <CheckIcon className="size-4 shrink-0 text-link" /> : null}
-              </Button>
-            );
-          })}
+          {selected.map((collection) => (
+            <div
+              key={collection.id}
+              className="flex h-8 items-center rounded-sm px-2 text-body text-foreground"
+            >
+              <span className="truncate">{collection.name}</span>
+            </div>
+          ))}
         </div>
       )}
       {toggle.isError && toggle.variables ? (

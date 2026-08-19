@@ -15,7 +15,7 @@ const browseSnapshot: BrowseSourceSnapshot = {
   query: 'codex',
   language: 'TypeScript',
   topic: null,
-  tagIds: ['tag-1'],
+  collectionIds: ['tag-1'],
   minStars: 50,
   pushedWithinDays: null,
   status: 'all',
@@ -44,7 +44,7 @@ describe('README return coordinator', () => {
     expect(useBrowseFilters.getState()).toMatchObject({
       query: 'codex',
       language: 'TypeScript',
-      tagIds: ['tag-1'],
+      collectionIds: ['tag-1'],
       sort: 'name',
     });
     expect(getBrowseView()).toBe('list');

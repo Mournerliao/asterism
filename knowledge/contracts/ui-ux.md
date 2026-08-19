@@ -20,9 +20,9 @@
 | Browse · 列表/表格 | `8:59` | ⚠️ frame 名为 "Browse - Card View"，**实为表格/列表视图** |
 | Browse · 卡片 | `8:227` | ⚠️ frame 名为 "Dashboard"，**实为卡片视图** |
 | Settings | `8:299` | 外观 / 账号 |
-| Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（tags / collections / notes） |
+| Repo Quick Look | evolved from `8:364` | 非模态仓库快速详情（collections / notes；ADR 0035 退役 tags） |
 | Dashboard · Insights | `8:413` | ⚠️ frame 名为 "Browse - List View"，**实为统计仪表盘** |
-| Tags Management | `12:2` | 标签管理 |
+| Tags Management | `12:2` | 历史标签管理画面；ADR 0035 cutover 后不再是产品表面 |
 | Collections | `12:126` | 集合 |
 | Import / Export | `12:182` | 导入导出（JSON / CSV / Markdown） |
 | Browse · Empty State | `12:240` | 空状态 |
@@ -82,7 +82,7 @@
 | `--font-sans` | 正文无衬线字体栈 | `"Geist Variable", ui-sans-serif, system-ui, sans-serif` |
 | `--font-mono` | 数字 / 日期等宽字体 | `"Geist Mono Variable", ui-monospace, monospace` |
 | `--text-display` | Login 主标题等 | `1.75rem`（28px）/ Bold |
-| `--text-page-title` | 页面标题（Settings/Dashboard/Tags） | `1.5rem`（24px）/ Bold |
+| `--text-page-title` | 页面标题（Settings/Dashboard/Collections） | `1.5rem`（24px）/ Bold |
 | `--text-section-title` | 区块标题（Browse 页头、空状态） | `1.25rem`（20px）/ SemiBold |
 | `--text-drawer-title` | Drawer 标题 | `1rem`（16px）/ SemiBold |
 | `--text-repo-name` | Repo Inspector 仓库名 | `1.125rem`（18px）/ SemiBold |
@@ -103,7 +103,7 @@
 | lg | 16px | 卡片 padding、网格 gap |
 | xl | 20px | Browse 内容区 section gap |
 | 2xl | 24px | 页面内容 padding（Browse）、Topbar 水平 padding |
-| 3xl | 32px | Tags/Collections/Settings 页面 padding |
+| 3xl | 32px | Collections/Settings 页面 padding |
 
 ### Scrollbar · 滚动条（定稿）
 
@@ -141,7 +141,7 @@ Browse 页在有仓库数据时采用 **上下分栏**：标题 + 视图切换 +
 
 **Logo**：节点与连线统一使用 `--brand`；连线以较低 opacity 表达层级。禁止蓝紫渐变、gradient text 与装饰性 glow。
 
-**新建标签调色板**：`blue #2563EB`、`green #18794E`、`purple #6D4CC7`、`orange #B65F18`、`sky #167C9A`、`amber #9A5A05`、`pink #B6406A`、`lime #3F7F55`。既有用户存储的标签颜色不迁移；语言与标签色只用于小面积信息编码，不用于 Dashboard 大面积图形。
+**分类色**：语言色只用于小面积信息编码，不用于 Dashboard 大面积图形。ADR 0035 不给 Collection 调色盘；历史标签 8 色不再出现在产品表面。
 
 ### Dark Mode Tokens · 暗色（定稿）
 
@@ -199,7 +199,7 @@ Browse 卡片采用舒展但高效的固定节奏：桌面 / 平板目标高度 
 
 - 仓库身份：弱化 owner、强调 repo name；语言色点只作为小面积编码，Archived 使用既有 outline badge。
 - 描述：固定最多两行；仅当文本真实溢出时，hover 展示完整描述 tooltip，未溢出时不创建冗余浮层。完整文本保留在 DOM 中供辅助技术读取。
-- 整理上下文：用户自定义标签优先，GitHub topics 仅补充剩余空间；同名项按大小写不敏感去重，溢出统一折叠为 `+n` 并通过 tooltip 展示。集合数量与笔记存在状态位于该行右侧，集合名称与笔记正文仍留在 Repo Inspector。
+- 整理上下文：用户集合名称优先，GitHub topics 仅补充剩余空间；同名项按大小写不敏感去重，溢出统一折叠为 `+n` 并通过 tooltip 展示。集合名称使用常规 secondary chip，不使用标签调色盘。笔记存在状态位于该行右侧。集合数量不在卡片上重复显示。ADR 0035 cutover 前仍展示用户标签 chip 与集合计数。
 - 单基线 Footer：Stars / Forks 位于左侧，Updated / Starred 组成右侧不可换行的紧凑时间组（如 `Updated 2w · Starred 4w`）；完整相对时间通过 tooltip 与无障碍标签提供。仅极窄单列允许两个信息组整体上下排列，不允许时间字段自行散落换行。
 - 交互语义：整卡详情触发器与 GitHub 外链必须是并列交互，不得把链接嵌套在 `role=button` 容器内；两条路径均需键盘可达并有可见焦点。进入批量选择模式时先按未保存笔记保护流程关闭已有 Quick Look；模式内仅项目名保留为 GitHub 外链，描述、标签、状态、统计与卡片空白区域全部切换当前仓库的选择状态，不得再打开 Quick Look。
 
@@ -208,12 +208,12 @@ Browse 卡片采用舒展但高效的固定节奏：桌面 / 平板目标高度 
 Browse 列表是紧凑生产力视图，不是 GitHub 元数据表格的复刻。每行必须优先回答仓库身份、技术属性与近期 activity；个人整理信息只在真实存在时作为 Repository 的次级上下文出现，不得以空状态占用独立列。桌面目标行高为 64px，移动端按内容安全增高并使用实测高度驱动虚拟滚动。
 
 - 仓库身份与点击语义：整行是打开 Asterism Repo Inspector 的主操作，支持 pointer click 与聚焦后的 Enter / Space；仓库名称与卡片视图保持一致，作为唯一的 GitHub 外链并新窗口打开，不再额外显示重复的 external-link 图标。名称链接与整行详情触发器必须并列，点击或键盘激活名称只打开 GitHub。行继续保持原生 `row` 语义，不改写为 `role=button`；Archived 使用既有 outline badge，描述保持单行截断。
-- 整理上下文：用户自定义标签、集合数量与笔记存在状态收进 Repository 次级信息，不混入 GitHub topics；标签按真实可用宽度折叠为 `+n`。三者都不存在时不渲染占位文案，不设置 Organization 独立列。
+- 整理上下文：用户集合名称与笔记存在状态收进 Repository 次级信息，不混入 GitHub topics；集合名称按真实可用宽度折叠为 `+n`。二者都不存在时不渲染占位文案，不设置 Organization 独立列。ADR 0035 cutover 前仍展示用户标签与集合计数。
 - Activity：Updated 与 Starred 同时可见，完整相对时间通过 tooltip 与无障碍文本提供；按更新时间排序时，Updated 不得被响应式布局隐藏。
 - 表面与对齐：列表容器使用与 Repo Card 一致的 `--card` 内容表面，圆角必须裁切表头、行 hover 与虚拟占位内容；表头和 cell 必须复用同一列模板与水平内边距，并统一左对齐。表头使用独立的 muted surface、micro 字号与 medium 字重，必须与正文形成可辨识层级。
 - 批量选中反馈：批量模式以选中 checkbox 作为强确认，并用轻量 `accent` surface 表达整行范围；不得为每个选中行重复绘制完整 primary / ring 边框，以免全选时形成高密度线条。Quick Look 的单行选中仍使用完整 inset ring / surface，两种状态不得混用。
 - 响应式列：按列表容器而非浏览器视口切换；容器 `≥1024px` 显示 Repository / Language / Stars / Activity，`640–1023px` 视觉隐藏 Language、保留其表头与 cell 语义，`<640px` 视觉隐藏表头并重排为身份、描述/整理上下文、Language / Stars / Activity。任何详情呈现都不得改变主内容的 x、宽度或产生横向滚动。
-- 可访问性：语义表格提供总行数与虚拟行索引；隐藏列必须在辅助技术树中保留正确的四列表头关联。名称、外链、标签溢出等交互各自键盘可达并使用 `--ring`；触控设备上的 segmented control 与紧凑入口命中区域不小于 44px。
+- 可访问性：语义表格提供总行数与虚拟行索引；隐藏列必须在辅助技术树中保留正确的四列表头关联。名称、外链、集合名称溢出等交互各自键盘可达并使用 `--ring`；触控设备上的 segmented control 与紧凑入口命中区域不小于 44px。
 
 ### Repo Quick Look Pattern · 仓库快速详情模式
 
@@ -225,7 +225,7 @@ Repo Quick Look 是 Browse 与集合详情共享的瞬时、非模态详情层�
 - 选择与关闭：点击当前已选仓库再次关闭，点击其他仓库直接切换；点击悬浮窗外或按 Esc 关闭，repo trigger 自身不走外部关闭处理；Quick Look 自身经 Portal 挂出的菜单 / 列表框 / 对话框不算窗外点击，不得因此关闭浮窗。任何路由变化都关闭 Quick Look，不跨页面保留。从 README 工作区按来源协调器返回 Browse / Collection 后，若同一仓库仍在恢复后的可见列表中，允许程序化重开该仓库的 Quick Look（这是可逆阅读迂回的一部分，不是跨路由保活）。键盘 Enter / Space 打开时把焦点移入窗口，关闭后返回原 trigger；pointer 打开保留列表操作上下文。
 - 窗口移动：桌面与平板悬浮层以仓库身份所在的完整首行作为拖动区域，不添加 drag icon 或其他冗余能力提示；仓库链接短按仍打开 GitHub，pointer 位移达到 `4px` 后才进入拖动并抑制链接点击，关闭按钮不参与拖动。浮窗限制在视口 `12px` 安全边距内，窗口尺寸变化后自动收回视口，手机底部 Sheet 不提供拖动。
 - 编辑安全：笔记草稿切换仓库、关闭面板、浏览器后退或离开页面前必须拦截；用户可选择保存并继续、放弃并继续，或通过关闭按钮 / Esc / 点遮罩继续编辑（关闭与「继续编辑」同义，页脚不再单独展示该动作）。页脚两个决策动作桌面右对齐，窄屏同宽单列，不得用 `space-between` 拆散。保存失败时保留草稿与原选择，不得静默丢失。
-- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。主体固定为 Overview → Related Stars（有可信结果时）→ Tags → Collections → Notes 的单列结构。
+- 内容层级：头部只保留仓库身份、GitHub 外链与关闭；`owner / repo` 保持单行，弱化 owner、以链接蓝强调 repo name，并让整段仓库身份成为唯一 GitHub 外链，不再额外显示重复的 external-link 图标。仓库身份使用 18px/SemiBold，描述使用 13px body，常规元数据使用 12px caption，Activity 与紧凑元数据使用 11px micro，数字和日期值使用 Geist Mono + tabular numerals。更新时间默认展示紧凑值（如 `Updated 2d`），完整相对时间保留在 title 与辅助技术文本中。主体固定为 Overview → Related Stars（有可信结果时）→ Collections → Notes 的单列结构。集合编辑必须可搜索，不能在高基数时摊开全部目标。
 - Related Stars 是从当前收藏继续探索的只读 derived 能力：只展示最多 5 条互为 Top-12 语义近邻，不显示相似度百分比；每条使用标准整行按钮、仓库身份与一行描述，点击后在同一 Quick Look 中切换并允许继续探索。embedding 未准备、当前仓库无向量、无互为近邻或查询失败时整段不出现，不显示空态、不强行补足数量。
 - 可访问性：桌面和平板悬浮层使用命名的非模态 `dialog`，手机沿用 Sheet 语义；所有图标按钮必须有 i18n 标签与 tooltip，选中行 / 卡片暴露 `aria-selected` 或等价状态，并通过 `aria-controls` / `aria-expanded` 关联面板。
 
@@ -246,22 +246,22 @@ Collection Dial 是 Browse 中由用户直接整理动作临时唤起的底部�
 - 选择与确认：点击文件夹、Q/E 或方向控制只更新 active 目标，不隐式写入；Enter 或明确的 `Add to …` 动作负责确认。真实拖拽在目标文件夹内松手可一步确认，盘外松手和 Escape 取消。选择与确认必须使用同一个状态机，避免 pointer、touch 与 keyboard 产生不同结果。
 - 范围与承接：普通浏览只拿起单项；选择模式中拿起已选项才携带冻结的完整选择范围。快速窗口之外必须提供「更多集合」与「新建集合」，两者在后续选择或创建期间保持原范围；新建成功后自动加入目标集合。未完成的多选写入阻止新的多选拖放，但不锁死无关的单项整理。
 - 状态反馈：操作层集中显示 `仓库或范围 → 集合`、当前位置和 pending / success / failure。权威成功前不得播放完成反馈；失败保留范围与目标，并提供 Retry 与 Cancel。每次成功产生独立短期 Undo，连续通知可以聚合显示，但不得把 Undo 扩大成整段会话回滚。
-- 响应式：可见窗口根据集合盘容器宽度采用奇数项，当前目标保持居中；已验证方向为宽屏最多 7 项、窄屏最多 3 项。移动端以常驻 Grip 作为拖动起点并保留点按等价路径，不使用整卡长按。列表滚动与拖动是否互相误触由维护者在 #34 验收，不阻塞实现关口。
+- 响应式：可见窗口根据集合盘容器宽度采用奇数项，当前目标保持居中；已验证方向为宽屏最多 7 项、窄屏最多 3 项。移动端以常驻 Grip 作为拖动起点并保留点按等价路径，不使用整卡长按。列表滚动与拖动误触由后续 ticket 处理，不阻塞 Phase 2.2。
 - 可访问性：纯键盘路径为 Space 拿起、Q/E 切换、Enter 确认、Escape 取消；ARIA live 播报当前范围、active 目标与权威写入状态。隐藏项退出 pointer 与辅助技术交互，焦点可见，`prefers-reduced-motion` 下取消空间飞入和连续轨道动画但保留状态变化。
 - 推荐表达：候选排序不以「AI」或 Sparkles 命名。高置信候选最多使用克制的「建议」状态和可验证理由；没有清晰建议或 embedding 未准备时，界面静默使用最近使用与稳定顺序，不在拖动过程中插入 opt-in 或模型状态。
 
 ### Browse Filter Pattern · 浏览筛选模式
 
-Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等权重：主栏只直出语言、Topic、用户标签、更多筛选与排序；Star 阈值、更新时间和仓库状态收进“更多筛选”，触发器显示已启用的次级筛选数量。排序保持独立可见，不计入“清除筛选”的 active 状态。
+Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等权重：主栏只直出语言、Topic、集合、更多筛选与排序；Star 阈值、更新时间和仓库状态收进“更多筛选”，触发器显示已启用的次级筛选数量。排序保持独立可见，不计入“清除筛选”的 active 状态。ADR 0035 cutover 前主栏仍直出用户标签而非集合。
 
 - App Topbar 中的搜索是 **Browse Search**，只在 Browse 路由显示并修改 Browse 筛选状态。它不是全局搜索、command surface 或 Collection Detail 搜索；不得在其他路由产生不可见的筛选副作用。
 - ADR 0026（Accepted）把 Browse Search 演进为**隐形混合搜索**：关键词命中与语义近邻融合为一套排序、**零模式开关**（不新增 Semantic 模式切换、不暴露 Embedding 设置），由浏览器内 embedding 支撑、弱设备降级纯关键词。
 - ADR 0028 已移除二维语义星图。Browse 只提供卡片与列表两种信息布局；语义能力必须嵌入搜索排序或具体仓库的 Related Stars，不新增空间视图、语义模式开关或抽象点云导航。
 
-- 语言与 Topic 使用固定高度的可搜索 facet picker；初次打开最多渲染 20 个选项，搜索从完整集合中匹配并最多渲染 50 个结果，禁止在弹层首开时挂载全部高基数 facets。
+- 语言、Topic 与集合使用固定高度的可搜索 facet picker；初次打开最多渲染 20 个选项，搜索从完整集合中匹配并最多渲染 50 个结果，禁止在弹层首开时挂载全部高基数 facets。cutover 前标签筛选仍为现有 checkbox 菜单。
 - 搜索输入的放大镜统一使用 `black/60`，并置于 Input 表面之上，避免被半透明 Glass 背景覆盖洗白。
 - Topic 默认沿用出现频率排序，语言沿用字母排序；当前选中项即使不在首屏窗口内也必须保持可见。
-- 筛选栏采用无外框的开放式工具栏：语言、Topic、标签、更多筛选与清除组成左侧筛选组，排序作为独立右侧组；使用空间而非额外容器边框表达分组。所有 trigger 统一使用现有 `size="sm"` 高度，不得额外覆盖造成 Select 与 Button 尺寸不一致。空间不足时组级换行，单个 trigger 不横向溢出。
+- 筛选栏采用无外框的开放式工具栏：语言、Topic、集合、更多筛选与清除组成左侧筛选组，排序作为独立右侧组；使用空间而非额外容器边框表达分组。所有 trigger 统一使用现有 `size="sm"` 高度，不得额外覆盖造成 Select 与 Button 尺寸不一致。空间不足时组级换行，单个 trigger 不横向溢出。
 - 未选择的 facet trigger 使用简短类别名（Language / Topic），菜单内仍保留“全部”选项；已启用的筛选以既有 primary token 的轻量边框和背景表达 active 状态。GlassRail 仅用于具有共享轨道语义的 Segmented Control，不包裹独立下拉控件。
 - 弹层使用既有 Graphite Glass token、可见焦点与 reduced-motion 规则。
 - “更多筛选”内的 Select 属于子浮层：点击父 Popover 表面只关闭当前子 Select，父层保持打开；点击父子浮层之外才关闭两层。父层必须在 Radix Select 的 modal pointer-event 隔离期间保持可交互。
@@ -273,12 +273,12 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 
 - 会话恢复：应用尚无法判断是否进入 authenticated shell 时使用居中的轻量 spinner 与明确状态文案；spinner 需要 `role=status`、`aria-live=polite`，并在 `prefers-reduced-motion` 下停止旋转。
 - 路由模块：默认入口 Browse 直接随 shell 加载，不显示独立 route fallback；其余懒加载页面使用与目标页面一致的结构化 fallback，禁止使用单个大矩形代替整页结构。
-- 初始数据：骨架必须镜像最终内容的表面、分区、行高与响应式重排。Browse 宫格保持 208px 卡片节奏，列表保持表头、64px 桌面行与移动端堆叠；Collections、Tags、Dashboard、Collection Detail 与 Import / Export 使用各自专属骨架，不复用无语义的空 Card。
+- 初始数据：骨架必须镜像最终内容的表面、分区、行高与响应式重排。Browse 宫格保持 208px 卡片节奏，列表保持表头、64px 桌面行与移动端堆叠；Collections、Dashboard、Collection Detail 与 Import / Export 使用各自专属骨架，不复用无语义的空 Card。
 - 后台刷新：已有可用数据时继续显示当前内容，不重新覆盖页面骨架；只在原操作入口或局部状态区表达 fetching。
 - 空态判定：页面必须等待决定空态所需的全部首屏查询结束，禁止先显示“无数据”再跳到真实内容。
 - 未知进度：后端未提供真实 `processed / total` 时使用 indeterminate 状态，不得用当前记录数推算伪百分比或伪计数。
 - 写操作：保存、删除、恢复等操作使用按钮内部 spinner + 动作文案，保持按钮宽度稳定，设置 `aria-busy` 并阻止重复提交；pending 期间不得允许关闭仍在提交的对话框或再次选择导入文件。
-- 写失败恢复：创建/重命名失败时保持对话框、输入与焦点上下文；笔记失败时保留草稿和 Inspector；删除失败时保持确认目标；标签/集合关联失败时恢复服务器状态。所有失败提供 en / zh-CN 错误反馈与原位重试或取消路径，不得静默失败。
+- 写失败恢复：创建/重命名失败时保持对话框、输入与焦点上下文；笔记失败时保留草稿和 Inspector；删除失败时保持确认目标；集合关联失败时恢复服务器状态。所有失败提供 en / zh-CN 错误反馈与原位重试或取消路径，不得静默失败。
 - 骨架语义：基础 Skeleton 使用 `muted` 表面、克制 pulse 与 `motion-reduce:animate-none`，形状本身 `aria-hidden`；骨架区域统一提供单一的屏幕阅读器 loading 状态，避免逐块播报。
 
 ### README Document Canvas · README 文档画布
@@ -302,7 +302,7 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 
 ### Empty State Action Pattern · 空状态操作模式
 
-空状态必须提供单一、明确的主操作，不得在页头与空状态主体重复显示同一个 primary action。Collections / Tags 等创建型页面在数据为空时由空状态主体承担首次创建入口；存在数据后，创建入口移至页头以支持高频追加。筛选或搜索无结果不等同于数据为空，此时保留页头创建入口，并在内容区表达无匹配结果。
+空状态必须提供单一、明确的主操作，不得在页头与空状态主体重复显示同一个 primary action。Collections 在数据为空时由空状态主体承担首次创建入口；存在数据后，创建入口移至页头以支持高频追加，并提供名称搜索。筛选或搜索无结果不等同于数据为空，此时保留页头创建入口，并在内容区表达无匹配结果。
 
 ## Dark Mode · 明暗模式
 
@@ -322,7 +322,7 @@ Browse 筛选条采用两级信息架构，避免把所有维度平铺成同等�
 - **名称**：Asterism（星群 / 星组）。
 - **主题意象**：stars / constellation（星标 / 星座 / 星图）——把零散的 GitHub star 连成有意义的"星座"。
 - **语气**：克制、专业、面向开发者；克制使用动效与装饰，信息密度优先，体现"工具感"与"秩序感"。
-- **隐喻一致性**：集合 / 分组等概念可呼应"星座"意象，但避免过度堆砌主题词导致功能表达含糊。
+- **隐喻一致性**：集合可呼应"星座"意象，但避免过度堆砌主题词导致功能表达含糊。不要用第二套组织概念或教学文案解释 Collection。
 
 ## UI Generation Loop · UI 生成循环
 

@@ -8,9 +8,6 @@ export interface RelationshipStore {
     relationType: BulkRelationType,
     targetId: string,
   ) => Promise<boolean>;
-  relationshipExists: (userId: string, item: BulkOperationItem) => Promise<boolean>;
-  addRelationship: (userId: string, item: BulkOperationItem) => Promise<void>;
-  removeRelationship: (userId: string, item: BulkOperationItem) => Promise<void>;
   mutateCollectionRelationship: (
     userId: string,
     item: BulkOperationItem,
@@ -43,6 +40,13 @@ export async function applyRelationship(
   userId: string,
   item: BulkOperationItem,
 ): Promise<RelationshipMutationResult> {
+  if (item.relationType !== 'collection') {
+    throw new BulkExecutionError(
+      'terminal',
+      'relation_type_retired',
+      'Tag memberships can no longer be applied.',
+    );
+  }
   if (!(await store.ownsRepository(userId, item.repoId))) {
     throw new BulkExecutionError(
       'terminal',
@@ -54,25 +58,9 @@ export async function applyRelationship(
     throw new BulkExecutionError(
       'terminal',
       'target_not_owned',
-      'The tag or collection is no longer available.',
+      'The collection is no longer available.',
     );
   }
 
-  if (item.relationType === 'collection') {
-    return store.mutateCollectionRelationship(userId, item);
-  }
-
-  const exists = await store.relationshipExists(userId, item);
-  if (item.action === 'add') {
-    if (!exists) {
-      await store.addRelationship(userId, item);
-      return { effectiveChanged: true, effectiveMutationId: null, effectiveRelationVersion: null };
-    }
-    return { effectiveChanged: false, effectiveMutationId: null, effectiveRelationVersion: null };
-  }
-  if (exists) {
-    await store.removeRelationship(userId, item);
-    return { effectiveChanged: true, effectiveMutationId: null, effectiveRelationVersion: null };
-  }
-  return { effectiveChanged: false, effectiveMutationId: null, effectiveRelationVersion: null };
+  return store.mutateCollectionRelationship(userId, item);
 }

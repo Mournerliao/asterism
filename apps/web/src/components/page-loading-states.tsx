@@ -5,7 +5,6 @@ import { RepoListSkeleton } from './repo-skeletons';
 
 const THREE_KEYS = ['a', 'b', 'c'] as const;
 const FOUR_KEYS = ['a', 'b', 'c', 'd'] as const;
-const SIX_KEYS = ['a', 'b', 'c', 'd', 'e', 'f'] as const;
 
 export function PageHeaderSkeleton({
   compact = false,
@@ -83,38 +82,6 @@ export function CollectionsRouteLoading({ label }: { label: string }) {
     <LoadingFrame label={label}>
       <PageHeaderSkeleton action />
       <CollectionGridSkeleton />
-    </LoadingFrame>
-  );
-}
-
-export function TagGridSkeleton() {
-  return (
-    <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {SIX_KEYS.map((key) => (
-        <Card key={key} className="flex h-[62px] items-center justify-between gap-2 px-4 py-3.5">
-          <div className="flex items-center gap-2.5">
-            <Skeleton className="size-3 shrink-0 rounded-md" />
-            <div className="flex flex-col gap-1.5">
-              <Skeleton className="h-3.5 w-24" />
-              <Skeleton className="h-3 w-14" />
-            </div>
-          </div>
-          <div className="flex gap-1">
-            <Skeleton className="size-10 sm:size-7" />
-            <Skeleton className="size-10 sm:size-7" />
-          </div>
-        </Card>
-      ))}
-    </div>
-  );
-}
-
-export function TagsRouteLoading({ label }: { label: string }) {
-  return (
-    <LoadingFrame label={label}>
-      <PageHeaderSkeleton action />
-      <Skeleton className="h-9 w-full max-w-md" />
-      <TagGridSkeleton />
     </LoadingFrame>
   );
 }

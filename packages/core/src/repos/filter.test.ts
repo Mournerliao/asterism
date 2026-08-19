@@ -100,34 +100,37 @@ describe('filterStarredRepos', () => {
     ).toEqual([3]);
   });
 
-  it('treats undefined tagIds as no tag filter', () => {
-    expect(filterStarredRepos(data, { tagIds: undefined }).map((d) => d.repo.githubId)).toEqual([
-      1, 2, 3,
-    ]);
+  it('treats undefined collectionIds as no collection filter', () => {
+    expect(
+      filterStarredRepos(data, { collectionIds: undefined }).map((d) => d.repo.githubId),
+    ).toEqual([1, 2, 3]);
   });
 
-  it('filters by tagIds with OR semantics', () => {
+  it('filters by collectionIds with OR semantics', () => {
     const withIds: StarredRepoLike[] = data.map((entry, index) => ({
       ...entry,
       repoId: String(index + 1),
     }));
-    const tagsByRepoId = new Map<string, string[]>([
-      ['1', ['tag-a']],
-      ['2', ['tag-b']],
-      ['3', ['tag-a', 'tag-c']],
+    const collectionsByRepoId = new Map<string, string[]>([
+      ['1', ['col-a']],
+      ['2', ['col-b']],
+      ['3', ['col-a', 'col-c']],
     ]);
     expect(
-      filterStarredRepos(withIds, { tagIds: ['tag-a'] }, NOW, tagsByRepoId).map(
+      filterStarredRepos(withIds, { collectionIds: ['col-a'] }, NOW, collectionsByRepoId).map(
         (d) => d.repo.githubId,
       ),
     ).toEqual([1, 3]);
     expect(
-      filterStarredRepos(withIds, { tagIds: ['tag-a', 'tag-b'] }, NOW, tagsByRepoId).map(
-        (d) => d.repo.githubId,
-      ),
+      filterStarredRepos(
+        withIds,
+        { collectionIds: ['col-a', 'col-b'] },
+        NOW,
+        collectionsByRepoId,
+      ).map((d) => d.repo.githubId),
     ).toEqual([1, 2, 3]);
     expect(
-      filterStarredRepos(withIds, { tagIds: ['tag-missing'] }, NOW, tagsByRepoId).map(
+      filterStarredRepos(withIds, { collectionIds: ['col-missing'] }, NOW, collectionsByRepoId).map(
         (d) => d.repo.githubId,
       ),
     ).toEqual([]);
@@ -189,6 +192,6 @@ describe('hasActiveFilter', () => {
     expect(hasActiveFilter({ status: 'all', minStars: 0, query: '  ' })).toBe(false);
     expect(hasActiveFilter({ language: 'Go' })).toBe(true);
     expect(hasActiveFilter({ query: 'x' })).toBe(true);
-    expect(hasActiveFilter({ tagIds: ['t1'] })).toBe(true);
+    expect(hasActiveFilter({ collectionIds: ['c1'] })).toBe(true);
   });
 });

@@ -6,8 +6,8 @@ function item(id: string, status: BulkItemStatus = 'pending'): BulkOperationItem
   return {
     id,
     repoId: `repo-${id}`,
-    relationType: 'tag',
-    targetId: 'tag-1',
+    relationType: 'collection',
+    targetId: 'collection-1',
     action: 'add',
     status,
     attemptCount: 0,

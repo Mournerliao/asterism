@@ -1,18 +1,8 @@
-import {
-  hasActiveFilter,
-  type RepoFacets,
-  type RepoSort,
-  type RepoStatus,
-  type Tag,
-} from '@asterism/core';
+import { hasActiveFilter, type RepoFacets, type RepoSort, type RepoStatus } from '@asterism/core';
 import {
   Badge,
   Button,
   cn,
-  DropdownMenu,
-  DropdownMenuCheckboxItem,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -22,11 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@asterism/ui';
-import { ArrowUpDownIcon, ChevronDownIcon, SlidersHorizontalIcon, XIcon } from 'lucide-react';
+import { ArrowUpDownIcon, SlidersHorizontalIcon, XIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
-import { FacetPicker } from './facet-picker';
+import { FacetPicker, MultiFacetPicker } from './facet-picker';
 
 const ALL = '__all__';
 const STAR_THRESHOLDS = [100, 1000, 10000, 50000];
@@ -37,17 +28,20 @@ const ACTIVE_FILTER_TRIGGER_CLASS = 'border-primary/30 bg-primary/5 hover:bg-pri
 
 export function RepoFilterBar({
   facets,
-  tags,
+  collections,
   children,
 }: {
   facets: RepoFacets;
-  tags: Tag[];
+  collections: { id: string; name: string }[];
   children?: ReactNode;
 }) {
   const { t, i18n } = useTranslation();
   const filters = useBrowseFilters();
   const active = hasActiveFilter(toRepoFilter(filters));
-  const tagCount = filters.tagIds.length;
+  const collectionOptions = useMemo(
+    () => collections.map((collection) => ({ value: collection.id, label: collection.name })),
+    [collections],
+  );
   const moreFilterCount =
     Number(filters.minStars > 0) +
     Number(filters.pushedWithinDays !== null) +
@@ -78,43 +72,16 @@ export function RepoFilterBar({
           onValueChange={filters.setTopic}
         />
 
-        {tags.length > 0 ? (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className={cn(
-                  FILTER_TRIGGER_CLASS,
-                  'min-w-28 gap-1 font-normal',
-                  tagCount > 0 && ACTIVE_FILTER_TRIGGER_CLASS,
-                )}
-              >
-                {t('filters.tags')}
-                {tagCount > 0 ? (
-                  <Badge variant="secondary" className="h-5 min-w-5 px-1.5">
-                    {tagCount}
-                  </Badge>
-                ) : null}
-                <ChevronDownIcon className="size-4 opacity-50" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="max-h-64 w-48 overflow-y-auto">
-              {tags.map((tag) => (
-                <DropdownMenuCheckboxItem
-                  key={tag.id}
-                  checked={filters.tagIds.includes(tag.id)}
-                  onCheckedChange={() => filters.toggleTagId(tag.id)}
-                >
-                  <span
-                    className="mr-2 size-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: tag.color ?? 'var(--muted-foreground)' }}
-                  />
-                  {tag.name}
-                </DropdownMenuCheckboxItem>
-              ))}
-            </DropdownMenuContent>
-          </DropdownMenu>
+        {collections.length > 0 ? (
+          <MultiFacetPicker
+            values={filters.collectionIds}
+            options={collectionOptions}
+            triggerLabel={t('filters.collections')}
+            searchLabel={t('filters.searchCollections')}
+            emptyLabel={t('filters.noResults')}
+            resultsHint={(count) => t('filters.showingTopResults', { count })}
+            onToggle={filters.toggleCollectionId}
+          />
         ) : null}
 
         <Popover>

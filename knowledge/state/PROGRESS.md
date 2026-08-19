@@ -6,7 +6,9 @@
 
 ## 当前状态
 
-> **#34 实现已收口，关单改维护者验收（2026-08-19）**：Collection Dial 生产功能与 throwaway prototype 退役已合入；Undo apply 变量遮蔽已修。Agent 不再补测剩余旅程。#34 改为 `ready-for-human`，由维护者在真实账号上验收后关单，缺陷另开 fix。见 `logs/2026-08-19-issue-34-human-verification.md` 与 `logs/2026-08-18-issue-34-journeys-and-prototype-retirement.md`。
+> **ADR 0035 Tag 退役 cutover 已落地（2026-08-19）**：单一追加 migration `20260819120000_retire_user_tags.sql` 按 `normalize_classification_name` 把每个 Tag 转为或合并进 Collection，幂等写入 `collection_repos` 与不归属新 operation 的 baseline `collection_relation_heads`，然后删除 `tags` / `repo_tags`。新 `collection_repos` 只走既有受信 RPC；历史 `bulk_operation_items.relation_type = 'tag'` 保留为账本事实，新建只允许 `collection`。导出 v2 只写 Collection，导入接受 v1（tags 折叠）与 v2。Browse 主栏增加可搜索 Collection FacetPicker；卡片/列表用集合名占据原 chip 槽；Quick Look 去掉 Tags；批量只留 Collection；`/tags` 重定向到 `/collections`；Dashboard 改为集合覆盖率 + Collection Top 5。本机无 Docker，未跑 pgTAP / 本地 migration apply，也未部署远端。未发布 GitHub issue，未 push。见 `logs/2026-08-19-retire-user-tags-cutover.md`。
+
+> **#34 维护者验收后关闭，#29 规格父票随之关闭（2026-08-19）**：维护者完成 Collection Dial 验收并关闭 GitHub #34；发现的问题延后另开 ticket，不阻塞 Phase 2.2 关单。实现链全部落地且原型退役门槛已满足后，规格父票 #29 也已关闭并摘掉 `ready-for-agent`。#29–#34 链结束，Collection Dial 无未关 issue。下一 frontier 为 Phase 3 浏览器扩展。见 `logs/2026-08-19-issue-34-closed.md`。
 
 > **#33 远端已对齐并关闭（2026-08-18）**：维护者项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260814170000_collection_dial_undo.sql`（`supabase migration list --linked` Local=Remote），并部署匹配的 `bulk-organize` ACTIVE v5；远端确认 `create_collection_dial_undo` RPC 存在。GitHub #33 已关闭。未在本轮提交真实表单或改动 canonical。下一 frontier 为 #34 连续任务验收与原型退役。见 `logs/2026-08-18-issue-33-remote-deploy.md`。
 

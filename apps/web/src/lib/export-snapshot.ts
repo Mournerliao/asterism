@@ -1,28 +1,19 @@
 import { type ExportSnapshot, scopeExportSnapshot } from '@asterism/core';
-import type {
-  CollectionRepoLink,
-  CollectionWithMeta,
-  RepoTagLink,
-  StarredRepoRecord,
-  TagWithCount,
-} from '@asterism/db';
+import type { CollectionRepoLink, CollectionWithMeta, StarredRepoRecord } from '@asterism/db';
 
 /** 构建导出快照所需的原始查询数据（均为 TanStack Query 已缓存的最新结果）。 */
 export interface ExportSourceData {
   starredRepos: readonly StarredRepoRecord[];
-  tags: readonly TagWithCount[];
   collections: readonly CollectionWithMeta[];
-  repoTags: readonly RepoTagLink[];
   collectionRepos: readonly CollectionRepoLink[];
   notes: readonly { repoId: string; body: string }[];
 }
 
 /**
  * 把按 repoId 关联的查询数据映射为按 fullName 关联的导出快照。
- * 关联到库外仓库的标签/集合/笔记会被丢弃，保证快照自洽。
+ * 关联到库外仓库的集合/笔记会被丢弃，保证快照自洽。
  */
 export function buildExportSnapshot(source: ExportSourceData): ExportSnapshot {
-  const tagNameById = new Map(source.tags.map((tag) => [tag.id, tag.name]));
   const collectionNameById = new Map(
     source.collections.map((collection) => [collection.id, collection.name]),
   );
@@ -31,7 +22,6 @@ export function buildExportSnapshot(source: ExportSourceData): ExportSnapshot {
   );
 
   return {
-    tags: source.tags.map(({ name, color }) => ({ name, color })),
     collections: source.collections.map(({ name, description }) => ({ name, description })),
     repos: source.starredRepos.map(({ repo, starredAt }) => ({
       fullName: repo.fullName,
@@ -44,11 +34,6 @@ export function buildExportSnapshot(source: ExportSourceData): ExportSnapshot {
       archived: repo.archived,
       pushedAt: repo.pushedAt,
     })),
-    repoTags: source.repoTags.flatMap((link) => {
-      const tagName = tagNameById.get(link.tagId);
-      const fullName = fullNameByRepoId.get(link.repoId);
-      return tagName && fullName ? [{ fullName, tagName }] : [];
-    }),
     collectionRepos: source.collectionRepos.flatMap((link) => {
       const collectionName = collectionNameById.get(link.collectionId);
       const fullName = fullNameByRepoId.get(link.repoId);

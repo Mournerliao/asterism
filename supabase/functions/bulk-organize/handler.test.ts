@@ -25,8 +25,8 @@ const operation: BulkOperation = {
     {
       id: 'item-1',
       repoId: 'repo-1',
-      relationType: 'tag',
-      targetId: 'tag-1',
+      relationType: 'collection',
+      targetId: 'collection-1',
       action: 'add',
       status: 'pending',
       attemptCount: 0,
@@ -81,9 +81,9 @@ describe('bulk-organize trusted HTTP interface', () => {
         clientRequestId: '11111111-1111-4111-8111-111111111111',
         repoIds: ['repo-2', 'repo-1', 'repo-2'],
         changes: [
-          { relationType: 'tag', targetId: 'tag-1', action: 'add' },
-          { relationType: 'tag', targetId: 'tag-1', action: 'add' },
-          { relationType: 'collection', targetId: 'collection-1', action: 'remove' },
+          { relationType: 'collection', targetId: 'collection-1', action: 'add' },
+          { relationType: 'collection', targetId: 'collection-1', action: 'add' },
+          { relationType: 'collection', targetId: 'collection-2', action: 'remove' },
         ],
       }),
     );
@@ -95,8 +95,8 @@ describe('bulk-organize trusted HTTP interface', () => {
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-2', 'repo-1'],
       changes: [
-        { relationType: 'tag', targetId: 'tag-1', action: 'add' },
-        { relationType: 'collection', targetId: 'collection-1', action: 'remove' },
+        { relationType: 'collection', targetId: 'collection-1', action: 'add' },
+        { relationType: 'collection', targetId: 'collection-2', action: 'remove' },
       ],
     });
     expect(await outcome(response)).toEqual({ operation });
@@ -166,7 +166,24 @@ describe('bulk-organize trusted HTTP interface', () => {
     expect(deps.createOperation).not.toHaveBeenCalled();
   });
 
-  it('rejects unauthenticated and malformed requests before touching organization data', async () => {
+  it('rejects new operations that still name relationType tag', async () => {
+    const deps = dependencies();
+    const response = await createBulkOrganizeHandler(deps)(
+      request({
+        action: 'create',
+        source: 'manual',
+        interaction: 'bulk_dialog',
+        clientRequestId: '11111111-1111-4111-8111-111111111111',
+        repoIds: ['repo-1'],
+        changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add' }],
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    expect(deps.createOperation).not.toHaveBeenCalled();
+  });
+
+  it('rejects unauthenticated requests', async () => {
     const deps = dependencies();
     const handler = createBulkOrganizeHandler(deps);
 
@@ -182,7 +199,7 @@ describe('bulk-organize trusted HTTP interface', () => {
             interaction: 'bulk_dialog',
             clientRequestId: '11111111-1111-4111-8111-111111111111',
             repoIds: [],
-            changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add' }],
+            changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
           }),
         )
       ).status,
@@ -198,7 +215,7 @@ describe('bulk-organize trusted HTTP interface', () => {
       interaction: 'bulk_dialog',
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-1'],
-      changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add' }],
+      changes: [{ relationType: 'collection', targetId: 'collection-1', action: 'add' }],
       unexpected: true,
     },
     {
@@ -207,7 +224,9 @@ describe('bulk-organize trusted HTTP interface', () => {
       interaction: 'bulk_dialog',
       clientRequestId: '11111111-1111-4111-8111-111111111111',
       repoIds: ['repo-1'],
-      changes: [{ relationType: 'tag', targetId: 'tag-1', action: 'add', unexpected: true }],
+      changes: [
+        { relationType: 'collection', targetId: 'collection-1', action: 'add', unexpected: true },
+      ],
     },
   ])('rejects unknown create request fields', async (body) => {
     const deps = dependencies();

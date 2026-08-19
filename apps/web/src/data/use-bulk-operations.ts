@@ -13,13 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useSession } from '../auth/use-session';
 import { runBulkOperationUntilSettled } from '../lib/bulk-operation-runner';
 import { supabase } from '../lib/supabase';
-import {
-  bulkOperationKeys,
-  collectionKeys,
-  collectionRepoKeys,
-  repoTagKeys,
-  tagKeys,
-} from './keys';
+import { bulkOperationKeys, collectionKeys, collectionRepoKeys } from './keys';
 
 const NO_USER = 'NO_USER';
 
@@ -60,8 +54,6 @@ export function useBulkOperationActions() {
     if (!userId) return;
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: bulkOperationKeys.list(userId) }),
-      queryClient.invalidateQueries({ queryKey: repoTagKeys.list(userId) }),
-      queryClient.invalidateQueries({ queryKey: tagKeys.list(userId) }),
       queryClient.invalidateQueries({ queryKey: collectionRepoKeys.list(userId) }),
       queryClient.invalidateQueries({ queryKey: collectionKeys.list(userId) }),
     ]);

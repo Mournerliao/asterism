@@ -1,4 +1,7 @@
-export const EXPORT_VERSION = 1 as const;
+export const EXPORT_VERSION = 2 as const;
+export const IMPORT_VERSIONS = [1, 2] as const;
+
+export type ImportVersion = (typeof IMPORT_VERSIONS)[number];
 
 export interface ExportTag {
   name: string;
@@ -38,7 +41,7 @@ export interface ExportNote {
 }
 
 export interface ExportPayloadV1 {
-  version: typeof EXPORT_VERSION;
+  version: 1;
   exportedAt: string;
   counts: {
     repos: number;
@@ -54,17 +57,40 @@ export interface ExportPayloadV1 {
   notes: ExportNote[];
 }
 
-export interface ExportSnapshot {
-  tags: ExportTag[];
+export interface ExportPayloadV2 {
+  version: typeof EXPORT_VERSION;
+  exportedAt: string;
+  counts: {
+    repos: number;
+    collections: number;
+    notes: number;
+  };
   collections: ExportCollection[];
   repos: ExportRepo[];
-  repoTags: ExportRepoTag[];
+  collectionRepos: ExportCollectionRepo[];
+  notes: ExportNote[];
+}
+
+export type ExportPayload = ExportPayloadV2;
+
+export interface ExportSnapshot {
+  collections: ExportCollection[];
+  repos: ExportRepo[];
+  collectionRepos: ExportCollectionRepo[];
+  notes: ExportNote[];
+}
+
+export interface ImportPayload {
+  version: ImportVersion;
+  exportedAt: string;
+  collections: ExportCollection[];
+  repos: ExportRepo[];
   collectionRepos: ExportCollectionRepo[];
   notes: ExportNote[];
 }
 
 export interface ParsedImportPayload {
-  payload: ExportPayloadV1;
+  payload: ImportPayload;
 }
 
 export interface ImportIssue {
@@ -73,9 +99,7 @@ export interface ImportIssue {
 }
 
 export interface NormalizedImportData {
-  tags: ExportTag[];
   collections: ExportCollection[];
-  repoTags: ExportRepoTag[];
   collectionRepos: ExportCollectionRepo[];
   notes: ExportNote[];
 }

@@ -3,7 +3,7 @@
 `bulk-organize` 是 Issue #11 的受信批量关系写入路径。函数验证 Supabase JWT，随后使用 service role：
 
 - 创建固定 repository ID 范围与逐关系执行账本；
-- 以 50 条为上限领取有界批次；tag 保持既有幂等语义，collection 经受信 mutation RPC
+- 以 50 条为上限领取有界批次；collection 经受信 mutation RPC
   原子记录 relation head、effective mutation receipt 与 item identity；
 - 记录成功、可重试失败与终止失败，并只重试可重试项；
 - 在用户明确接受剩余终止失败后结束操作。

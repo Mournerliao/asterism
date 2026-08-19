@@ -54,12 +54,8 @@ export {
   upsertRepoEmbedding,
 } from './queries/embeddings';
 export { getNote, listNoteRepoIds, listNotes, saveNote } from './queries/notes';
-export type { RepoTagLink } from './queries/repo-tags';
-export { addRepoTag, listRepoTags, removeRepoTag } from './queries/repo-tags';
 export type { StarredRepoRecord } from './queries/repos';
 export { getLatestStarredAt, listStarredRepos, mapRepoRow } from './queries/repos';
-export type { TagWithCount } from './queries/tags';
-export { createTag, deleteTag, listTags, updateTag } from './queries/tags';
 export type { RepoReadmeOutcome, RepoReadmeRequest, RepoReadmeSuccess } from './readme';
 export { invokeRepoReadme } from './readme';
 export type { SyncStarsResult } from './sync';

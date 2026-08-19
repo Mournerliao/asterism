@@ -1,4 +1,3 @@
-import type { Tag } from '@asterism/core';
 import { Button } from '@asterism/ui';
 import { ArrowLeftIcon, FolderIcon } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -6,13 +5,12 @@ import { useTranslation } from 'react-i18next';
 import { Link, useParams } from 'react-router-dom';
 import { EmptyState } from '../components/empty-state';
 import { CollectionDetailRouteLoading } from '../components/page-loading-states';
+import type { RepoCardCollection } from '../components/repo-card-context';
 import { RepoCollection } from '../components/repo-collection';
 import { useRepoInspector } from '../contexts/repo-inspector-context';
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
-import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
-import { useTags } from '../data/use-tags';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
 import { useListScrollStore } from '../stores/list-scroll';
 import { useRepoInspectorStore } from '../stores/repo-inspector';
@@ -27,8 +25,6 @@ export function CollectionDetailPage() {
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const { data: starredRepos, isLoading: reposLoading } = useStarredRepos();
   const { data: collectionRepos, isLoading: linksLoading } = useCollectionRepos();
-  const { data: tags, isLoading: tagsLoading } = useTags();
-  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
 
   const collection = useMemo(
     () => (collections ?? []).find((item) => item.id === id),
@@ -46,6 +42,30 @@ export function CollectionDetailPage() {
     );
     return starredRepos.filter((record) => memberIds.has(record.repoId));
   }, [collection, collectionRepos, starredRepos]);
+
+  const collectionsByRepo = useMemo(() => {
+    const byId = new Map(
+      (collections ?? []).map((item) => [
+        item.id,
+        { id: item.id, name: item.name } satisfies RepoCardCollection,
+      ]),
+    );
+    const map = new Map<string, RepoCardCollection[]>();
+    for (const link of collectionRepos ?? []) {
+      const item = byId.get(link.collectionId);
+      if (!item) {
+        continue;
+      }
+      const list = map.get(link.repoId);
+      if (list) {
+        list.push(item);
+      } else {
+        map.set(link.repoId, [item]);
+      }
+    }
+    return map;
+  }, [collections, collectionRepos]);
+
   const sourceKey = `collection:${id ?? 'unknown'}`;
   const inspectorContext = useMemo(
     () => ({
@@ -76,26 +96,7 @@ export function CollectionDetailPage() {
     return () => el.removeEventListener('scroll', update);
   }, [scrollElement, sourceKey]);
 
-  const tagsByRepo = useMemo(() => {
-    const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
-    const map = new Map<string, Tag[]>();
-    for (const link of repoTags ?? []) {
-      const tag = byId.get(link.tagId);
-      if (!tag) {
-        continue;
-      }
-      const list = map.get(link.repoId);
-      if (list) {
-        list.push(tag);
-      } else {
-        map.set(link.repoId, [tag]);
-      }
-    }
-    return map;
-  }, [tags, repoTags]);
-
-  const isLoading =
-    collectionsLoading || reposLoading || linksLoading || tagsLoading || repoTagsLoading;
+  const isLoading = collectionsLoading || reposLoading || linksLoading;
   const count = new Intl.NumberFormat(i18n.language).format(memberRecords.length);
 
   useReadmeReturnRestore({
@@ -171,7 +172,7 @@ export function CollectionDetailPage() {
         <RepoCollection
           records={memberRecords}
           view="list"
-          tagsByRepo={tagsByRepo}
+          collectionsByRepo={collectionsByRepo}
           selectedRepoId={selectedRepoId}
           onSelect={openInspector}
           scrollElement={scrollElement}

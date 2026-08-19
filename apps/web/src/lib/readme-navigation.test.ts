@@ -12,7 +12,7 @@ const browseSnapshot: BrowseSourceSnapshot = {
   query: 'codex',
   language: 'TypeScript',
   topic: 'ai',
-  tagIds: ['tag-1'],
+  collectionIds: ['col-1'],
   minStars: 100,
   pushedWithinDays: 30,
   status: 'active',

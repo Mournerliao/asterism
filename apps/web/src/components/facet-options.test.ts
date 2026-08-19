@@ -12,10 +12,11 @@ describe('getVisibleFacetOptions', () => {
     });
   });
 
-  it('keeps a selected option visible when it is outside the initial window', () => {
-    const result = getVisibleFacetOptions(options, '', 'topic-48');
-    expect(result.items).toHaveLength(20);
+  it('keeps selected options visible when they are outside the initial window', () => {
+    const result = getVisibleFacetOptions(options, '', ['topic-48', 'topic-52']);
     expect(result.items[0]).toBe('topic-48');
+    expect(result.items[1]).toBe('topic-52');
+    expect(result.items).toHaveLength(20);
     expect(result.truncated).toBe(true);
   });
 

@@ -12,7 +12,7 @@ export interface HybridRankInput<T extends StarredRepoLike> {
   filter: RepoFilter;
   sort: RepoSort;
   now?: number;
-  tagsByRepoId?: Map<string, string[]>;
+  collectionsByRepoId?: Map<string, string[]>;
   /** repoId → 语义距离（越小越近）；缺省 / 空表示不做语义扩展。 */
   distanceByRepoId?: ReadonlyMap<string, number>;
   /** 语义近邻最多补充多少条；缺省表示不限。 */
@@ -39,18 +39,23 @@ export function rankHybridRepos<T extends StarredRepoLike>({
   filter,
   sort,
   now = Date.now(),
-  tagsByRepoId,
+  collectionsByRepoId,
   distanceByRepoId,
   semanticLimit,
 }: HybridRankInput<T>): HybridRankResult<T> {
   const query = filter.query?.trim() ?? '';
-  const facetEligible = filterStarredRepos(items, { ...filter, query: '' }, now, tagsByRepoId);
+  const facetEligible = filterStarredRepos(
+    items,
+    { ...filter, query: '' },
+    now,
+    collectionsByRepoId,
+  );
 
   if (!query) {
     return { primary: sortStarredRepos(facetEligible, sort), semantic: [] };
   }
 
-  const keywordMatches = filterStarredRepos(items, filter, now, tagsByRepoId);
+  const keywordMatches = filterStarredRepos(items, filter, now, collectionsByRepoId);
   const primary = sortStarredRepos(keywordMatches, sort);
 
   if (!distanceByRepoId || distanceByRepoId.size === 0) {

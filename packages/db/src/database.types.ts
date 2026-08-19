@@ -80,61 +80,6 @@ export interface Database {
           },
         ];
       };
-      tags: {
-        Row: {
-          id: string;
-          user_id: string;
-          name: string;
-          color: string | null;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          name: string;
-          color?: string | null;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database['public']['Tables']['tags']['Insert']>;
-        Relationships: [];
-      };
-      repo_tags: {
-        Row: {
-          id: string;
-          user_id: string;
-          repo_id: string;
-          tag_id: string;
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          user_id: string;
-          repo_id: string;
-          tag_id: string;
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: Partial<Database['public']['Tables']['repo_tags']['Insert']>;
-        Relationships: [
-          {
-            foreignKeyName: 'repo_tags_repo_id_fkey';
-            columns: ['repo_id'];
-            isOneToOne: false;
-            referencedRelation: 'repos';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'repo_tags_tag_id_fkey';
-            columns: ['tag_id'];
-            isOneToOne: false;
-            referencedRelation: 'tags';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
       collections: {
         Row: {
           id: string;

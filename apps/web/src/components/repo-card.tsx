@@ -1,4 +1,3 @@
-import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import {
   Badge,
@@ -9,14 +8,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@asterism/ui';
-import {
-  ArchiveIcon,
-  CheckIcon,
-  FolderIcon,
-  GitForkIcon,
-  NotebookPenIcon,
-  StarIcon,
-} from 'lucide-react';
+import { ArchiveIcon, CheckIcon, GitForkIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,8 +18,11 @@ import { formatCompactNumber, formatCompactRelativeTime, formatRelativeTime } fr
 import { languageColor } from '../lib/language-colors';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { OverflowChipRow } from './overflow-chip-row';
-import { buildRepoContextItems, type RepoContextItem } from './repo-card-context';
-import { TagBadge } from './tag-badge';
+import {
+  buildRepoContextItems,
+  type RepoCardCollection,
+  type RepoContextItem,
+} from './repo-card-context';
 import { TruncatedDescription } from './truncated-description';
 
 function StatusIndicator({
@@ -65,10 +60,6 @@ function StatusIndicator({
 }
 
 function ContextChip({ item }: { item: RepoContextItem }) {
-  if (item.kind === 'tag') {
-    return <TagBadge name={item.label} color={item.color} className="h-[22px]" />;
-  }
-
   return (
     <Badge variant="secondary" className="h-[22px] font-normal">
       {item.label}
@@ -78,8 +69,7 @@ function ContextChip({ item }: { item: RepoContextItem }) {
 
 export const RepoCard = memo(function RepoCard({
   record,
-  tags,
-  collectionCount = 0,
+  collections,
   hasNote = false,
   selected = false,
   onSelect,
@@ -88,8 +78,7 @@ export const RepoCard = memo(function RepoCard({
   className,
 }: {
   record: StarredRepoRecord;
-  tags?: Tag[];
-  collectionCount?: number;
+  collections?: RepoCardCollection[];
   hasNote?: boolean;
   selected?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
@@ -106,12 +95,11 @@ export const RepoCard = memo(function RepoCard({
   const compactStarred = formatCompactRelativeTime(starredAt, locale);
   const dotColor = languageColor(repo.language);
   const contextItems = useMemo(
-    () => buildRepoContextItems(tags ?? [], repo.topics),
-    [repo.topics, tags],
+    () => buildRepoContextItems(collections ?? [], repo.topics),
+    [collections, repo.topics],
   );
   const handleOpen = onSelect ? () => onSelect(record, 'pointer') : undefined;
   const bulkSelected = bulkSelection?.repoIds.has(record.repoId) ?? false;
-  const collectionLabel = t('browse.inCollections', { count: collectionCount });
   const noteLabel = t('browse.hasNote');
 
   return (
@@ -261,16 +249,6 @@ export const RepoCard = memo(function RepoCard({
             ) : null}
           </div>
           <span className="flex shrink-0 items-center gap-1">
-            {collectionCount > 0 ? (
-              <StatusIndicator
-                label={collectionLabel}
-                onSelect={bulkSelection ? undefined : handleOpen}
-                interactive={!bulkSelection}
-              >
-                <FolderIcon className="size-3.5" aria-hidden="true" />
-                {collectionCount}
-              </StatusIndicator>
-            ) : null}
             {hasNote ? (
               <StatusIndicator
                 label={noteLabel}

@@ -172,7 +172,7 @@ function normalizeCreateInput(value: unknown): CreateBulkOperationInput | null {
     const change = candidate as Record<string, unknown>;
     if (
       !hasExactKeys(change, ['relationType', 'targetId', 'action']) ||
-      (change.relationType !== 'tag' && change.relationType !== 'collection') ||
+      change.relationType !== 'collection' ||
       (change.action !== 'add' && change.action !== 'remove') ||
       !isId(change.targetId)
     ) {

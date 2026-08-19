@@ -1,5 +1,6 @@
 export const CORE_VERSION = '0.0.0';
 
+export { normalizeClassificationName } from './classifications/name';
 export type {
   CollectionDialCatalogEntry,
   CollectionDialEvent,
@@ -29,11 +30,14 @@ export type {
   ExportCollection,
   ExportCollectionRepo,
   ExportNote,
+  ExportPayload,
   ExportPayloadV1,
+  ExportPayloadV2,
   ExportRepo,
   ExportRepoTag,
   ExportSnapshot,
   ExportTag,
+  ImportPayload,
   NormalizedImportData,
   ParsedImportPayload,
 } from './data-port/types';
@@ -79,16 +83,14 @@ export type { Collection, CollectionId } from './models/collection';
 export type { Note } from './models/note';
 export type { Repo, RepoId } from './models/repo';
 export { repoFullName } from './models/repo';
-export type { Tag, TagId } from './models/tag';
-export { pickTagColor, TAG_COLORS } from './models/tag';
 export type {
   ArchiveSplit,
+  CollectionUsage,
   DashboardInsights,
   DashboardStats,
   DeriveDashboardInput,
   NamedCount,
-  RepoTagLink,
-  TagUsage,
+  RepoCollectionLink,
   YearCount,
 } from './repos/analytics';
 export { deriveDashboardInsights } from './repos/analytics';

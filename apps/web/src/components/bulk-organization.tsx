@@ -1,4 +1,4 @@
-import type { BulkChange, BulkOperation, CollectionWithMeta, TagWithCount } from '@asterism/db';
+import type { BulkChange, BulkOperation, CollectionWithMeta } from '@asterism/db';
 import {
   Badge,
   Button,
@@ -22,20 +22,18 @@ import { useTranslation } from 'react-i18next';
 type ChangeChoice = 'none' | 'add' | 'remove';
 
 function TargetRow({
-  kind,
   id,
   name,
   value,
   onChange,
 }: {
-  kind: 'tag' | 'collection';
   id: string;
   name: string;
   value: ChangeChoice;
   onChange: (key: string, value: ChangeChoice) => void;
 }) {
   const { t } = useTranslation();
-  const key = `${kind}:${id}`;
+  const key = `collection:${id}`;
   return (
     <div className="flex min-w-0 items-center justify-between gap-3 rounded-md px-2 py-2 hover:bg-accent/25">
       <span className="min-w-0 truncate text-body">{name}</span>
@@ -61,7 +59,6 @@ export function BulkOrganizeDialog({
   open,
   onOpenChange,
   repoCount,
-  tags,
   collections,
   pending,
   error,
@@ -70,7 +67,6 @@ export function BulkOrganizeDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   repoCount: number;
-  tags: TagWithCount[];
   collections: CollectionWithMeta[];
   pending: boolean;
   error: boolean;
@@ -86,7 +82,7 @@ export function BulkOrganizeDialog({
     for (const [key, action] of Object.entries(choices)) {
       if (action === 'none') continue;
       const [relationType, targetId] = key.split(':');
-      if ((relationType === 'tag' || relationType === 'collection') && targetId) {
+      if (relationType === 'collection' && targetId) {
         result.push({ relationType, targetId, action });
       }
     }
@@ -108,29 +104,7 @@ export function BulkOrganizeDialog({
           ) : null}
         </DialogHeader>
         <div className="min-h-0 overflow-y-auto rounded-lg border bg-card p-2">
-          <section aria-labelledby="bulk-tags-heading">
-            <h3
-              id="bulk-tags-heading"
-              className="px-2 py-1 font-medium text-caption text-muted-foreground"
-            >
-              {t('bulk.tags')}
-            </h3>
-            {tags.length > 0 ? (
-              tags.map((tag) => (
-                <TargetRow
-                  key={tag.id}
-                  kind="tag"
-                  id={tag.id}
-                  name={tag.name}
-                  value={choices[`tag:${tag.id}`] ?? 'none'}
-                  onChange={updateChoice}
-                />
-              ))
-            ) : (
-              <p className="px-2 py-2 text-caption text-muted-foreground">{t('bulk.noTags')}</p>
-            )}
-          </section>
-          <section aria-labelledby="bulk-collections-heading" className="mt-2 border-t pt-2">
+          <section aria-labelledby="bulk-collections-heading">
             <h3
               id="bulk-collections-heading"
               className="px-2 py-1 font-medium text-caption text-muted-foreground"
@@ -141,7 +115,6 @@ export function BulkOrganizeDialog({
               collections.map((collection) => (
                 <TargetRow
                   key={collection.id}
-                  kind="collection"
                   id={collection.id}
                   name={collection.name}
                   value={choices[`collection:${collection.id}`] ?? 'none'}

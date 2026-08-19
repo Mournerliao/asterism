@@ -36,7 +36,7 @@ export function applyBrowseSnapshot(snapshot: BrowseSourceSnapshot): void {
     query: snapshot.query,
     language: snapshot.language,
     topic: snapshot.topic,
-    tagIds: [...snapshot.tagIds],
+    collectionIds: [...(snapshot.collectionIds ?? [])],
     minStars: snapshot.minStars,
     pushedWithinDays: snapshot.pushedWithinDays,
     status: snapshot.status,

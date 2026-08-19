@@ -1,4 +1,3 @@
-import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { memo, useEffect, useRef, useState } from 'react';
@@ -8,6 +7,7 @@ import { useScrollMargin } from '../lib/scroll-margin';
 import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { RepoCard } from './repo-card';
+import type { RepoCardCollection } from './repo-card-context';
 import { RepoTable } from './repo-table';
 import { SemanticSectionLabel } from './semantic-section-separator';
 
@@ -19,8 +19,7 @@ type RepoCollectionProps = {
   records: StarredRepoRecord[];
   /** 语义近邻起始下标（records 中）；null / 缺省表示无近邻，不渲染分隔线。 */
   semanticStartIndex?: number | null;
-  tagsByRepo?: Map<string, Tag[]>;
-  collectionCountByRepo?: Map<string, number>;
+  collectionsByRepo?: Map<string, RepoCardCollection[]>;
   noteRepoIds?: Set<string>;
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
@@ -59,8 +58,7 @@ function useColumns(ref: React.RefObject<HTMLElement | null>): number {
 const RepoGridView = memo(function RepoGridView({
   records,
   semanticStartIndex,
-  tagsByRepo,
-  collectionCountByRepo,
+  collectionsByRepo,
   noteRepoIds,
   selectedRepoId,
   onSelect,
@@ -121,8 +119,7 @@ const RepoGridView = memo(function RepoGridView({
                   <RepoCard
                     key={record.repo.githubId}
                     record={record}
-                    tags={tagsByRepo?.get(record.repoId)}
-                    collectionCount={collectionCountByRepo?.get(record.repoId)}
+                    collections={collectionsByRepo?.get(record.repoId)}
                     hasNote={noteRepoIds?.has(record.repoId)}
                     selected={record.repoId === selectedRepoId}
                     onSelect={onSelect}
@@ -147,8 +144,7 @@ const RepoGridView = memo(function RepoGridView({
                 key={record.repo.githubId}
                 className="repo-semantic-enter"
                 record={record}
-                tags={tagsByRepo?.get(record.repoId)}
-                collectionCount={collectionCountByRepo?.get(record.repoId)}
+                collections={collectionsByRepo?.get(record.repoId)}
                 hasNote={noteRepoIds?.has(record.repoId)}
                 selected={record.repoId === selectedRepoId}
                 onSelect={onSelect}
@@ -166,8 +162,7 @@ const RepoGridView = memo(function RepoGridView({
 const RepoListView = memo(function RepoListView({
   records,
   semanticStartIndex,
-  tagsByRepo,
-  collectionCountByRepo,
+  collectionsByRepo,
   noteRepoIds,
   selectedRepoId,
   onSelect,
@@ -179,8 +174,7 @@ const RepoListView = memo(function RepoListView({
     <RepoTable
       records={records}
       semanticStartIndex={semanticStartIndex}
-      tagsByRepo={tagsByRepo}
-      collectionCountByRepo={collectionCountByRepo}
+      collectionsByRepo={collectionsByRepo}
       noteRepoIds={noteRepoIds}
       selectedRepoId={selectedRepoId}
       onSelect={onSelect}
@@ -197,8 +191,7 @@ export const RepoCollection = memo(function RepoCollection({
   records,
   semanticStartIndex,
   view,
-  tagsByRepo,
-  collectionCountByRepo,
+  collectionsByRepo,
   noteRepoIds,
   selectedRepoId,
   onSelect,
@@ -211,8 +204,7 @@ export const RepoCollection = memo(function RepoCollection({
       <RepoListView
         records={records}
         semanticStartIndex={semanticStartIndex}
-        tagsByRepo={tagsByRepo}
-        collectionCountByRepo={collectionCountByRepo}
+        collectionsByRepo={collectionsByRepo}
         noteRepoIds={noteRepoIds}
         selectedRepoId={selectedRepoId}
         onSelect={onSelect}
@@ -227,8 +219,7 @@ export const RepoCollection = memo(function RepoCollection({
     <RepoGridView
       records={records}
       semanticStartIndex={semanticStartIndex}
-      tagsByRepo={tagsByRepo}
-      collectionCountByRepo={collectionCountByRepo}
+      collectionsByRepo={collectionsByRepo}
       noteRepoIds={noteRepoIds}
       selectedRepoId={selectedRepoId}
       onSelect={onSelect}

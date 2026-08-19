@@ -8,7 +8,6 @@ import {
   LogInIcon,
   RefreshCwIcon,
   StarIcon,
-  TagIcon,
 } from 'lucide-react';
 import { lazy, Suspense, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,11 +20,10 @@ import {
   DashboardChartsSkeleton,
   DashboardContentSkeleton,
 } from '../components/page-loading-states';
+import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections } from '../data/use-collections';
-import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
-import { useTags } from '../data/use-tags';
 
 const LazyDashboardCharts = lazy(async () => ({
   default: DashboardCharts,
@@ -40,10 +38,9 @@ export function DashboardPage() {
     refetch,
     isFetching,
   } = useStarredRepos();
-  const { data: tags, isLoading: tagsLoading } = useTags();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
-  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
-  const isLoading = starredReposLoading || tagsLoading || collectionsLoading || repoTagsLoading;
+  const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
+  const isLoading = starredReposLoading || collectionsLoading || collectionReposLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
 
@@ -53,15 +50,14 @@ export function DashboardPage() {
     () =>
       deriveDashboardInsights({
         starredRepos: records,
-        tags: (tags ?? []).map(({ id, name, color }) => ({ id, name, color })),
         collections: (collections ?? []).map(({ id, name, description }) => ({
           id,
           name,
           description,
         })),
-        repoTags: repoTags ?? [],
+        collectionRepos: collectionRepos ?? [],
       }),
-    [records, tags, collections, repoTags],
+    [records, collections, collectionRepos],
   );
 
   const formatCount = (value: number) => new Intl.NumberFormat(i18n.language).format(value);
@@ -128,9 +124,9 @@ export function DashboardPage() {
               value={formatCount(insights.stats.languageCount)}
             />
             <StatCard
-              icon={TagIcon}
-              label={t('dashboard.taggedRepos')}
-              value={formatCount(insights.stats.taggedRepoCount)}
+              icon={FolderIcon}
+              label={t('dashboard.collectedRepos')}
+              value={formatCount(insights.stats.collectedRepoCount)}
             />
             <StatCard
               icon={FolderIcon}

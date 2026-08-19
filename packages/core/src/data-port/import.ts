@@ -1,10 +1,18 @@
+import { normalizeClassificationName } from '../classifications/name';
 import type {
-  ExportPayloadV1,
+  ExportCollection,
+  ExportCollectionRepo,
+  ExportNote,
+  ExportRepo,
+  ExportRepoTag,
+  ExportTag,
   ImportIssue,
+  ImportPayload,
+  ImportVersion,
   NormalizedImportData,
   ParsedImportPayload,
 } from './types';
-import { EXPORT_VERSION } from './types';
+import { IMPORT_VERSIONS } from './types';
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -24,7 +32,11 @@ function readStringArray(value: unknown): string[] | null {
   return value;
 }
 
-/** 解析并校验 v1 JSON 导入 payload。 */
+function isImportVersion(value: unknown): value is ImportVersion {
+  return IMPORT_VERSIONS.some((version) => version === value);
+}
+
+/** 解析并校验 v1 / v2 JSON 导入 payload。v1 的 tags 在此折叠进 collections。 */
 export function parseImportJson(raw: string): ParsedImportPayload {
   let parsed: unknown;
   try {
@@ -38,7 +50,7 @@ export function parseImportJson(raw: string): ParsedImportPayload {
     throw new Error('INVALID_SCHEMA');
   }
 
-  if (parsed.version !== EXPORT_VERSION) {
+  if (!isImportVersion(parsed.version)) {
     throw new Error('UNSUPPORTED_VERSION');
   }
 
@@ -47,27 +59,30 @@ export function parseImportJson(raw: string): ParsedImportPayload {
     issues.push({ kind: 'warning', message: 'Missing exportedAt' });
   }
 
-  const tags = parseTags(parsed.tags, issues);
+  const tags =
+    parsed.version === 1
+      ? parseTags(parsed.tags, issues)
+      : Array.isArray(parsed.tags)
+        ? parseTags(parsed.tags, issues)
+        : [];
   const collections = parseCollections(parsed.collections, issues);
   const repos = parseRepos(parsed.repos, issues);
-  const repoTags = parseRepoTags(parsed.repoTags, issues);
+  const repoTags =
+    parsed.version === 1
+      ? parseRepoTags(parsed.repoTags, issues)
+      : Array.isArray(parsed.repoTags)
+        ? parseRepoTags(parsed.repoTags, issues)
+        : [];
   const collectionRepos = parseCollectionRepos(parsed.collectionRepos, issues);
   const notes = parseNotes(parsed.notes, issues);
+  const folded = foldTagsIntoCollections(tags, collections, repoTags, collectionRepos);
 
-  const payload: ExportPayloadV1 = {
-    version: EXPORT_VERSION,
+  const payload: ImportPayload = {
+    version: parsed.version,
     exportedAt: exportedAt ?? new Date().toISOString(),
-    counts: {
-      repos: repos.length,
-      tags: tags.length,
-      collections: collections.length,
-      notes: notes.length,
-    },
-    tags,
-    collections,
+    collections: folded.collections,
     repos,
-    repoTags,
-    collectionRepos,
+    collectionRepos: folded.collectionRepos,
     notes,
   };
 
@@ -79,14 +94,57 @@ export function parseImportJson(raw: string): ParsedImportPayload {
 }
 
 /** 从 payload 提取可写入数据库的组织数据（不含 repos 本体）。 */
-export function normalizeImportData(payload: ExportPayloadV1): NormalizedImportData {
+export function normalizeImportData(payload: ImportPayload): NormalizedImportData {
   return {
-    tags: payload.tags,
     collections: payload.collections,
-    repoTags: payload.repoTags,
     collectionRepos: payload.collectionRepos,
     notes: payload.notes.filter((note) => note.body.trim().length > 0),
   };
+}
+
+export function foldTagsIntoCollections(
+  tags: readonly ExportTag[],
+  collections: readonly ExportCollection[],
+  repoTags: readonly ExportRepoTag[],
+  collectionRepos: readonly ExportCollectionRepo[],
+): { collections: ExportCollection[]; collectionRepos: ExportCollectionRepo[] } {
+  const byNorm = new Map<string, ExportCollection>();
+  for (const collection of collections) {
+    const key = normalizeClassificationName(collection.name);
+    if (!byNorm.has(key)) {
+      byNorm.set(key, collection);
+    }
+  }
+  for (const tag of tags) {
+    const key = normalizeClassificationName(tag.name);
+    if (!byNorm.has(key)) {
+      byNorm.set(key, { name: tag.name, description: null });
+    }
+  }
+
+  const links: ExportCollectionRepo[] = [];
+  const seen = new Set<string>();
+  const pushLink = (collectionName: string, fullName: string) => {
+    const collection = byNorm.get(normalizeClassificationName(collectionName));
+    if (!collection) {
+      return;
+    }
+    const dedupe = `${normalizeClassificationName(collection.name)}\0${fullName.toLowerCase()}`;
+    if (seen.has(dedupe)) {
+      return;
+    }
+    seen.add(dedupe);
+    links.push({ collectionName: collection.name, fullName });
+  };
+
+  for (const link of collectionRepos) {
+    pushLink(link.collectionName, link.fullName);
+  }
+  for (const link of repoTags) {
+    pushLink(link.tagName, link.fullName);
+  }
+
+  return { collections: [...byNorm.values()], collectionRepos: links };
 }
 
 function parseTags(value: unknown, issues: ImportIssue[]) {
@@ -135,7 +193,7 @@ function parseRepos(value: unknown, issues: ImportIssue[]) {
     issues.push({ kind: 'error', message: 'repos must be an array' });
     return [];
   }
-  const repos = [];
+  const repos: ExportRepo[] = [];
   for (const item of value) {
     if (!isRecord(item)) {
       continue;
@@ -164,7 +222,7 @@ function parseRepoTags(value: unknown, issues: ImportIssue[]) {
     issues.push({ kind: 'error', message: 'repoTags must be an array' });
     return [];
   }
-  const links = [];
+  const links: ExportRepoTag[] = [];
   for (const item of value) {
     if (!isRecord(item)) {
       continue;
@@ -183,7 +241,7 @@ function parseCollectionRepos(value: unknown, issues: ImportIssue[]) {
     issues.push({ kind: 'error', message: 'collectionRepos must be an array' });
     return [];
   }
-  const links = [];
+  const links: ExportCollectionRepo[] = [];
   for (const item of value) {
     if (!isRecord(item)) {
       continue;
@@ -202,7 +260,7 @@ function parseNotes(value: unknown, issues: ImportIssue[]) {
     issues.push({ kind: 'error', message: 'notes must be an array' });
     return [];
   }
-  const notes = [];
+  const notes: ExportNote[] = [];
   for (const item of value) {
     if (!isRecord(item)) {
       continue;

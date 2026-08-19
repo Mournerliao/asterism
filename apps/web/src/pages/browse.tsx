@@ -1,4 +1,4 @@
-import { deriveRepoFacets, hasActiveFilter, rankHybridRepos, type Tag } from '@asterism/core';
+import { deriveRepoFacets, hasActiveFilter, rankHybridRepos } from '@asterism/core';
 import { Button, CollectionDial, cn, GlassControlRow, toast } from '@asterism/ui';
 import {
   AlertTriangleIcon,
@@ -22,6 +22,7 @@ import { EmptyState } from '../components/empty-state';
 import { LoadingRegion } from '../components/loading-region';
 import { PageHeader } from '../components/page-header';
 import { BrowseToolbarSkeleton } from '../components/page-loading-states';
+import type { RepoCardCollection } from '../components/repo-card-context';
 import { RepoFilterBar } from '../components/repo-filter-bar';
 import { RepoGridSkeleton, RepoListSkeleton } from '../components/repo-skeletons';
 import { RepoViewToggle } from '../components/repo-view-toggle';
@@ -37,12 +38,10 @@ import {
 import { useCollectionRepos } from '../data/use-collection-repos';
 import { useCollections, useCreateCollection } from '../data/use-collections';
 import { useNoteRepoIds } from '../data/use-note-repo-ids';
-import { useRepoTags } from '../data/use-repo-tags';
 import { useFreshRepoEmbeddings } from '../data/use-semantic-neighborhood';
 import { SEMANTIC_MATCH_COUNT, useSemanticNeighbors } from '../data/use-semantic-search';
 import { useStarredRepos } from '../data/use-starred-repos';
 import { useSyncStars } from '../data/use-sync-stars';
-import { useTags } from '../data/use-tags';
 import { useBrowseView } from '../hooks/use-browse-view';
 import { useCollectionDial } from '../hooks/use-collection-dial';
 import { useReadmeReturnRestore } from '../hooks/use-readme-return-restore';
@@ -54,7 +53,7 @@ import {
 } from '../lib/bulk-selection';
 import { getMultiCollectionDialBlockReason } from '../lib/collection-dial-availability';
 import { peekPendingReadmeReturn } from '../lib/readme-return-coordinator';
-import { countCollectionsByRepo, toRepoIdSet } from '../lib/repo-card-metadata';
+import { toRepoIdSet } from '../lib/repo-card-metadata';
 import { toRepoFilter, useBrowseFilters } from '../stores/browse-filters';
 import type { RepoViewMode } from '../stores/browse-view';
 import { useListScrollStore } from '../stores/list-scroll';
@@ -78,8 +77,6 @@ function BrowseDataPage() {
   const { data, isLoading: reposLoading, isError, refetch, isFetching } = useStarredRepos();
   const records = useMemo(() => data ?? [], [data]);
   const embeddingBootstrap = useEmbeddingBootstrapContext();
-  const { data: tags, isLoading: tagsLoading } = useTags();
-  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
   const createCollection = useCreateCollection();
@@ -96,13 +93,7 @@ function BrowseDataPage() {
   const bulkActions = useBulkOperationActions();
   const dialOperationActions = useCollectionDialOperationActions();
   const { data: noteRepoIds, isLoading: notesLoading } = useNoteRepoIds();
-  const isLoading =
-    reposLoading ||
-    tagsLoading ||
-    repoTagsLoading ||
-    collectionReposLoading ||
-    collectionsLoading ||
-    notesLoading;
+  const isLoading = reposLoading || collectionReposLoading || collectionsLoading || notesLoading;
   const sync = useSyncStars();
   const syncPending = sync.requiresReconnect ? sync.reconnectPending : sync.isPending;
   const [repoScrollElement, setRepoScrollElement] = useState<HTMLElement | null>(null);
@@ -220,18 +211,18 @@ function BrowseDataPage() {
   }, [view, repoScrollElement]);
 
   const facets = useMemo(() => deriveRepoFacets(records), [records]);
-  const tagsByRepoId = useMemo(() => {
+  const collectionsByRepoId = useMemo(() => {
     const map = new Map<string, string[]>();
-    for (const link of repoTags ?? []) {
+    for (const link of collectionRepos ?? []) {
       const list = map.get(link.repoId);
       if (list) {
-        list.push(link.tagId);
+        list.push(link.collectionId);
       } else {
-        map.set(link.repoId, [link.tagId]);
+        map.set(link.repoId, [link.collectionId]);
       }
     }
     return map;
-  }, [repoTags]);
+  }, [collectionRepos]);
 
   // 全量新鲜路径不创建 Worker（backend 为 null），但向量已在库中、查询嵌入会按需自准备：
   // 就绪判定看 phase，而非要求本会话存在活的 Worker。
@@ -247,7 +238,7 @@ function BrowseDataPage() {
       minStars: filters.minStars,
       pushedWithinDays: filters.pushedWithinDays,
       status: filters.status,
-      tagIds: filters.tagIds,
+      collectionIds: filters.collectionIds,
     }),
     [
       deferredQuery,
@@ -255,7 +246,7 @@ function BrowseDataPage() {
       filters.minStars,
       filters.pushedWithinDays,
       filters.status,
-      filters.tagIds,
+      filters.collectionIds,
       filters.topic,
     ],
   );
@@ -267,11 +258,11 @@ function BrowseDataPage() {
         filter: deferredFilter,
         sort: filters.sort,
         now: Date.now(),
-        tagsByRepoId,
+        collectionsByRepoId,
         distanceByRepoId,
         semanticLimit: SEMANTIC_MATCH_COUNT,
       }),
-    [records, deferredFilter, filters.sort, tagsByRepoId, distanceByRepoId],
+    [records, deferredFilter, filters.sort, collectionsByRepoId, distanceByRepoId],
   );
   const visible = useMemo(() => [...hybrid.primary, ...hybrid.semantic], [hybrid]);
   // 语义近邻起始下标：关键词命中之后的第一条；无近邻时为 null（不渲染分隔线）。
@@ -298,27 +289,28 @@ function BrowseDataPage() {
     ready: !isLoading,
   });
 
-  const tagsByRepo = useMemo(() => {
-    const byId = new Map((tags ?? []).map((tag) => [tag.id, tag as Tag]));
-    const map = new Map<string, Tag[]>();
-    for (const link of repoTags ?? []) {
-      const tag = byId.get(link.tagId);
-      if (!tag) {
+  const collectionsByRepo = useMemo(() => {
+    const byId = new Map(
+      (collections ?? []).map((collection) => [
+        collection.id,
+        { id: collection.id, name: collection.name } satisfies RepoCardCollection,
+      ]),
+    );
+    const map = new Map<string, RepoCardCollection[]>();
+    for (const link of collectionRepos ?? []) {
+      const collection = byId.get(link.collectionId);
+      if (!collection) {
         continue;
       }
       const list = map.get(link.repoId);
       if (list) {
-        list.push(tag);
+        list.push(collection);
       } else {
-        map.set(link.repoId, [tag]);
+        map.set(link.repoId, [collection]);
       }
     }
     return map;
-  }, [tags, repoTags]);
-  const collectionCountByRepo = useMemo(
-    () => countCollectionsByRepo(collectionRepos ?? []),
-    [collectionRepos],
-  );
+  }, [collections, collectionRepos]);
   const noteRepoIdSet = useMemo(() => toRepoIdSet(noteRepoIds ?? []), [noteRepoIds]);
   const total = new Intl.NumberFormat(i18n.language).format(visible.length);
   const hasRepos = records.length > 0;
@@ -420,8 +412,7 @@ function BrowseDataPage() {
       view={view}
       records={visible}
       semanticStartIndex={semanticStartIndex}
-      tagsByRepo={tagsByRepo}
-      collectionCountByRepo={collectionCountByRepo}
+      collectionsByRepo={collectionsByRepo}
       noteRepoIds={noteRepoIdSet}
       selectedRepoId={selectedRepoId}
       onSelect={openInspector}
@@ -467,7 +458,7 @@ function BrowseDataPage() {
                   <RepoViewToggle committedView={view} onSelect={transitionTo} />
                 </div>
               </div>
-              <RepoFilterBar facets={facets} tags={tags ?? []}>
+              <RepoFilterBar facets={facets} collections={collections ?? []}>
                 {!bulkSelectionMode ? (
                   <Button
                     variant="outline"
@@ -556,7 +547,6 @@ function BrowseDataPage() {
           open={bulkDialogOpen}
           onOpenChange={setBulkDialogOpen}
           repoCount={selectedRepoIds.size}
-          tags={tags ?? []}
           collections={collections ?? []}
           pending={bulkActions.create.isPending}
           error={bulkActions.create.isError}
@@ -579,9 +569,7 @@ function BrowseDataPage() {
           onOpenChange={setBulkExportOpen}
           selectedRepoIds={selectedRepoIds}
           starredRepos={records}
-          tags={tags ?? []}
           collections={collections ?? []}
-          repoTags={repoTags ?? []}
           collectionRepos={collectionRepos ?? []}
         />
         {collectionDial.state.phase === 'active' ? (

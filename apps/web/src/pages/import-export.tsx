@@ -23,9 +23,7 @@ import {
   useImportUserData,
 } from '../data/use-import-export';
 import { useNotesList } from '../data/use-notes-list';
-import { useRepoTags } from '../data/use-repo-tags';
 import { useStarredRepos } from '../data/use-starred-repos';
-import { useTags } from '../data/use-tags';
 import { buildExportSnapshot } from '../lib/export-snapshot';
 
 const FORMAT_OPTIONS: { id: ExportFormat; icon: typeof FileJsonIcon; ext: string; mime: string }[] =
@@ -41,31 +39,22 @@ export function ImportExportPage() {
   const [dragOver, setDragOver] = useState(false);
 
   const { data: starredRepos, isLoading: starredReposLoading } = useStarredRepos();
-  const { data: tags, isLoading: tagsLoading } = useTags();
   const { data: collections, isLoading: collectionsLoading } = useCollections();
-  const { data: repoTags, isLoading: repoTagsLoading } = useRepoTags();
   const { data: collectionRepos, isLoading: collectionReposLoading } = useCollectionRepos();
   const { data: notesList, isLoading: notesLoading } = useNotesList();
   const importData = useImportUserData();
   const isLoading =
-    starredReposLoading ||
-    tagsLoading ||
-    collectionsLoading ||
-    repoTagsLoading ||
-    collectionReposLoading ||
-    notesLoading;
+    starredReposLoading || collectionsLoading || collectionReposLoading || notesLoading;
 
   const snapshot = useMemo(
     (): ExportSnapshot =>
       buildExportSnapshot({
         starredRepos: starredRepos ?? [],
-        tags: tags ?? [],
         collections: collections ?? [],
-        repoTags: repoTags ?? [],
         collectionRepos: collectionRepos ?? [],
         notes: notesList ?? [],
       }),
-    [starredRepos, tags, collections, repoTags, collectionRepos, notesList],
+    [starredRepos, collections, collectionRepos, notesList],
   );
 
   const hasData = (starredRepos?.length ?? 0) > 0;
@@ -89,9 +78,8 @@ export function ImportExportPage() {
       const result = await importData.mutateAsync(raw);
       toast.success(t('importExport.importSuccess'), {
         description: t('importExport.importSummary', {
-          tags: result.imported.tags,
           collections: result.imported.collections,
-          links: result.imported.repoTags + result.imported.collectionRepos,
+          collectionRepos: result.imported.collectionRepos,
           notes: result.imported.notes,
         }),
       });

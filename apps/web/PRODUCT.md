@@ -9,23 +9,23 @@ product
 ## Users
 
 - **重度 star 用户**：starred 仓库数以百计甚至上千，靠 GitHub 原生功能已无法有效管理。
-- **技术内容整理者**：需要给收藏打标签、写笔记、按主题归集，沉淀为个人技术资料库。
+- **技术内容整理者**：需要给收藏建集合、写笔记、按主题归集，沉淀为个人技术资料库。
 - **跨设备 / 跨端用户**：希望在浏览器、扩展、桌面之间共享同一份组织好的收藏。
 - **注重数据自主**：偏好开源、可自部署、数据可导出的方案。
 
-Context: developers, at their desk, mid-workflow — searching for a repo they starred months ago, or triaging a fresh batch of stars into tags/collections. The job is retrieval and organization, not discovery/browsing for pleasure.
+Context: developers, at their desk, mid-workflow — searching for a repo they starred months ago, or triaging a fresh batch of stars into collections. The job is retrieval and organization, not discovery/browsing for pleasure.
 
 ## Product Purpose
 
-Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。它把开发者杂乱无章、随手点下的成百上千个 starred 仓库，重新组织成一个**可检索、可标注、可分类、可洞察**的个人知识星图（"Asterism" = 星群：把零散的星标连成有意义的星座）。
+Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。它把开发者杂乱无章、随手点下的成百上千个 starred 仓库，重新组织成一个**可检索、可归集、可记录、可洞察**的个人知识星图（"Asterism" = 星群：把零散的星标连成有意义的星座）。
 
-`apps/web` is the primary surface (响应式 Web，MVP 优先端)，覆盖登录、同步、浏览（卡片/列表 + 虚拟滚动）、多维筛选、隐形混合搜索、Related Stars、标签、集合、笔记、手动批量整理、统计仪表盘与导入导出。success = 用户能在几秒内从上千个 star 里找到仓库，并用稳定、可恢复的手动流程维护自己的分类。
+`apps/web` is the primary surface (响应式 Web，MVP 优先端)，覆盖登录、同步、浏览（卡片/列表 + 虚拟滚动）、多维筛选、隐形混合搜索、Related Stars、集合、笔记、手动批量整理、统计仪表盘与导入导出。ADR 0035 已退役用户自定义 Tag，组织关系只保留 Collection。success = 用户能在几秒内从上千个 star 里找到仓库，并用稳定、可恢复的手动流程维护自己的集合。
 
 ## Brand Personality
 
 - **克制、专业、面向开发者**：低调工具感，不靠视觉说服，靠效率说服。
 - **秩序感优先于装饰**：信息密度优先，动效克制而不喧宾夺主。
-- **星座隐喻**：collections / tags 等概念可呼应"星座"意象，但不能让功能表达含糊——隐喻服务功能，不喧宾夺主。
+- **星座隐喻**：collections 可呼应"星座"意象，但不能让功能表达含糊——隐喻服务功能，不喧宾夺主。不要用 Tag 作为第二套组织概念。
 
 ## Anti-references
 
@@ -39,7 +39,7 @@ Asterism 是一个**开源、多端、可自部署**的 GitHub Star 管理器。
 3. **状态透明**：同步中 / 完成 / 失败等状态要清晰可见，用户始终知道数据处于什么阶段、来自哪里。
 4. **隐喻服务功能，不喧宾夺主**："星座"主题词可用但不能让操作路径或信息层级变得含糊。
 5. **数据自主与开源优先**：可自部署、数据可导出，视觉与交互不应制造"锁定感"（如隐藏导出入口、模糊数据归属）。
-6. **用户掌控 canonical**：标签、集合与笔记只由用户的明确操作修改；浏览器内语义能力只帮助检索和发现相关收藏。
+6. **用户掌控 canonical**：集合与笔记只由用户的明确操作修改；浏览器内语义能力只帮助检索和发现相关收藏。ADR 0035 退役用户自定义 Tag。
 
 ## Accessibility & Inclusion
 

@@ -1,10 +1,10 @@
-import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { memo, useEffect, useState } from 'react';
 import type { BulkSelectionController } from '../lib/bulk-selection';
 import type { CollectionDialGripController } from '../lib/collection-dial-grip';
 import type { RepoViewMode } from '../stores/browse-view';
 import type { RepoOpenModality } from '../stores/repo-inspector';
+import type { RepoCardCollection } from './repo-card-context';
 import { RepoCollection } from './repo-collection';
 
 const VIEW_MODES = ['grid', 'list'] as const satisfies readonly RepoViewMode[];
@@ -13,8 +13,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   view,
   records,
   semanticStartIndex,
-  tagsByRepo,
-  collectionCountByRepo,
+  collectionsByRepo,
   noteRepoIds,
   selectedRepoId,
   onSelect,
@@ -25,8 +24,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
   view: RepoViewMode;
   records: StarredRepoRecord[];
   semanticStartIndex?: number | null;
-  tagsByRepo?: Map<string, Tag[]>;
-  collectionCountByRepo?: Map<string, number>;
+  collectionsByRepo?: Map<string, RepoCardCollection[]>;
   noteRepoIds?: Set<string>;
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
@@ -56,8 +54,7 @@ export const BrowseRepoList = memo(function BrowseRepoList({
               records={records}
               semanticStartIndex={semanticStartIndex}
               view={mode}
-              tagsByRepo={tagsByRepo}
-              collectionCountByRepo={collectionCountByRepo}
+              collectionsByRepo={collectionsByRepo}
               noteRepoIds={noteRepoIds}
               selectedRepoId={selectedRepoId}
               onSelect={onSelect}

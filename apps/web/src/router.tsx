@@ -8,7 +8,6 @@ import {
   DashboardRouteLoading,
   ImportExportRouteLoading,
   SettingsRouteLoading,
-  TagsRouteLoading,
 } from './components/page-loading-states';
 import { AppLayout } from './layouts/app-layout';
 import { BrowsePage } from './pages/browse';
@@ -30,9 +29,6 @@ const CollectionDetailPage = lazy(() =>
     default: module.CollectionDetailPage,
   })),
 );
-const TagsPage = lazy(() =>
-  import('./pages/tags').then((module) => ({ default: module.TagsPage })),
-);
 const DashboardPage = lazy(() =>
   import('./pages/dashboard').then((module) => ({ default: module.DashboardPage })),
 );
@@ -45,7 +41,6 @@ const SettingsPage = lazy(() =>
 type RouteLoadingKind =
   | 'collections'
   | 'collectionDetail'
-  | 'tags'
   | 'dashboard'
   | 'importExport'
   | 'settings';
@@ -59,8 +54,6 @@ function PageFallback({ kind }: { kind: RouteLoadingKind }) {
       return <CollectionsRouteLoading label={label} />;
     case 'collectionDetail':
       return <CollectionDetailRouteLoading label={label} />;
-    case 'tags':
-      return <TagsRouteLoading label={label} />;
     case 'dashboard':
       return <DashboardRouteLoading label={label} />;
     case 'importExport':
@@ -116,7 +109,7 @@ export const router = createBrowserRouter([
         path: 'collections/:id',
         element: lazyPage(<CollectionDetailPage />, 'collectionDetail'),
       },
-      { path: 'tags', element: lazyPage(<TagsPage />, 'tags') },
+      { path: 'tags', element: <Navigate to="/collections" replace /> },
       { path: 'dashboard', element: lazyPage(<DashboardPage />, 'dashboard') },
       { path: 'organization/*', element: <Navigate replace to="/" /> },
       {

@@ -11,7 +11,7 @@ function item(overrides: Partial<BulkOperationItem> = {}): BulkOperationItem {
   return {
     id: 'item-1',
     repoId: 'repo-1',
-    relationType: 'tag',
+    relationType: 'collection',
     targetId: 'target-1',
     action: 'add',
     status: 'running',
@@ -29,9 +29,6 @@ function store(overrides: Partial<RelationshipStore> = {}): RelationshipStore {
   return {
     ownsRepository: vi.fn().mockResolvedValue(true),
     ownsTarget: vi.fn().mockResolvedValue(true),
-    relationshipExists: vi.fn().mockResolvedValue(false),
-    addRelationship: vi.fn().mockResolvedValue(undefined),
-    removeRelationship: vi.fn().mockResolvedValue(undefined),
     mutateCollectionRelationship: vi.fn().mockResolvedValue({
       effectiveChanged: true,
       effectiveMutationId: 'mutation-1',
@@ -41,50 +38,33 @@ function store(overrides: Partial<RelationshipStore> = {}): RelationshipStore {
   };
 }
 
-describe('idempotent tag and collection relationship writes', () => {
-  it.each([
-    'tag',
-    'collection',
-  ] as const)('adds a missing %s relationship through the same ownership-checked interface', async (relationType) => {
+describe('collection relationship writes', () => {
+  it('adds a missing collection relationship through the ownership-checked interface', async () => {
     const memory = store();
-    const change = item({ relationType });
+    const change = item();
 
     await expect(applyRelationship(memory, 'user-1', change)).resolves.toEqual({
       effectiveChanged: true,
-      effectiveMutationId: relationType === 'collection' ? 'mutation-1' : null,
-      effectiveRelationVersion: relationType === 'collection' ? 2 : null,
+      effectiveMutationId: 'mutation-1',
+      effectiveRelationVersion: 2,
     });
 
     expect(memory.ownsRepository).toHaveBeenCalledWith('user-1', 'repo-1');
-    expect(memory.ownsTarget).toHaveBeenCalledWith('user-1', relationType, 'target-1');
-    if (relationType === 'collection') {
-      expect(memory.mutateCollectionRelationship).toHaveBeenCalledWith('user-1', change);
-      expect(memory.addRelationship).not.toHaveBeenCalled();
-    } else {
-      expect(memory.addRelationship).toHaveBeenCalledWith('user-1', change);
-    }
+    expect(memory.ownsTarget).toHaveBeenCalledWith('user-1', 'collection', 'target-1');
+    expect(memory.mutateCollectionRelationship).toHaveBeenCalledWith('user-1', change);
   });
 
-  it('treats adding an existing relationship as success without writing it again', async () => {
-    const memory = store({ relationshipExists: vi.fn().mockResolvedValue(true) });
+  it('fails historical tag items without touching collections', async () => {
+    const memory = store();
 
-    await expect(applyRelationship(memory, 'user-1', item())).resolves.toEqual({
-      effectiveChanged: false,
-      effectiveMutationId: null,
-      effectiveRelationVersion: null,
+    await expect(
+      applyRelationship(memory, 'user-1', item({ relationType: 'tag' })),
+    ).rejects.toMatchObject({
+      code: 'relation_type_retired',
+      kind: 'terminal',
     });
-    expect(memory.addRelationship).not.toHaveBeenCalled();
-  });
-
-  it('treats removing a missing relationship as success without issuing a delete', async () => {
-    const memory = store({ relationshipExists: vi.fn().mockResolvedValue(false) });
-
-    await expect(applyRelationship(memory, 'user-1', item({ action: 'remove' }))).resolves.toEqual({
-      effectiveChanged: false,
-      effectiveMutationId: null,
-      effectiveRelationVersion: null,
-    });
-    expect(memory.removeRelationship).not.toHaveBeenCalled();
+    expect(memory.ownsRepository).not.toHaveBeenCalled();
+    expect(memory.mutateCollectionRelationship).not.toHaveBeenCalled();
   });
 
   it('rejects a repository outside the authenticated user library', async () => {
@@ -104,7 +84,7 @@ describe('idempotent tag and collection relationship writes', () => {
       code: 'target_not_owned',
       kind: 'terminal',
     });
-    expect(memory.addRelationship).not.toHaveBeenCalled();
+    expect(memory.mutateCollectionRelationship).not.toHaveBeenCalled();
   });
 });
 

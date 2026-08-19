@@ -24,7 +24,7 @@ Authoritative values + full CSS block in `ui-ux.md` § Design Tokens. Core roles
 | `--ring` / `--link` | `#3B82F6` / `#1E54C7` | `#60A5FA` / `#6EA8FE` |
 | `--glass-surface` | `rgba(252,252,253,.72)` | `rgba(18,22,29,.68)` |
 
-Color strategy: **Restrained** — blue is reserved for primary actions, current selection, links, focus and info; success/warning/destructive have independent semantic colors. Language/tag colors are limited to small coding marks; large chart areas use the blue scale.
+Color strategy: **Restrained** — blue is reserved for primary actions, current selection, links, focus and info; success/warning/destructive have independent semantic colors. Language colors are limited to small coding marks; large chart areas use the blue scale. ADR 0035 does not give collections a color palette.
 
 ## Typography
 

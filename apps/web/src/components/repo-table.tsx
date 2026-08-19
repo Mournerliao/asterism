@@ -1,8 +1,7 @@
-import type { Tag } from '@asterism/core';
 import type { StarredRepoRecord } from '@asterism/db';
 import { Badge, CollectionDialGrip, cn } from '@asterism/ui';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { ArchiveIcon, CheckIcon, FolderIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
+import { ArchiveIcon, CheckIcon, NotebookPenIcon, StarIcon } from 'lucide-react';
 import { type KeyboardEvent, type MouseEvent, memo, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { BulkSelectionController } from '../lib/bulk-selection';
@@ -12,8 +11,12 @@ import { languageColor } from '../lib/language-colors';
 import { findScrollParent, useScrollMargin } from '../lib/scroll-margin';
 import type { RepoOpenModality } from '../stores/repo-inspector';
 import { OverflowChipRow } from './overflow-chip-row';
+import {
+  buildRepoContextItems,
+  type RepoCardCollection,
+  type RepoContextItem,
+} from './repo-card-context';
 import { SemanticSectionLabel } from './semantic-section-separator';
-import { TagPill } from './tag-badge';
 
 const DESKTOP_ROW_HEIGHT = 64;
 const MOBILE_ROW_HEIGHT = 104;
@@ -77,17 +80,26 @@ function ActivityValue({
   );
 }
 
+function ContextChip({ item }: { item: RepoContextItem }) {
+  return (
+    <Badge variant="secondary" className="h-[22px] font-normal">
+      {item.label}
+    </Badge>
+  );
+}
+
 function RepoContext({
-  tags,
-  collectionCount,
+  collections,
+  topics,
   hasNote,
 }: {
-  tags: readonly Tag[];
-  collectionCount: number;
+  collections: readonly RepoCardCollection[];
+  topics: readonly string[];
   hasNote: boolean;
 }) {
   const { t } = useTranslation();
-  const hasContext = tags.length > 0 || collectionCount > 0 || hasNote;
+  const contextItems = buildRepoContextItems(collections, topics);
+  const hasContext = contextItems.length > 0 || hasNote;
 
   if (!hasContext) {
     return null;
@@ -96,34 +108,23 @@ function RepoContext({
   return (
     <div className="flex min-w-0 items-center gap-2">
       <div className="min-w-0 flex-1">
-        {tags.length > 0 ? (
+        {contextItems.length > 0 ? (
           <OverflowChipRow
-            items={tags}
-            getKey={(tag) => tag.id}
-            getItemLabel={(tag) => tag.name}
-            overflowLabel={(count) => t('browse.moreTagsLabel', { count })}
-            renderChip={(tag) => <TagPill tag={tag} />}
+            items={contextItems}
+            getKey={(item) => item.key}
+            getItemLabel={(item) => item.label}
+            overflowLabel={(count) => t('browse.moreContextLabel', { count })}
+            renderChip={(item) => <ContextChip item={item} />}
             renderOverflowChip={(count) => (
               <Badge variant="secondary" className="h-[22px] font-normal text-muted-foreground">
                 +{count}
               </Badge>
             )}
-            renderTooltipItem={(tag) => <TagPill tag={tag} />}
+            renderTooltipItem={(item) => <ContextChip item={item} />}
           />
         ) : null}
       </div>
       <span className="flex shrink-0 items-center gap-2 text-caption text-muted-foreground">
-        {collectionCount > 0 ? (
-          <span
-            role="img"
-            className="inline-flex items-center gap-1"
-            aria-label={t('browse.inCollections', { count: collectionCount })}
-            title={t('browse.inCollections', { count: collectionCount })}
-          >
-            <FolderIcon className="size-3.5" aria-hidden="true" />
-            <span aria-hidden="true">{collectionCount}</span>
-          </span>
-        ) : null}
         {hasNote ? (
           <span role="img" aria-label={t('browse.hasNote')} title={t('browse.hasNote')}>
             <NotebookPenIcon className="size-3.5" aria-hidden="true" />
@@ -136,8 +137,7 @@ function RepoContext({
 
 export const RepoTableRow = memo(function RepoTableRow({
   record,
-  tags = [],
-  collectionCount = 0,
+  collections = [],
   hasNote = false,
   onSelect,
   selected = false,
@@ -149,8 +149,7 @@ export const RepoTableRow = memo(function RepoTableRow({
   className,
 }: {
   record: StarredRepoRecord;
-  tags?: Tag[];
-  collectionCount?: number;
+  collections?: RepoCardCollection[];
   hasNote?: boolean;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
   selected?: boolean;
@@ -310,11 +309,11 @@ export const RepoTableRow = memo(function RepoTableRow({
           <div
             className={cn('min-w-0 max-w-[45%] flex-[0_1_18rem]', layout === 'mobile' && 'hidden')}
           >
-            <RepoContext tags={tags} collectionCount={collectionCount} hasNote={hasNote} />
+            <RepoContext collections={collections} topics={repo.topics} hasNote={hasNote} />
           </div>
         </div>
         <div className={cn('mt-1 min-w-0', layout !== 'mobile' && 'hidden')}>
-          <RepoContext tags={tags} collectionCount={collectionCount} hasNote={hasNote} />
+          <RepoContext collections={collections} topics={repo.topics} hasNote={hasNote} />
         </div>
       </td>
 
@@ -412,8 +411,7 @@ function TableHeader({ layout }: { layout: TableLayout }) {
 export const RepoTable = memo(function RepoTable({
   records,
   semanticStartIndex,
-  tagsByRepo,
-  collectionCountByRepo,
+  collectionsByRepo,
   noteRepoIds,
   selectedRepoId,
   onSelect,
@@ -423,8 +421,7 @@ export const RepoTable = memo(function RepoTable({
 }: {
   records: StarredRepoRecord[];
   semanticStartIndex?: number | null;
-  tagsByRepo?: Map<string, Tag[]>;
-  collectionCountByRepo?: Map<string, number>;
+  collectionsByRepo?: Map<string, RepoCardCollection[]>;
   noteRepoIds?: Set<string>;
   selectedRepoId?: string;
   onSelect?: (record: StarredRepoRecord, modality: RepoOpenModality) => void;
@@ -509,8 +506,7 @@ export const RepoTable = memo(function RepoTable({
             <RepoTableRow
               key={record.repo.githubId}
               record={record}
-              tags={tagsByRepo?.get(record.repoId)}
-              collectionCount={collectionCountByRepo?.get(record.repoId)}
+              collections={collectionsByRepo?.get(record.repoId)}
               hasNote={noteRepoIds?.has(record.repoId)}
               selected={record.repoId === selectedRepoId}
               layout={layout}
@@ -544,8 +540,7 @@ export const RepoTable = memo(function RepoTable({
                 key={record.repo.githubId}
                 className="repo-semantic-enter"
                 record={record}
-                tags={tagsByRepo?.get(record.repoId)}
-                collectionCount={collectionCountByRepo?.get(record.repoId)}
+                collections={collectionsByRepo?.get(record.repoId)}
                 hasNote={noteRepoIds?.has(record.repoId)}
                 selected={record.repoId === selectedRepoId}
                 layout={layout}

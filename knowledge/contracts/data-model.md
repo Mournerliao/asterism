@@ -7,8 +7,9 @@
 ## 设计原则
 
 - **`repos` 为全局共享、公共可读**：同一个 GitHub 仓库的元数据全局只存一份，所有用户共享读取，避免重复。
-- **用户私有数据按 `user_id` 隔离**：star 关系、标签、集合、笔记、设置等都归属具体用户，彼此不可见。
-- **关系尽量规范化**：多对多关系（仓库↔标签、仓库↔集合）用独立连接表表达。
+- **用户私有数据按 `user_id` 隔离**：star 关系、集合、笔记、设置等都归属具体用户，彼此不可见。
+- **关系尽量规范化**：多对多关系（仓库↔集合）用独立连接表表达。
+- **用户组织只保留 Collection（ADR 0035）**：用户命名的分组、工作列表与状态型短标记都写入 `collections` / `collection_repos`。`tags` / `repo_tags` 已由 cutover migration 迁入集合后删除；Tag color 不迁移。
 - **进阶能力保持解耦**：`bulk_operations` / `bulk_operation_items` 提供可靠手动批量写入；`user_repo_embeddings` 保存浏览器生成的 derived 向量。AI Provider、草稿、任务与计划表已由 ADR 0032 退役。
 
 约定：所有表含 `id`（主键，uuid 或 bigint，下文不再逐一重复）、`created_at`、`updated_at`（时间戳）。`user_id` 引用 Supabase `auth.users(id)`。
@@ -37,7 +38,7 @@
 - `is_fork` — 是否为 fork（boolean，可选）
 - `synced_at` — 本系统最近一次同步该仓库元数据的时间
 
-关系：被 `user_stars`、`repo_tags`、`collection_repos` 与 `notes` 引用。
+关系：被 `user_stars`、`collection_repos` 与 `notes` 引用。
 
 ### `user_stars` — 用户的 star 关系
 
@@ -49,21 +50,9 @@
 
 约束：`(user_id, repo_id)` 唯一。
 
-### `tags` — 用户自定义标签
+### `tags` / `repo_tags` — 已退役（ADR 0035）
 
-- `user_id` → `auth.users(id)`
-- `name` — 标签名
-- `color` — 标签颜色（可选）
-
-约束：`(user_id, name)` 唯一（同一用户内标签名不重复）。
-
-### `repo_tags` — 仓库↔标签连接表（多对多）
-
-- `user_id` → `auth.users(id)`（冗余，便于 RLS 过滤）
-- `repo_id` → `repos(id)`
-- `tag_id` → `tags(id)`
-
-约束：`(user_id, repo_id, tag_id)` 唯一。
+Cutover migration `20260819120000_retire_user_tags.sql` 已按 `normalize_classification_name` 把每个 Tag 转为或合并进 Collection，幂等写入 `collection_repos` 与 baseline `collection_relation_heads`，然后删除这两张表。`color` 丢弃。规格见 `logs/2026-08-19-retire-user-tags.md`。
 
 ### `collections` — 用户集合
 
@@ -115,8 +104,8 @@ Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写
 
 - `operation_id` → `bulk_operations(id)`
 - `user_id`、`repo_id`
-- `relation_type` — `tag` / `collection`
-- `target_id` — 目标标签或集合 ID
+- `relation_type` — `tag` / `collection`；cutover 后新建只允许 `collection`，历史 `tag` 行保留为账本事实
+- `target_id` — 目标集合 ID；历史 `tag` 行指向已删除的标签 ID，仅用于解读旧账本
 - `action` — `add` / `remove`
 - `status` — `pending` / `running` / `succeeded` / `retryable_failed` / `terminal_failed` / `dismissed`
 - `attempt_count`、`last_error_code`、`last_error_message`
@@ -159,9 +148,10 @@ Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写
   - SELECT：全局可读（所有已认证用户均可读）。
   - INSERT / UPDATE：仅由受信路径写入（同步逻辑 / Edge Functions / service role），普通用户不可直接写。
 
-- **`user_stars` / `tags` / `repo_tags` / `collections` / `notes` / `user_repo_embeddings`**
+- **`user_stars` / `collections` / `notes` / `user_repo_embeddings`**
   - SELECT / INSERT / UPDATE / DELETE：均要求 `user_id = auth.uid()`。
   - 用户只能读写自己的行，无法看到或修改他人数据。
+  - `tags` / `repo_tags` 已由 ADR 0035 cutover 删除。
 
 - **`collection_repos` / `collection_relation_heads`**
   - SELECT：要求 `user_id = auth.uid()`。
@@ -170,6 +160,6 @@ Collection Dial 首个真实 add mutation receipt 由服务端在同一事务写
 - **`bulk_operations` / `bulk_operation_items`**
   - SELECT：要求 `user_id = auth.uid()`，客户端可读取本人的操作进度与结果。
   - INSERT / UPDATE / DELETE：普通客户端无直接表权限；创建、执行、重试与明确结束只经受信批量写入路径完成。
-  - 受信路径必须校验操作、项目、仓库成员关系以及目标标签 / 集合都属于当前用户。
+  - 受信路径必须校验操作、项目、仓库成员关系以及目标集合都属于当前用户。cutover 前仍校验历史标签目标。
 
 > 通用规则：只有 `repos` 全局可读；用户私有数据都以 `auth.uid()` 与行内 `user_id` 匹配作为访问前提。连接表冗余存 `user_id` 即为简化此类 RLS 过滤。

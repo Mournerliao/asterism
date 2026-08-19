@@ -27,6 +27,7 @@ Asterism 的数据库 schema 与行级安全（RLS）以迁移文件形式存放
 | `20260814120000_collection_dial_missing_item_scope.sql` | Collection Dial 多选只为冻结范围内真正缺失的 repository ID 创建 items；幂等冲突同时绑定完整范围与缺失子集 |
 | `20260814170000_collection_dial_undo.sql` | Collection Dial 30 秒 Undo：首次 effective add receipt 原子写入不可延长的 `undo_expires_at`，并新增仅 service-role 的 `create_collection_dial_undo` RPC |
 | `20260818150000_fix_collection_dial_undo_apply.sql` | 修正 `apply_collection_relation_mutation` 中 Undo 收据查找的 PL/pgSQL 变量 / SQL 别名碰撞，使 remove 能真正落到 matching membership |
+| `20260819120000_retire_user_tags.sql` | ADR 0035：按规范化名把 Tag 转为或合并进 Collection，幂等写入 `collection_repos` 与 baseline `collection_relation_heads`，然后删除 `tags` / `repo_tags`；新建 bulk operation 只接受 `collection` |
 
 > 2026-08-05 之前的 AI / Organization migration 是已部署环境必须重放的历史；
 > 新环境仍按文件名顺序应用，最终由 `20260805120000_remove_ai_organization.sql` 收敛到当前 schema。
@@ -60,7 +61,7 @@ supabase db push
 select tablename, rowsecurity from pg_tables where schemaname = 'public' order by tablename;
 ```
 
-`repos / user_stars / tags / repo_tags / collections / collection_repos /
+`repos / user_stars / collections / collection_repos /
 collection_relation_heads / notes / bulk_operations / bulk_operation_items /
 user_repo_embeddings` 的
 `rowsecurity` 应均为 `true`。
@@ -91,7 +92,7 @@ user_repo_embeddings` 的
    `last_operation_item_id is null` 的基线 head，canonical 行数保持不变。
 
 应用 `20260814170000_collection_dial_undo.sql` 并部署含 `undo` action 的 `bulk-organize` 后，
-Collection Dial 的 30 秒 Undo 才可在真实会话使用。throwaway prototype 已退役。GitHub #34 生产实现已合入，剩余旅程由维护者验收，不要求 agent 补测。
+Collection Dial 的 30 秒 Undo 才可在真实会话使用。throwaway prototype 已退役。GitHub #34 已关闭；验收问题另开 ticket。
 
 ## GitHub OAuth 配置（后台手动一次）
 

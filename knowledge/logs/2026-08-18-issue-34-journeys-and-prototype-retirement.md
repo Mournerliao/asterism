@@ -28,8 +28,8 @@ DEV 页内验收脚本仅用于本轮测量，未合入仓库。
 ## 残留
 
 - 临时集合已删除。2026-08-18 19:30 在已登录 Chrome `/collections` 核到 `0 collections` 与 empty state `No collections yet`，未见 `#34 temp`。
-- 未实测：桌面连续 10、Grid pointer drop、虚拟化卸载、More/New 真路径、Undo 冲突/过期、390 滚动误触、200% zoom / reduced motion。合入后不要关闭 #34，直到这些项有证据或明确降级。
+- 其余旅程不再要求 agent 实测。2026-08-19 起 #34 剩余关单是维护者验收，见 `logs/2026-08-19-issue-34-human-verification.md`。
 
 ## 后续
 
-#34 保持开放；Phase 2.2 仍为实现中，直到余下旅程补测或明确裁剪。
+生产实现与原型退役已合入。#34 保持开放，直到维护者完成剩余旅程验收或发现缺陷后另开 fix。

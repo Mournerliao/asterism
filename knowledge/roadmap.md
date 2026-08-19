@@ -7,14 +7,14 @@
 - **Phase 0 已验收（2026-06-29）**：Monorepo 实包、共享包骨架、CI、初始 schema + RLS 迁移、GitHub OAuth 登录均完成并端到端验证；设计 token（GitHub Primer）已定稿并落 `packages/ui`。详见 `state/PROGRESS.md`。
 - **Phase 1 已完成**：Web MVP 用户可见主流程、真实 Supabase 核心链路、七项最终收尾与四道工程门禁已于 2026-07-18 全部验收。
 - **Phase 2 已完成并收敛**：可靠手动批量整理、选中导出、浏览器内 embedding、隐形混合搜索与 Related Stars 已交付；服务端 AI 整理及 BYOK Generation 于 2026-08-05 按 ADR 0032 退役。
-- **当前产品 frontier 为 Phase 2.2**：ADR 0033 已接受 Collection Dial；#30–#33 已关闭，#34 真实旅程部分通过且原型已退役，其余验收项与合入后关单仍待完成。Phase 3 浏览器扩展仍可独立开始。
+- **当前产品 frontier 为 Phase 2.2**：ADR 0033 已接受 Collection Dial；#30–#33 已关闭，#34 生产实现与原型退役已合入，剩余关单是维护者验收。Phase 3 浏览器扩展仍可独立开始。
 
 | 阶段 | 名称 | 状态 |
 | --- | --- | --- |
 | Phase 0 | 脚手架 Scaffold | 已验收（Done, 2026-06-29） |
 | Phase 1 | Web MVP | Done（2026-07-18） |
 | Phase 2 | 批量整理 + 浏览器内语义检索 | Done（2026-08-05，AI 整理已退役） |
-| Phase 2.2 | Collection Dial | 实现中（#30–#33 Done；#34 验收中） |
+| Phase 2.2 | Collection Dial | 实现完成（#30–#33 Done；#34 待维护者验收） |
 | Phase 3 | 浏览器扩展 Extension | 未开始 |
 | Phase 4 | 桌面 Desktop | 未开始 |
 

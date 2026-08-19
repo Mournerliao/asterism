@@ -91,7 +91,7 @@ user_repo_embeddings` 的
    `last_operation_item_id is null` 的基线 head，canonical 行数保持不变。
 
 应用 `20260814170000_collection_dial_undo.sql` 并部署含 `undo` action 的 `bulk-organize` 后，
-Collection Dial 的 30 秒 Undo 才可在真实会话使用。GitHub #34 已完成部分真实连续旅程验收（两次 Undo、List、多选冻结、390 连续 5 项），throwaway prototype 已退役；桌面连续 10、Grid 投放、More/New 真路径等仍待补测。
+Collection Dial 的 30 秒 Undo 才可在真实会话使用。throwaway prototype 已退役。GitHub #34 生产实现已合入，剩余旅程由维护者验收，不要求 agent 补测。
 
 ## GitHub OAuth 配置（后台手动一次）
 

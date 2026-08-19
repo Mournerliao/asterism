@@ -6,7 +6,7 @@
 
 ## 当前状态
 
-> **#34 真实连续任务验收与原型退役（2026-08-18）**：在已登录真实 Browse 上完成连续两次成功 Undo、List Grip Space → Q/E → Enter、多选冻结（Added 1 · Already there 1）、embedding 静默、390 连续 5 项 add+undo，以及 3/5/7 窗口抽样与 Escape 焦点恢复。验收中修复 Undo apply 的 PL/pgSQL 变量遮蔽，并让成功 Undo 立刻宣告。throwaway prototype 与 `?prototype=collection-dial` 已删除；许可文件夹 SVG 迁到 `packages/ui/src/assets/collection-dial/`。#34 其余旅程（桌面连续 10、Grid 投放、More/New 真路径、Undo 冲突/过期、200% zoom）尚未全部实测，issue 保持开放直到补齐。2026-08-18 已在 Collections 页核到 0 collections。见 `logs/2026-08-18-issue-34-journeys-and-prototype-retirement.md`。
+> **#34 实现已收口，关单改维护者验收（2026-08-19）**：Collection Dial 生产功能与 throwaway prototype 退役已合入；Undo apply 变量遮蔽已修。Agent 不再补测剩余旅程。#34 改为 `ready-for-human`，由维护者在真实账号上验收后关单，缺陷另开 fix。见 `logs/2026-08-19-issue-34-human-verification.md` 与 `logs/2026-08-18-issue-34-journeys-and-prototype-retirement.md`。
 
 > **#33 远端已对齐并关闭（2026-08-18）**：维护者项目 `hqtrmulypxwdqvzlkhke` 已应用 `20260814170000_collection_dial_undo.sql`（`supabase migration list --linked` Local=Remote），并部署匹配的 `bulk-organize` ACTIVE v5；远端确认 `create_collection_dial_undo` RPC 存在。GitHub #33 已关闭。未在本轮提交真实表单或改动 canonical。下一 frontier 为 #34 连续任务验收与原型退役。见 `logs/2026-08-18-issue-33-remote-deploy.md`。
 

@@ -4,7 +4,7 @@
 
 - **#30 受信集合关系 mutation seam（2026-08-12）**：`20260812120000_trusted_collection_relation_mutations.sql` 回填既有 membership 为不隶属 operation 的 baseline head，并让每次真实 collection add/remove 在受信事务中推进 version + UUID receipt；no-op 不推进。Quick Look / import 走 authenticated `mutate_collection_relation` 并形成单项 operation / item，bulk executor 走 service-role `apply_collection_relation_mutation`；普通客户端不再直写 `collection_repos`。Bulk operation 已增加 interaction / 绑定规范化 payload 的 UUID client request idempotency / Undo 预留字段，item 持久化严格 `effective_changed` / mutation UUID / relation version receipt；响应丢失后的单项请求或 worker 重领保留原 operation 与完整 receipt，同 key 换 payload 被拒绝。`pnpm test:db` pgTAP 门禁在 CI 本地 Supabase 上自动覆盖真实并发、baseline/no-op、响应丢失与授权失败；当前未推送 migration 或部署函数，本机无 Docker，故未在本机会话执行数据库门禁。下一 ticket 是 #31，不得提前实现多选、More / New 或 Undo。
 
-- **Collection Dial ticket chain（更新于 2026-08-18）**：原生线性依赖为 #30 trusted relation mutations → #31 production single-repo Dial → #32 frozen multi-select + semantic ordering → #33 More / New / Undo / recovery → #34 measured acceptance + prototype retirement。#30–#33 已落地；#34 已完成连续 Undo / List / 多选 / embedding 静默 / 390 连续 5 项与原型退役，其余旅程待补测，合入后勿直接关单。
+- **Collection Dial ticket chain（更新于 2026-08-19）**：原生线性依赖为 #30 → #31 → #32 → #33 → #34。#30–#33 已关闭；#34 生产实现与原型退役已合入，剩余关单是维护者验收，不再要求 agent 实测。
 
 - **Collection Dial buildable spec（2026-08-12，GitHub #29 / ADR 0034）**：单项和多选都走持久 `bulk-organize` lifecycle；candidate snapshot 最多提供 7 个 quick targets，范围 >50、embedding 不可用或多选无简单多数共识时静默使用 session MRU + stable order。More 只从冻结 catalog 选目标，New 创建成功后立即对原 scope 发起 add，关系失败不得重复创建集合。Undo 服务端窗口为 30 秒，只反转成功 item 中 `effective_changed=true` 且当前 collection relation head 仍匹配 receipt 的关系。下一步 `/to-tickets` 必须先向用户确认 ticket 粒度和 blocking edges，获批前不发布 tickets。
 
